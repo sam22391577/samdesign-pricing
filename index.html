@@ -688,11 +688,10 @@ a { color: inherit; text-decoration: none; }
 .hero .container.reveal.in > p:not(.eyebrow),
 .hero .container.reveal.in > .hero-secondary-links { transform: translateY(0) scale(1); }
 .hero-scroll-cue {
-  position: absolute;
-  left: 50%;
-  bottom: 1.4rem;
-  z-index: 2;
+  position: relative;
   display: grid;
+  width: fit-content;
+  margin: 1.4rem auto 0;
   justify-items: center;
   gap: 0.45rem;
   color: var(--color-text-light);
@@ -701,7 +700,6 @@ a { color: inherit; text-decoration: none; }
   font-weight: 600;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  transform: translateX(-50%);
 }
 .hero-scroll-cue span {
   width: 1px;
@@ -1171,8 +1169,8 @@ a { color: inherit; text-decoration: none; }
       <a href="#contact" class="btn btn-outline"><span class="btn-label">與我聯絡</span><span class="btn-arrow" aria-hidden="true">→</span></a>
       <a href="/samdesign-pricing/calculator/" class="btn btn-primary"><span class="btn-label">立即試算</span><span class="btn-arrow" aria-hidden="true">→</span></a>
     </nav>
+    <div class="hero-scroll-cue" aria-hidden="true"><span></span>Scroll</div>
   </div>
-  <div class="hero-scroll-cue" aria-hidden="true"><span></span>Scroll</div>
 </section>
 
 <!-- Portfolio Marquee Section -->

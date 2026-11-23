@@ -298,6 +298,8 @@ test("calculator service links preselect one service and open its specification 
 test("homepage interaction polish stays compact and motion-aware", async () => {
   const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
   assert.match(html, /class="marquee-wrapper" aria-label="近期作品輪播，可左右拖曳"/);
+  assert.match(html, /<nav class="hero-secondary-links"[\s\S]*?<\/nav>\s*<div class="hero-scroll-cue" aria-hidden="true"><span><\/span>Scroll<\/div>/);
+  assert.match(html, /\.hero-scroll-cue \{[\s\S]*?position: relative;[\s\S]*?width: fit-content;[\s\S]*?margin: 1\.4rem auto 0;/);
   assert.match(html, /const normalSpeed = -32/);
   assert.match(html, /prefers-reduced-motion: reduce/);
   assert.match(html, /pointerdown|pointermove|pointerup/);
