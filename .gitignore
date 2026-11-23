@@ -38,6 +38,7 @@ yarn-error.log*
 /gh-pages-app/
 /gh-pages-dist/
 /.wrangler/
+/wrangler.deploy.jsonc
 /outputs/
 /work/
 *.tsbuildinfo
