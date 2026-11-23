@@ -16,6 +16,28 @@ type NewInquiryPayload = {
   website?: string;
 };
 
+const publicFormOrigins = new Set([
+  "https://sam22391577.github.io",
+]);
+
+function publicFormCorsHeaders(request: Request) {
+  const origin = request.headers.get("origin");
+  if (!origin || !publicFormOrigins.has(origin)) return new Headers();
+  return new Headers({
+    "access-control-allow-origin": origin,
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-headers": "content-type",
+    "access-control-max-age": "86400",
+    "vary": "Origin",
+  });
+}
+
+function publicFormJson(request: Request, data: unknown, init?: ResponseInit) {
+  const response = Response.json(data, init);
+  publicFormCorsHeaders(request).forEach((value, key) => response.headers.set(key, value));
+  return response;
+}
+
 function cleanText(value: unknown, maxLength: number) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
 }
@@ -66,10 +88,18 @@ export async function GET() {
   }
 }
 
+export async function OPTIONS(request: Request) {
+  const headers = publicFormCorsHeaders(request);
+  if (!headers.has("access-control-allow-origin")) {
+    return new Response(null, { status: 403 });
+  }
+  return new Response(null, { status: 204, headers });
+}
+
 export async function POST(request: Request) {
   try {
     const payload = (await request.json()) as NewInquiryPayload;
-    if (payload.website) return Response.json({ ok: true }, { status: 201 });
+    if (payload.website) return publicFormJson(request, { ok: true }, { status: 201 });
 
     const clientName = cleanText(payload.clientName, 80);
     const company = cleanText(payload.company, 120);
@@ -83,7 +113,7 @@ export async function POST(request: Request) {
     const budget = Number.isFinite(payload.budget) ? Math.max(0, Math.round(payload.budget ?? 0)) : null;
 
     if (!clientName || !contact || !projectType || services.length === 0) {
-      return Response.json({ error: "請填寫姓名與聯絡方式，並完成需求試算。" }, { status: 400 });
+      return publicFormJson(request, { error: "請填寫姓名與聯絡方式，並完成需求試算。" }, { status: 400 });
     }
 
     const id = formatInquiryId();
@@ -111,8 +141,8 @@ export async function POST(request: Request) {
         JSON.stringify(payload.answers ?? {}),
       ).run();
 
-    return Response.json({ inquiry: { id, submittedAt } }, { status: 201 });
+    return publicFormJson(request, { inquiry: { id, submittedAt } }, { status: 201 });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "送出失敗，請稍後再試。" }, { status: 500 });
+    return publicFormJson(request, { error: error instanceof Error ? error.message : "送出失敗，請稍後再試。" }, { status: 500 });
   }
 }

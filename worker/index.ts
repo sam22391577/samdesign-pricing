@@ -21,7 +21,7 @@ interface Env {
 function needsAdminAccess(request: Request, pathname: string) {
   if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) return true;
   if (!pathname.startsWith("/api/inquiries")) return false;
-  return !(pathname === "/api/inquiries" && request.method === "POST");
+  return !(pathname === "/api/inquiries" && ["POST", "OPTIONS"].includes(request.method));
 }
 
 function privateWorkspaceResponse() {

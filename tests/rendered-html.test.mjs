@@ -1680,16 +1680,21 @@ test("live summary and downloaded PDF explain each price calculation", async () 
 });
 
 test("inquiry capture uses one required contact method and a three-day reply window", async () => {
-  const [source, api, record, dashboard] = await Promise.all([
+  const [source, api, record, dashboard, worker] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/inquiries/[id]/inquiry-record.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(source, /通常於 3 個工作日內回覆/);
   assert.match(source, /需求已送出，將會盡快與您聯絡/);
-  assert.match(source, /送出後會保留本次試算內容，後續將會與您聯繫/);
+  assert.match(source, /送出後會保留本次試算內容，並同步到需求管理後台，後續將會與您聯繫/);
+  assert.match(source, /<details className="inquiry-capture" open>/);
+  assert.match(source, /"送出需求 →"/);
+  assert.match(source, /https:\/\/samdesign-questionnaire\.samdesign-studio\.workers\.dev\/api\/inquiries/);
+  assert.doesNotMatch(source, /usesStaticContactFlow|setUsesStaticContactFlow/);
   assert.match(source, /帶著需求與我聯繫/);
   assert.match(source, /function copyLineInquirySummary\(\)/);
   assert.match(source, /const lineInquirySummaryLines = useMemo/);
@@ -1708,6 +1713,10 @@ test("inquiry capture uses one required contact method and a three-day reply win
   assert.match(source, /品牌／公司（選填）[\s\S]*?placeholder="可留空"/);
   assert.match(api, /if \(!clientName \|\| !contact \|\| !projectType \|\| services\.length === 0\)/);
   assert.match(api, /請填寫姓名與聯絡方式，並完成需求試算/);
+  assert.match(api, /https:\/\/sam22391577\.github\.io/);
+  assert.match(api, /export async function OPTIONS\(request: Request\)/);
+  assert.match(api, /access-control-allow-origin/);
+  assert.match(worker, /\["POST", "OPTIONS"\]\.includes\(request\.method\)/);
   assert.match(record, /const contactValue = inquiry\.contact \|\| inquiry\.email \|\| "未填寫"/);
   assert.match(record, /<span>您的聯絡方式<\/span><button className=\{`record-contact-copy[\s\S]*?<strong>\{contactValue\}<\/strong>/);
   assert.doesNotMatch(record, /其他聯絡方式|寄送 Email/);

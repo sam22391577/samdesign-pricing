@@ -2295,7 +2295,6 @@ export default function Home() {
   const [isSingleSpecificationAdvancing, setIsSingleSpecificationAdvancing] = useState(false);
   const [confirmedSingleServiceIds, setConfirmedSingleServiceIds] = useState<string[]>([]);
   const [showQuoteUpdated, setShowQuoteUpdated] = useState(false);
-  const [usesStaticContactFlow, setUsesStaticContactFlow] = useState(false);
   const chatBodyRef = useRef<HTMLDivElement>(null);
   const currentQuestionRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -2317,10 +2316,6 @@ export default function Home() {
     if (stepTransitionTimerRef.current !== undefined) window.clearTimeout(stepTransitionTimerRef.current);
     if (monthlySpecificationTimerRef.current !== undefined) window.clearTimeout(monthlySpecificationTimerRef.current);
     if (singleSpecificationTimerRef.current !== undefined) window.clearTimeout(singleSpecificationTimerRef.current);
-  }, []);
-
-  useEffect(() => {
-    setUsesStaticContactFlow(window.location.hostname.endsWith(".github.io"));
   }, []);
 
   useEffect(() => {
@@ -4711,7 +4706,10 @@ export default function Home() {
     setInquirySubmitMessage("");
 
     try {
-      const response = await fetch("/api/inquiries", {
+      const inquiryEndpoint = window.location.hostname.endsWith(".github.io")
+        ? "https://samdesign-questionnaire.samdesign-studio.workers.dev/api/inquiries"
+        : "/api/inquiries";
+      const response = await fetch(inquiryEndpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -6824,17 +6822,7 @@ export default function Home() {
               </section>
             </details>
             {renderSpecificationServiceSwitcher()}
-            {usesStaticContactFlow ? (
-              <section className="inquiry-capture" aria-labelledby="inquiry-capture-title">
-                <div className="inquiry-success" role="status">
-                  <span aria-hidden="true">LINE</span>
-                  <div>
-                    <strong id="inquiry-capture-title">需要正式報價？請用下方 LINE 聯繫</strong>
-                    <small>點擊後會先複製本次需求摘要，進入 LINE 再貼上即可。</small>
-                  </div>
-                </div>
-              </section>
-            ) : inquirySubmitState === "success" ? (
+            {inquirySubmitState === "success" ? (
               <section className="inquiry-capture" aria-labelledby="inquiry-capture-title">
                 <div className="inquiry-success" role="status">
                   <span aria-hidden="true">✓</span>
@@ -6845,19 +6833,19 @@ export default function Home() {
                 </div>
               </section>
             ) : (
-              <details className="inquiry-capture">
+              <details className="inquiry-capture" open>
                 <summary className="inquiry-capture-heading">
                   <div><span>正式報價</span><strong id="inquiry-capture-title">需要正式報價？留下聯絡方式</strong></div>
                   <small>通常於 3 個工作日內回覆</small>
                 </summary>
                 <div className="inquiry-capture-body">
-                  <p>送出後會保留本次試算內容，後續將會與您聯繫。</p>
+                  <p>送出後會保留本次試算內容，並同步到需求管理後台，後續將會與您聯繫。</p>
                   <form className="inquiry-form" onSubmit={submitInquiry}>
                     <label><span>姓名 *</span><input name="clientName" autoComplete="name" required maxLength={80} placeholder="怎麼稱呼你？" /></label>
                     <label><span>品牌／公司（選填）</span><input name="company" autoComplete="organization" maxLength={120} placeholder="可留空" /></label>
                     <label><span>您的聯絡方式 *</span><input name="contact" autoComplete="tel" required maxLength={180} placeholder="LINE ID、電話或其他可聯絡方式" /></label>
                     <label className="form-honeypot" aria-hidden="true"><span>網站</span><input name="website" tabIndex={-1} autoComplete="off" /></label>
-                    <button type="submit" disabled={inquirySubmitState === "submitting"}>{inquirySubmitState === "submitting" ? "正在送出…" : "送出需求並保留試算 →"}</button>
+                    <button type="submit" disabled={inquirySubmitState === "submitting"}>{inquirySubmitState === "submitting" ? "正在送出…" : "送出需求 →"}</button>
                   </form>
                   {inquirySubmitState === "error" && <p className="inquiry-error" role="alert">{inquirySubmitMessage}</p>}
                 </div>
