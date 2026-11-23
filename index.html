@@ -1,0 +1,2216 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- SEO -->
+  <title>設計服務價目 · Design Studio│電商 / 平面 / 月方案</title>
+  <meta name="description" content="提供電商視覺、社群圖、平面設計、月方案配合。專注於品牌調性一致的視覺輸出,從單張設計到長期合作都能彈性配合。">
+  <meta name="keywords" content="設計服務,設計報價,電商設計,社群圖,平面設計,海報設計,傳單設計,DM設計,名片設計,月方案,Banner,菜單">
+  <meta name="author" content="Design Studio">
+  <meta name="robots" content="index, follow">
+<!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="設計服務價目 · Design Studio">
+  <meta property="og:description" content="電商 / 平面 / 月方案,從單張設計到長期合作的彈性配合。">
+<!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="設計服務價目 · Design Studio">
+  <meta name="twitter:description" content="電商 / 平面 / 月方案,從單張設計到長期合作的彈性配合。">
+<!-- 字型 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+
+
+
+
+
+/* ===== Refined Studio Design System ===== */
+:root {
+  --color-bg: #f5f0eb;
+  --color-surface: #faf8f6;
+  --color-surface-alt: #f5f0eb;
+  --color-panel: #faf8f6;
+  --color-ink: #746557;
+  --color-text: #746557;
+  --color-text-light: #746557;
+  --color-muted: #746557;
+  --color-border: rgba(91, 74, 58, 0.16);
+  --color-border-strong: rgba(91, 74, 58, 0.28);
+  --color-accent: #5a4a3a;
+  --color-accent-hover: #5a4a3a;
+  --color-accent-light: rgba(91, 74, 58, 0.10);
+  --color-clay: #5a4a3a;
+  --color-clay-soft: rgba(91, 74, 58, 0.08);
+  --color-blue: #5a4a3a;
+  --font-sans: 'Noto Serif TC', 'Cormorant Garamond', 'Songti TC', serif;
+  --font-en: 'Cormorant Garamond', 'Noto Serif TC', Georgia, serif;
+  --font-number: 'Cormorant Garamond', 'Noto Serif TC', Georgia, serif;
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4.5rem;
+  --space-3xl: 7rem;
+  --radius: 8px;
+  --shadow-sm: 0 1px 2px rgba(91, 74, 58, 0.06), 0 10px 28px rgba(91, 74, 58, 0.05);
+  --shadow-md: 0 18px 48px rgba(91, 74, 58, 0.10);
+  --shadow-lg: 0 28px 80px rgba(91, 74, 58, 0.16);
+  --motion-fast: 160ms;
+  --motion-standard: 460ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: var(--font-sans);
+  background:
+    linear-gradient(180deg, rgba(250,248,246,0.72), rgba(240,235,229,0.36) 38%, rgba(245,240,235,0.92)),
+    var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.72;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+  font-weight: 500;
+}
+a { color: inherit; text-decoration: none; }
+.container { max-width: 1180px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 2.5rem); }
+
+.hero {
+  min-height: 94vh;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-3xl) 0 var(--space-2xl);
+  background:
+    linear-gradient(118deg, rgba(250,248,246,0.96), rgba(240,235,229,0.9) 52%, rgba(240,235,229,0.58)),
+    var(--color-surface);
+}
+.hero::before {
+  content: none;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  right: -8rem;
+  bottom: -9rem;
+  width: 30rem;
+  height: 30rem;
+  background: radial-gradient(circle, rgba(155, 133, 119, 0.18), transparent 68%);
+  pointer-events: none;
+}
+.hero .container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-width: 0;
+  max-width: 960px;
+}
+.eyebrow {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1.15rem;
+  color: var(--color-text);
+  font-family: var(--font-en);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.eyebrow::before {
+  content: '';
+  width: 34px;
+  height: 1px;
+  background: var(--color-clay);
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: ink-line 0.7s 0.18s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.hero h1 {
+  position: relative;
+  isolation: isolate;
+  display: inline-block;
+  color: var(--color-ink);
+  font-size: clamp(3.2rem, 9vw, 7.6rem);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 0.98;
+  margin-bottom: 1.4rem;
+  text-wrap: balance;
+}
+.hero h1::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -2.4rem -5rem -2rem -3rem;
+  background:
+    radial-gradient(circle at 18% 36%, transparent 0 3.8rem, rgba(91,74,58,0.08) 3.85rem 3.95rem, transparent 4rem),
+    radial-gradient(circle at 72% 64%, transparent 0 5.8rem, rgba(91,74,58,0.065) 5.85rem 5.95rem, transparent 6rem),
+    repeating-linear-gradient(115deg, transparent 0 2.8rem, rgba(91,74,58,0.035) 2.85rem 2.9rem);
+  opacity: 0.9;
+  transform: rotate(-4deg);
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 38%, transparent 78%);
+  mask-image: radial-gradient(ellipse at center, #000 38%, transparent 78%);
+}
+.mobile-title-break { display: none; }
+.hero p:not(.eyebrow) {
+  max-width: 720px;
+  color: var(--color-text-light);
+  font-size: clamp(1.1rem, 2vw, 1.45rem);
+  line-height: 1.82;
+  margin-bottom: var(--space-xl);
+}
+.cta-buttons { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+.hero .cta-buttons { justify-content: flex-start; }
+.hero-secondary-links {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 0;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.8rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 0.2rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.hero-secondary-links::-webkit-scrollbar { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .hero-secondary-links.can-scroll { cursor: grab; }
+  .hero-secondary-links.is-dragging {
+    cursor: grabbing;
+    scroll-snap-type: none;
+    user-select: none;
+  }
+}
+.cta-section .contact-buttons { justify-content: center; margin-top: 0.18rem; }
+#contact .contact-or { display: inline-block; margin-top: 0.62rem; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0.82rem 1.35rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+.btn-primary {
+  color: #faf8f6;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  box-shadow: none;
+}
+.btn-primary:hover { background: var(--color-accent-hover); transform: translateY(-2px); box-shadow: none; }
+.btn-outline {
+  background: rgba(250,248,246,0.52);
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+.btn-outline:hover { background: var(--color-accent-light); transform: translateY(-2px); }
+
+.section-header { text-align: left; margin-bottom: var(--space-xl); }
+.section-header h2 {
+  color: var(--color-ink);
+  font-size: clamp(2.1rem, 4vw, 3.4rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0;
+  margin-bottom: 0.75rem;
+}
+.section-header p { max-width: 680px; color: var(--color-text-light); font-size: 1.04rem; line-height: 1.9; margin-top: 0.15rem; }
+
+.portfolio-marquee-section {
+  width: 100%;
+  overflow: hidden;
+  padding: 2rem 0 3rem;
+  background: var(--color-surface-alt);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+.marquee-label {
+  margin-bottom: 1.25rem;
+  text-align: center;
+  color: var(--color-text);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+.marquee-note {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--color-text-light);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+.marquee-wrapper {
+  width: 100%;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+}
+.marquee-wrapper.is-dragging { cursor: grabbing; }
+.marquee-track {
+  display: flex;
+  width: max-content;
+}
+.marquee-wrapper.is-running .marquee-track { will-change: transform; }
+.marquee-item { flex-shrink: 0; margin-right: 1.1rem; }
+.marquee-item img {
+  display: block;
+  height: 320px;
+  width: auto;
+  max-width: none;
+  border-radius: 8px;
+  box-shadow: none;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  transition: transform var(--motion-standard) var(--motion-ease), box-shadow var(--motion-standard) ease, filter var(--motion-standard) ease;
+}
+.marquee-item:hover img { transform: translateY(-2px); box-shadow: 0 18px 44px rgba(91, 74, 58, 0.13); filter: saturate(1.03); }
+
+.pricing-section { padding: var(--space-3xl) 0; background: var(--color-surface); }
+#monthly { background: var(--color-surface-alt) !important; }
+.pricing-tabs {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-xl);
+}
+.tab {
+  padding: 0.62rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: rgba(250,248,246,0.62);
+  color: var(--color-text-light);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s var(--motion-ease);
+}
+.tab:hover { color: var(--color-text); border-color: var(--color-border-strong); }
+.tab.active { color: #faf8f6; background: var(--color-accent); border-color: var(--color-accent); box-shadow: 0 12px 24px rgba(91,74,58,0.18); transform: translateY(-1px); }
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(265px, 1fr));
+  gap: 1rem;
+  margin-bottom: var(--space-xl);
+  opacity: 1;
+  transform: translateY(0);
+  overflow: clip;
+  transition: height var(--motion-standard) var(--motion-ease), opacity var(--motion-fast) ease, transform 220ms var(--motion-ease);
+}
+.pricing-grid.is-filtering { opacity: 1; transform: translateY(5px); }
+.pricing-grid.is-settling .pricing-card:not(.hide) { animation: pricing-card-settle var(--motion-standard) var(--motion-ease) both; }
+.monthly-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pricing-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 1.35rem;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(250,248,246,0.98), rgba(250,248,246,0.96));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.26s ease, border-color 0.22s ease;
+}
+.pricing-card::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pricing-card:hover,
+.pricing-card:focus-within { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--color-border-strong); }
+.pricing-card:hover::after,
+.pricing-card:focus-within::after { transform: scaleX(1); }
+.pricing-card.reveal-complete {
+  transition: transform 0.26s var(--motion-ease), box-shadow 0.26s ease, border-color 0.22s ease;
+  transition-delay: 0ms;
+}
+.pricing-card.hide { display: none; }
+.category-note.hide { display: none; }
+.pricing-card-header { display: flex; flex-direction: column; }
+.pricing-card-header h3 { color: var(--color-ink); font-size: 1.26rem; font-weight: 600; line-height: 1.25; margin-bottom: 0.35rem; }
+.pricing-card-header .subtitle { color: var(--color-text-light); font-size: 0.94rem; line-height: 1.68; min-height: 3em; margin-bottom: 1.15rem; }
+.price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  color: var(--color-text);
+  font-family: var(--font-number);
+  font-size: 2.42rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  margin-bottom: 1.15rem;
+  font-variant-numeric: lining-nums tabular-nums;
+  transition: color 0.26s ease, transform 0.26s var(--motion-ease);
+}
+.pricing-card:hover .price,
+.pricing-card:focus-within .price { color: var(--color-accent); transform: translateY(-1px); }
+.price-amount { display: inline-flex; align-items: center; }
+.price-currency {
+  font-size: 0.62em;
+  line-height: 1;
+  margin-right: 0.1em;
+}
+.price-unit { color: var(--color-text-light); font-family: var(--font-sans); font-size: 0.9rem; font-weight: 600; }
+.price-range { flex-wrap: wrap; row-gap: 0.35rem; font-size: 1.9rem; }
+.features { list-style: none; margin: 0 0 1rem; }
+.features li {
+  position: relative;
+  padding: 0.74rem 0 0.74rem 1.05rem;
+  border-top: 1px solid rgba(91,74,58,0.11);
+  color: var(--color-text);
+  font-size: 0.94rem;
+  line-height: 1.72;
+  font-weight: 500;
+}
+.features li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 1.18rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-clay);
+}
+.feature-label {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+.note {
+  margin-top: auto;
+  padding: 0.64rem 0.75rem;
+  border: 1px solid rgba(155,133,119,0.18);
+  border-radius: var(--radius);
+  background: rgba(240,235,229,0.62);
+  color: #746557;
+  font-size: 0.78rem;
+  text-align: center;
+  font-weight: 600;
+}
+.service-card-cta {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-end;
+  justify-content: flex-start;
+  gap: 0.45rem;
+  width: fit-content;
+  min-height: 42px;
+  margin-top: auto;
+  padding: 0.58rem 0.12rem 0.12rem 0.7rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.86rem;
+  font-weight: 700;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.service-card-cta:hover {
+  transform: translateY(-1px);
+  color: var(--color-accent);
+}
+.service-card-cta span { transition: transform 0.18s ease; }
+.service-card-cta:hover span { transform: translateX(3px); }
+.note + .service-card-cta { margin-top: 0.75rem; }
+
+#monthly .monthly-cooperation-note {
+  padding: 1.4rem !important;
+  background: rgba(250,248,246,0.78) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+#monthly .monthly-cooperation-note h3 { color: var(--color-ink) !important; font-size: 1.15rem !important; }
+#monthly .monthly-cooperation-note li { color: var(--color-text) !important; font-weight: 500 !important; }
+#monthly .monthly-cooperation-note span { background: var(--color-clay) !important; }
+
+.process-section { padding: var(--space-3xl) 0; background: linear-gradient(180deg, var(--color-surface), var(--color-surface-alt)); }
+.process-steps { max-width: 920px; margin: 0 auto; }
+.step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 1.35rem;
+  margin-bottom: 1.25rem;
+  padding: 1.2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+.step::after { display: none; }
+.step-number {
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #faf8f6;
+  font-family: var(--font-sans);
+  font-size: 1.32rem;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.step-number img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.step-content { padding-top: 0.15rem; }
+.step h3 { color: var(--color-ink); font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+.step p { color: var(--color-text-light); font-size: 0.98rem; line-height: 1.95; }
+
+.faq-section { padding: var(--space-3xl) 0; background: var(--color-surface); }
+.faq-list { max-width: 880px; margin: 0 auto; }
+.faq-item {
+  overflow: hidden;
+  margin-bottom: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: rgba(250,248,246,0.88);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.faq-item:hover { border-color: var(--color-border-strong); box-shadow: var(--shadow-md); }
+.faq-question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  color: var(--color-ink);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.faq-question::after { content: '+'; color: var(--color-text); font-size: 1.5rem; font-weight: 400; transition: transform 0.25s ease; }
+.faq-item.active .faq-question::after { content: '+'; transform: rotate(45deg); }
+.faq-answer { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease; }
+.faq-item.active .faq-answer { grid-template-rows: 1fr; opacity: 1; }
+.faq-answer-content { min-height: 0; overflow: hidden; padding: 0 1.25rem; color: var(--color-text-light); font-size: 0.94rem; line-height: 1.95; transition: padding-bottom 0.32s ease; }
+.faq-item.active .faq-answer-content { padding-bottom: 1.45rem; }
+
+@media (min-width: 769px) {
+  .process-section .section-header {
+    max-width: 920px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .faq-section .section-header {
+    max-width: 880px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.cta-section {
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-3xl) 0;
+  text-align: center;
+  background: #5a4a3a !important;
+}
+.cta-section::before {
+  content: '';
+  position: absolute;
+  inset: auto -8rem -12rem auto;
+  width: 28rem;
+  height: 28rem;
+  background: radial-gradient(circle, rgba(155,133,119,0.22), transparent 70%);
+}
+.cta-section .container { position: relative; z-index: 1; }
+.cta-section h2 { color: #faf8f6 !important; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 600; margin-bottom: 0.7rem; }
+.cta-question-mark { font-family: var(--font-sans); font-size: 0.9em; font-weight: 500; margin-left: 0.04em; vertical-align: 0.02em; }
+.cta-section p { color: #f5f0eb !important; font-size: 1rem; line-height: 1.9; margin-bottom: var(--space-lg); }
+.cta-section .btn-primary { background: #faf8f6; color: var(--color-ink); border-color: #faf8f6; box-shadow: none; }
+.cta-section .btn-primary:hover { background: #f5f0eb; border-color: #f5f0eb; color: var(--color-accent); transform: translateY(-2px); box-shadow: none; }
+#contact img[alt="LINE QR Code"] { border: 8px solid rgba(250,248,246,0.92); box-shadow: 0 24px 64px rgba(91,74,58,0.28) !important; }
+
+.reveal, .reveal-stagger {
+  opacity: 1;
+  transform: translateY(14px);
+  transition:
+    transform var(--motion-standard) var(--motion-ease);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal.in, .reveal-stagger.in { opacity: 1; transform: translateY(0); }
+@keyframes ink-line { to { transform: scaleX(1); } }
+@keyframes pricing-card-settle {
+  from { opacity: 1; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero .container.reveal {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+.hero .container.reveal > * {
+  opacity: 1;
+  transform: translateY(14px);
+  transition: transform var(--motion-standard) var(--motion-ease);
+}
+.hero .container.reveal.in > * { opacity: 1; transform: translateY(0); }
+.hero .container.reveal > :nth-child(2) { transition-delay: 85ms; }
+.hero .container.reveal > :nth-child(3) { transition-delay: 170ms; }
+.hero .container.reveal > :nth-child(4) { transition-delay: 255ms; }
+.hero .container.reveal:not(.in) .eyebrow::before { animation-play-state: paused; }
+
+.back-to-top {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 999;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(250,248,246,0.28);
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #faf8f6;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: opacity 0.25s ease, transform 0.25s var(--motion-ease), background 0.25s ease, visibility 0s linear 0.25s;
+}
+.back-to-top.show { opacity: 1; visibility: visible; transform: translateY(0); transition-delay: 0s; }
+.back-to-top:hover { transform: translateY(-3px); background: var(--color-accent); }
+.back-to-top::before { content: '↑'; font-size: 1.35rem; font-weight: 600; }
+
+/* ===== Expressive motion layer ===== */
+.scroll-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 1200;
+  height: 4px;
+  overflow: hidden;
+  background: rgba(91, 74, 58, 0.08);
+  pointer-events: none;
+}
+.scroll-progress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #9b8577, var(--color-accent), #746557);
+  box-shadow: 0 0 18px rgba(91, 74, 58, 0.28);
+  transform: scaleX(var(--scroll-progress, 0));
+  transform-origin: left center;
+  will-change: transform;
+}
+.hero {
+  --hero-x-soft: 0px;
+  --hero-y-soft: 0px;
+  --hero-x-strong: 0px;
+  --hero-y-strong: 0px;
+  --hero-x-negative: 0px;
+  --hero-y-negative: 0px;
+  --hero-scroll: 0px;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  left: -10rem;
+  top: -12rem;
+  width: 38rem;
+  height: 38rem;
+  border: 1px solid rgba(91, 74, 58, 0.09);
+  border-radius: 42% 58% 63% 37% / 42% 42% 58% 58%;
+  background:
+    radial-gradient(circle at 60% 56%, rgba(155, 133, 119, 0.15), transparent 57%),
+    rgba(250, 248, 246, 0.18);
+  transform: translate3d(var(--hero-x-negative), calc(var(--hero-y-negative) + var(--hero-scroll)), 0) rotate(-12deg);
+  animation: hero-orbit 14s ease-in-out infinite alternate;
+  pointer-events: none;
+  will-change: transform;
+}
+.hero::after {
+  transform: translate3d(var(--hero-x-strong), calc(var(--hero-y-strong) + var(--hero-scroll)), 0);
+  animation: hero-glow 7s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+.hero h1::before {
+  transform: translate3d(var(--hero-x-soft), var(--hero-y-soft), 0) rotate(-4deg);
+  transition: transform 180ms ease-out;
+}
+.hero .container.reveal > h1 {
+  transform: translateY(32px) scale(0.94);
+  transition-duration: 760ms;
+}
+.hero .container.reveal.in > h1 { transform: translateY(0) scale(1); }
+.hero .container.reveal > p:not(.eyebrow) { transform: translateY(24px); }
+.hero .container.reveal > .hero-secondary-links { transform: translateY(22px) scale(0.98); }
+.hero .container.reveal.in > p:not(.eyebrow),
+.hero .container.reveal.in > .hero-secondary-links { transform: translateY(0) scale(1); }
+.hero-scroll-cue {
+  position: absolute;
+  left: 50%;
+  bottom: 1.4rem;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  color: var(--color-text-light);
+  font-family: var(--font-en);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+}
+.hero-scroll-cue span {
+  width: 1px;
+  height: 34px;
+  overflow: hidden;
+  background: rgba(91, 74, 58, 0.2);
+}
+.hero-scroll-cue span::after {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 55%;
+  background: var(--color-accent);
+  animation: scroll-cue 1.8s var(--motion-ease) infinite;
+}
+.hero-secondary-links .btn {
+  --magnet-x: 0px;
+  --magnet-y: 0px;
+  --button-lift: 0px;
+  --button-scale: 1;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 50px;
+  padding-inline: 1.45rem;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  white-space: nowrap;
+  transform: translate3d(var(--magnet-x), calc(var(--magnet-y) - var(--button-lift)), 0) scale(var(--button-scale));
+  transition: transform 260ms var(--motion-ease), box-shadow 260ms ease, background 260ms ease, color 220ms ease, border-color 220ms ease;
+  will-change: transform;
+}
+.hero-secondary-links .btn::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  border-radius: inherit;
+  background: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 420ms var(--motion-ease);
+  pointer-events: none;
+}
+.hero-secondary-links .btn::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: -40% auto -40% -55%;
+  width: 36%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent);
+  transform: skewX(-18deg);
+  transition: left 480ms var(--motion-ease);
+  pointer-events: none;
+}
+.hero-secondary-links .btn-label,
+.hero-secondary-links .btn-arrow {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+.hero-secondary-links .btn-arrow {
+  width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: width 300ms var(--motion-ease), margin 300ms var(--motion-ease), opacity 180ms ease, transform 360ms var(--motion-ease);
+}
+.hero-secondary-links .btn.is-active,
+.hero-secondary-links .btn:focus-visible {
+  --button-lift: 5px;
+  color: #faf8f6;
+  border-color: var(--color-accent);
+  box-shadow: none;
+  outline: none;
+}
+.hero-secondary-links .btn.is-active::before,
+.hero-secondary-links .btn:focus-visible::before { transform: scaleX(1); }
+.hero-secondary-links .btn.is-active .btn-arrow,
+.hero-secondary-links .btn:focus-visible .btn-arrow {
+  width: 1em;
+  margin-left: 0.48rem;
+  opacity: 1;
+  transform: translateX(0);
+}
+.hero-secondary-links .btn:active { --button-scale: 0.96; }
+.hero-secondary-links .btn-primary::before { background: #6b5847; }
+.hero-secondary-links .btn-primary { animation: none; }
+.btn-ripple {
+  position: absolute;
+  z-index: 1;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: rgba(250,248,246,0.52);
+  transform: scale(0);
+  animation: button-ripple 620ms ease-out forwards;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .hero-secondary-links .btn:hover {
+    --button-lift: 7px;
+    color: #faf8f6;
+    border-color: var(--color-accent);
+    background: transparent;
+    box-shadow: none;
+  }
+  .hero-secondary-links .btn:hover::before { transform: scaleX(1); }
+  .hero-secondary-links .btn:hover::after { left: 125%; }
+  .hero-secondary-links .btn:hover .btn-arrow {
+    width: 1em;
+    margin-left: 0.48rem;
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.section-header h2 {
+  position: relative;
+  width: fit-content;
+}
+.section-header h2::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -0.45rem;
+  width: clamp(48px, 5vw, 74px);
+  height: 2px;
+  background: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 650ms 130ms var(--motion-ease);
+}
+.section-header.in h2::after { transform: scaleX(1); }
+.reveal, .reveal-stagger {
+  transform: translateY(34px) scale(0.978);
+  transition-duration: 680ms;
+}
+
+.marquee-item {
+  position: relative;
+  z-index: 1;
+  transition: transform 440ms var(--motion-ease), opacity 300ms ease;
+}
+.marquee-item img { transform-origin: center center; }
+.marquee-item:hover { z-index: 3; transform: translateY(-10px) scale(1.055); }
+.marquee-item:hover img {
+  transform: rotate(-1deg);
+  box-shadow: 0 30px 70px rgba(91, 74, 58, 0.22);
+  filter: saturate(1.08) contrast(1.02);
+}
+.marquee-wrapper.is-dragging .marquee-item { transform: scale(0.985); }
+
+.pricing-tabs {
+  position: relative;
+  width: fit-content;
+  padding: 0.28rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: rgba(250, 248, 246, 0.62);
+  isolation: isolate;
+}
+.pricing-tabs::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: var(--tab-left, 0px);
+  top: var(--tab-top, 0px);
+  width: var(--tab-width, 0px);
+  height: var(--tab-height, 0px);
+  border-radius: 999px;
+  background: var(--color-accent);
+  box-shadow: 0 14px 30px rgba(91,74,58,0.2);
+  transition: left 420ms var(--motion-ease), top 420ms var(--motion-ease), width 420ms var(--motion-ease), height 420ms var(--motion-ease);
+}
+.pricing-tabs .tab { position: relative; z-index: 1; border-color: transparent; background: transparent; }
+.pricing-tabs .tab.active { background: transparent; box-shadow: none; transform: none; }
+.pricing-grid.is-filtering { opacity: 1; transform: translateX(-14px) scale(0.985); }
+.pricing-grid.is-settling .pricing-card:not(.hide) { animation: pricing-card-spring 620ms var(--motion-ease) both; }
+.pricing-card {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --glow-x: 50%;
+  --glow-y: 50%;
+  transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(0);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.pricing-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(circle at var(--glow-x) var(--glow-y), rgba(155,133,119,0.2), transparent 42%);
+  opacity: 0;
+  transition: opacity 260ms ease;
+  pointer-events: none;
+}
+.pricing-card > * { position: relative; z-index: 1; transform: translateZ(0); transition: transform 340ms var(--motion-ease); }
+.pricing-card:hover,
+.pricing-card:focus-within {
+  transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(-13px) scale(1.016);
+  box-shadow: 0 38px 82px rgba(91, 74, 58, 0.2);
+}
+.pricing-card:hover::before,
+.pricing-card:focus-within::before { opacity: 1; }
+.pricing-card:hover .pricing-card-header,
+.pricing-card:focus-within .pricing-card-header { transform: translateZ(24px); }
+.pricing-card:hover .features,
+.pricing-card:focus-within .features { transform: translateZ(16px); }
+.pricing-card:hover .service-card-cta,
+.pricing-card:focus-within .service-card-cta { transform: translate3d(4px, -2px, 24px); }
+.monthly-grid:has(.pricing-card:hover) .pricing-card:not(:hover),
+.monthly-grid:has(.pricing-card:focus-within) .pricing-card:not(:focus-within) {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+.monthly-grid .pricing-card:nth-child(2) { --monthly-rise: -12px; }
+.monthly-grid .pricing-card:nth-child(3) { --monthly-rise: -24px; }
+.monthly-cooperation-note.in li {
+  animation: note-line-enter 560ms var(--motion-ease) both;
+  animation-delay: calc(var(--note-index, 0) * 55ms + 90ms);
+}
+
+.process-steps {
+  --process-progress: 0%;
+  position: relative;
+}
+.process-steps::before,
+.process-steps::after {
+  content: '';
+  position: absolute;
+  left: 37px;
+  top: 38px;
+  bottom: 38px;
+  width: 2px;
+  border-radius: 999px;
+  pointer-events: none;
+}
+.process-steps::before { background: rgba(91,74,58,0.12); }
+.process-steps::after {
+  bottom: auto;
+  height: var(--process-progress);
+  max-height: calc(100% - 76px);
+  background: linear-gradient(180deg, #9b8577, var(--color-accent));
+  box-shadow: 0 0 18px rgba(91,74,58,0.22);
+  transition: height 180ms ease-out;
+}
+.step {
+  z-index: 1;
+  transform-origin: center center;
+  transition: transform 440ms var(--motion-ease), opacity 340ms ease, border-color 340ms ease, box-shadow 440ms ease, background 340ms ease;
+}
+.step.is-passed {
+  opacity: 1;
+  border-color: rgba(91,74,58,0.2);
+  background: var(--color-surface);
+}
+.step.is-active {
+  opacity: 1;
+  transform: none;
+  border-color: var(--color-border-strong);
+  background: #fffdfb;
+  box-shadow: var(--shadow-sm);
+}
+.step.is-active .step-number {
+  transform: none;
+  box-shadow: none;
+}
+
+.faq-item {
+  transition: transform 360ms var(--motion-ease), border-color 240ms ease, box-shadow 360ms ease, background 240ms ease;
+}
+.faq-item.active {
+  transform: translateX(12px) scale(1.01);
+  border-color: var(--color-border-strong);
+  background: rgba(250,248,246,0.98);
+  box-shadow: 0 24px 56px rgba(91,74,58,0.13);
+}
+.faq-question { outline: none; }
+.faq-question:focus-visible { box-shadow: inset 0 0 0 2px rgba(91,74,58,0.28); }
+.faq-question::after { transition: transform 380ms var(--motion-ease), color 240ms ease; }
+.faq-item.active .faq-question::after { color: var(--color-accent); transform: rotate(135deg) scale(1.12); }
+.faq-answer { transition-duration: 440ms, 260ms; }
+
+.cta-section {
+  --cta-x-soft: 0px;
+  --cta-y-soft: 0px;
+  --cta-x-negative: 0px;
+  --cta-y-negative: 0px;
+}
+.cta-section::before {
+  transform: translate3d(var(--cta-x-soft), var(--cta-y-soft), 0);
+  animation: cta-orbit 8s ease-in-out infinite alternate;
+}
+.cta-section::after {
+  content: '';
+  position: absolute;
+  left: -12rem;
+  top: -15rem;
+  width: 32rem;
+  height: 32rem;
+  border: 1px solid rgba(250,248,246,0.13);
+  border-radius: 44% 56% 38% 62% / 55% 40% 60% 45%;
+  transform: translate3d(var(--cta-x-negative), var(--cta-y-negative), 0) rotate(18deg);
+  animation: hero-orbit 16s ease-in-out infinite alternate-reverse;
+  pointer-events: none;
+}
+#contact img[alt="LINE QR Code"] {
+  animation: qr-float 4.8s ease-in-out infinite;
+  transition: transform 360ms var(--motion-ease), box-shadow 360ms ease;
+}
+#contact img[alt="LINE QR Code"]:hover {
+  animation-play-state: paused;
+  transform: translateY(-8px) rotate(1deg) scale(1.035);
+  box-shadow: 0 34px 78px rgba(38,28,20,0.34) !important;
+}
+.cta-section .btn-primary { animation: none; }
+
+@keyframes hero-orbit {
+  0% { border-radius: 42% 58% 63% 37% / 42% 42% 58% 58%; }
+  100% { border-radius: 58% 42% 39% 61% / 55% 62% 38% 45%; }
+}
+@keyframes hero-glow { from { opacity: 0.7; } to { opacity: 1; } }
+@keyframes scroll-cue {
+  0% { transform: translateY(-110%); }
+  55%, 100% { transform: translateY(190%); }
+}
+@keyframes pricing-card-spring {
+  0% { opacity: 1; transform: perspective(900px) translateX(30px) translateY(18px) rotateY(-5deg) scale(0.965); }
+  70% { opacity: 1; transform: perspective(900px) translateX(-3px) translateY(0) rotateY(0) scale(1.006); }
+  100% { opacity: 1; transform: perspective(900px) translateX(0) translateY(0) rotateY(0) scale(1); }
+}
+@keyframes note-line-enter {
+  from { opacity: 1; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes qr-float {
+  0%, 100% { transform: translateY(0) rotate(-0.4deg); }
+  50% { transform: translateY(-10px) rotate(0.5deg); }
+}
+@keyframes cta-orbit {
+  from { opacity: 0.72; }
+  to { opacity: 1; }
+}
+@keyframes button-ripple {
+  from { transform: scale(0); opacity: 0.8; }
+  to { transform: scale(14); opacity: 0; }
+}
+
+@media (min-width: 769px) {
+  .hero .container { text-align: center; }
+  .hero .eyebrow { margin-left: auto; margin-right: auto; }
+  .hero h1 { display: block; width: fit-content; margin-left: auto; margin-right: auto; }
+  .hero p:not(.eyebrow) { margin-left: auto; margin-right: auto; }
+  .hero .cta-buttons { justify-content: center; }
+  .hero-secondary-links { justify-content: safe center; }
+}
+
+@media (max-width: 1200px) { .monthly-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 768px) {
+  .hero { min-height: auto; padding: 3.75rem 0 3.5rem; align-items: flex-start; }
+  .hero .container { width: 100%; min-width: 0; }
+  .hero::before { width: 72vw; height: 72vw; left: 12vw; top: 8rem; }
+  .hero h1 { font-size: clamp(2.85rem, 13vw, 3.8rem); line-height: 1.02; }
+  .hero h1::before { inset: -1.8rem -2.5rem -1.5rem -1.8rem; }
+  .mobile-title-break { display: block; }
+  .hero p:not(.eyebrow) { font-size: 1.02rem; }
+  .hero .cta-buttons { flex-direction: column; align-items: stretch; }
+  .hero-secondary-links {
+    width: 100%;
+    margin-top: 0;
+    padding: 0.55rem 0.2rem 0.8rem;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 0.55rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 0.2rem;
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
+  }
+  .hero-secondary-links .btn {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 46px;
+    padding: 0.72rem 1.05rem;
+    font-size: 0.93rem;
+    scroll-snap-align: start;
+    white-space: nowrap;
+  }
+  .section-header { text-align: left; }
+  .pricing-section, .process-section, .faq-section, .cta-section { padding: 4.5rem 0; }
+  .pricing-grid, .monthly-grid { grid-template-columns: 1fr; }
+  .pricing-card-header .subtitle { min-height: auto; }
+  .marquee-item img { height: 220px; }
+  .marquee-item { margin-right: 0.85rem; }
+  .portfolio-marquee-section { padding: 2.5rem 0; }
+  .step { grid-template-columns: 68px 1fr; gap: 1rem; padding: 1rem; }
+  .step-number { width: 62px; height: 62px; font-size: 1.2rem; }
+  .step-number img { width: 100%; height: 100%; }
+  .back-to-top { right: 1rem; bottom: 1rem; width: 44px; height: 44px; }
+  .hero-scroll-cue { display: none; }
+  .pricing-tabs { width: 100%; overflow-x: auto; flex-wrap: nowrap; justify-content: flex-start; scrollbar-width: none; }
+  .pricing-tabs::-webkit-scrollbar { display: none; }
+  .pricing-tabs .tab { flex: 0 0 auto; }
+  .pricing-card:hover,
+  .pricing-card:focus-within { transform: translateY(-4px); }
+  .monthly-grid:has(.pricing-card:hover) .pricing-card:not(:hover),
+  .monthly-grid:has(.pricing-card:focus-within) .pricing-card:not(:focus-within) { opacity: 1; filter: none; transform: none; }
+  .process-steps::before,
+  .process-steps::after { left: 30px; }
+  .step.is-active { transform: none; }
+  .faq-item.active { transform: translateX(4px); }
+}
+@media (max-width: 480px) {
+  .container { padding: 0 1rem; }
+  .btn { width: 100%; }
+  .marquee-item img { height: 190px; }
+}
+@media (hover: none) {
+  .pricing-card:hover,
+  .pricing-card:focus-within { transform: none; box-shadow: var(--shadow-sm); }
+  .pricing-card:hover .price,
+  .pricing-card:focus-within .price { transform: none; }
+  .marquee-item:hover img { transform: none; box-shadow: none; filter: none; }
+  .marquee-item:hover { transform: none; }
+  .monthly-grid:has(.pricing-card:hover) .pricing-card:not(:hover),
+  .monthly-grid:has(.pricing-card:focus-within) .pricing-card:not(:focus-within) { opacity: 1; filter: none; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal, .reveal-stagger, .pricing-card, .pricing-grid, .btn, .faq-answer, .faq-answer-content, .eyebrow::before, .hero .container.reveal > *, .hero::before, .hero::after, .hero-scroll-cue span::after, .marquee-item, .marquee-item img, .monthly-cooperation-note.in li, .step, .step-number, .faq-item, .cta-section::before, .cta-section::after, #contact img[alt="LINE QR Code"], .cta-section .btn-primary, .back-to-top { animation: none; transition: none; transition-delay: 0ms; }
+  .eyebrow::before { transform: none; }
+  .hero .container.reveal > * { opacity: 1; transform: none; filter: none; }
+  .pricing-card, .pricing-card:hover, .pricing-card:focus-within, .step.is-active, .faq-item.active { transform: none; }
+  .monthly-grid:has(.pricing-card:hover) .pricing-card:not(:hover),
+  .monthly-grid:has(.pricing-card:focus-within) .pricing-card:not(:focus-within) { opacity: 1; filter: none; transform: none; }
+}
+
+
+
+
+
+
+
+</style>
+
+</head>
+<body>
+
+<div class="scroll-progress" aria-hidden="true"><span></span></div>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container reveal">
+    <p class="eyebrow">Design Studio Price Guide</p>
+    <h1>設計<br class="mobile-title-break">服務價目</h1>
+    <p>電商視覺、社群圖與平面設計的透明報價。適合單次委託，也適合需要穩定產出的月方案合作。</p>
+    <nav class="hero-secondary-links" aria-label="快速瀏覽">
+      <a href="#pricing" class="btn btn-outline"><span class="btn-label">查看服務</span><span class="btn-arrow" aria-hidden="true">→</span></a>
+      <a href="#monthly" class="btn btn-outline"><span class="btn-label">月方案</span><span class="btn-arrow" aria-hidden="true">→</span></a>
+      <a href="/samdesign-pricing/作品案例.html" class="btn btn-outline"><span class="btn-label">作品案例</span><span class="btn-arrow" aria-hidden="true">→</span></a>
+      <a href="#faq" class="btn btn-outline"><span class="btn-label">常見問題</span><span class="btn-arrow" aria-hidden="true">→</span></a>
+      <a href="#contact" class="btn btn-outline"><span class="btn-label">與我聯絡</span><span class="btn-arrow" aria-hidden="true">→</span></a>
+      <a href="/samdesign-pricing/calculator/" class="btn btn-primary"><span class="btn-label">立即試算</span><span class="btn-arrow" aria-hidden="true">→</span></a>
+    </nav>
+  </div>
+  <div class="hero-scroll-cue" aria-hidden="true"><span></span>Scroll</div>
+</section>
+
+<!-- Portfolio Marquee Section -->
+<section class="portfolio-marquee-section" aria-labelledby="recent-work-title">
+  <p class="marquee-label" id="recent-work-title">近期作品<span class="marquee-note">部分作品為設計展示，非實際販售商品</span></p>
+  <div class="marquee-wrapper" aria-label="近期作品輪播，可左右拖曳">
+    <div class="marquee-track">
+      <div class="marquee-item"><img src="assets/embedded/13f882c5c0d75d83.webp" alt="作品展示"></div>
+      <div class="marquee-item"><img src="assets/embedded/d4c45797b3692871.webp" alt="作品展示"></div>
+      <div class="marquee-item"><img src="assets/embedded/4107207a009ceef2.webp" alt="作品展示"></div>
+      <div class="marquee-item"><img src="assets/embedded/0bf23e2f68c2542d.webp" alt="作品展示"></div>
+      <div class="marquee-item"><img src="assets/embedded/ce6b8f1932d780cc.webp" alt="作品展示"></div>
+      <div class="marquee-item"><img src="assets/embedded/a00833e3d1c7e860.webp" alt="作品展示"></div>
+      <div class="marquee-item"><img src="assets/embedded/1de1eeab6411d087.webp" alt="作品展示"></div>
+      <div class="marquee-item"><img src="assets/embedded/e97f2f1d129e99d4.webp" alt="作品展示"></div>
+      <div class="marquee-item"><img src="assets/embedded/aea0ac038addfd90.webp" alt="作品展示"></div>
+      <div class="marquee-item"><img src="assets/embedded/8030fa6de15f5cd5.webp" alt="作品展示"></div>
+      <div class="marquee-item"><img src="assets/embedded/c9c11629fa37702a.webp" alt="作品展示"></div>
+
+      <div class="marquee-item"><img src="assets/embedded/13f882c5c0d75d83.webp" alt="" aria-hidden="true"></div>
+      <div class="marquee-item"><img src="assets/embedded/d4c45797b3692871.webp" alt="" aria-hidden="true"></div>
+      <div class="marquee-item"><img src="assets/embedded/4107207a009ceef2.webp" alt="" aria-hidden="true"></div>
+      <div class="marquee-item"><img src="assets/embedded/0bf23e2f68c2542d.webp" alt="" aria-hidden="true"></div>
+      <div class="marquee-item"><img src="assets/embedded/ce6b8f1932d780cc.webp" alt="" aria-hidden="true"></div>
+      <div class="marquee-item"><img src="assets/embedded/a00833e3d1c7e860.webp" alt="" aria-hidden="true"></div>
+      <div class="marquee-item"><img src="assets/embedded/1de1eeab6411d087.webp" alt="" aria-hidden="true"></div>
+      <div class="marquee-item"><img src="assets/embedded/e97f2f1d129e99d4.webp" alt="" aria-hidden="true"></div>
+      <div class="marquee-item"><img src="assets/embedded/aea0ac038addfd90.webp" alt="" aria-hidden="true"></div>
+      <div class="marquee-item"><img src="assets/embedded/8030fa6de15f5cd5.webp" alt="" aria-hidden="true"></div>
+      <div class="marquee-item"><img src="assets/embedded/c9c11629fa37702a.webp" alt="" aria-hidden="true"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing Section -->
+<section id="pricing" class="pricing-section">
+  <div class="container">
+    <div class="section-header reveal">
+      <h2>服務項目</h2>
+      <p>依據需求選擇合適的設計服務，初估價格區間公開。實際報價取決於您需要的風格、素材狀況與設計複雜度。</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="pricing-tabs">
+      <button class="tab active" data-category="ecommerce">電商設計</button>
+      <button class="tab" data-category="print">平面設計</button>
+      <button class="tab" data-category="other">其他</button>
+    </div>
+
+    <!-- Pricing Grid -->
+    <div class="pricing-grid">
+      
+      <!-- 電商設計 -->
+      <div class="pricing-card reveal-stagger" data-category="ecommerce">
+        <div class="pricing-card-header">
+          <h3>網頁 Banner</h3>
+          <p class="subtitle">網站首頁、活動檔期與品牌主視覺</p>
+          <div class="price price-range"><span class="price-amount"><span class="price-currency">$</span>1,000～2,500</span><span class="price-unit"> / 版</span></div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">尺寸｜</strong>符合平台需求或客製</li>
+          <li><strong class="feature-label">素材｜</strong>需提供定稿文案或圖片</li>
+          <li><strong class="feature-label">加購｜</strong>主視覺延伸 $800～1,200 / 張（含版面配置調整）</li>
+          <li><strong class="feature-label">交付｜</strong>PNG／JPG</li>
+        </ul>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?service=banner">前往試算 <span>→</span></a>
+      </div>
+
+      <div class="pricing-card reveal-stagger" data-category="ecommerce">
+        <div class="pricing-card-header">
+          <h3>社群圖</h3>
+          <p class="subtitle">FB／IG 貼文、活動與品牌宣傳視覺</p>
+          <div class="price price-range"><span class="price-amount"><span class="price-currency">$</span>500～1,000</span><span class="price-unit"> / 張</span></div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">尺寸｜</strong>符合平台需求或客製</li>
+          <li><strong class="feature-label">素材｜</strong>需提供定稿文案或圖片</li>
+          <li><strong class="feature-label">延伸｜</strong>同篇第 2 張起，每張 +$250～$500</li>
+          <li><strong class="feature-label">限制｜</strong>每篇貼文最多 10 張圖</li>
+          <li><strong class="feature-label">交付｜</strong>PNG／JPG</li>
+        </ul>
+        <div class="note">單次委託累計 10 張以上享 9.5 折優惠，可包含多篇貼文</div>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?service=social">前往試算 <span>→</span></a>
+      </div>
+
+      <div class="pricing-card reveal-stagger" data-category="ecommerce">
+        <div class="pricing-card-header">
+          <h3>影片／Reel 封面</h3>
+          <p class="subtitle">YouTube、IG Reel 與 Podcast 封面</p>
+          <div class="price price-range"><span class="price-amount"><span class="price-currency">$</span>400～800</span><span class="price-unit"> / 張</span></div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">尺寸｜</strong>符合平台需求或客製</li>
+          <li><strong class="feature-label">素材｜</strong>需提供標題或主視覺素材</li>
+          <li><strong class="feature-label">交付｜</strong>PNG／JPG</li>
+        </ul>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?service=reel">前往試算 <span>→</span></a>
+      </div>
+
+      <div class="pricing-card reveal-stagger" data-category="ecommerce">
+        <div class="pricing-card-header">
+          <h3>產品圖框</h3>
+          <p class="subtitle">電商商品圖框與促銷資訊套版</p>
+          <div class="price price-range"><span class="price-amount"><span class="price-currency">$</span>450～750</span><span class="price-unit"> / 版</span></div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">素材｜</strong>需提供商品圖、文字與品牌素材</li>
+          <li><strong class="feature-label">包含｜</strong>每版含 1 項產品</li>
+          <li><strong class="feature-label">追加｜</strong>每增加 1 項產品 +$70</li>
+          <li><strong class="feature-label">交付｜</strong>PNG／JPG</li>
+        </ul>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?service=product-frame">前往試算 <span>→</span></a>
+      </div>
+
+      <!-- 平面設計 -->
+      <div class="pricing-card reveal-stagger" data-category="print">
+        <div class="pricing-card-header">
+          <h3>大型海報</h3>
+          <p class="subtitle">A3 以上活動、展覽與促銷海報</p>
+          <div class="price price-range"><span class="price-amount"><span class="price-currency">$</span>1,800～3,000</span><span class="price-unit"> / 款</span></div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">尺寸｜</strong>A3 以上</li>
+          <li><strong class="feature-label">素材｜</strong>需提供定稿文案或圖片</li>
+          <li><strong class="feature-label">交付｜</strong>PDF 印刷檔</li>
+        </ul>
+        <div class="note">如需印刷，費用另計</div>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?service=poster">前往試算 <span>→</span></a>
+      </div>
+
+      <div class="pricing-card reveal-stagger" data-category="print">
+        <div class="pricing-card-header">
+          <h3>傳單／DM</h3>
+          <p class="subtitle">派發文宣、活動宣傳與產品介紹</p>
+          <div class="price price-range" style="flex-direction: column; align-items: flex-start; gap: 0.35rem;">
+            <span><span class="price-amount"><span class="price-currency">$</span>1,200～3,000</span><span class="price-unit"> / 基本設計（第 1 面／頁）</span></span>
+            <span><span class="price-unit">第 2 頁起 </span><span class="price-amount"><span class="price-currency">$</span>600～800</span><span class="price-unit"> / 頁</span></span>
+          </div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">規格｜</strong>A4／A5，亦可客製</li>
+          <li><strong class="feature-label">結構｜</strong>單／雙面、摺頁或多頁</li>
+          <li><strong class="feature-label">素材｜</strong>需提供定稿文字與圖片</li>
+          <li><strong class="feature-label">交付｜</strong>PDF 印刷檔</li>
+        </ul>
+        <div class="note">如需印刷，費用另計</div>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?service=dm">前往試算 <span>→</span></a>
+      </div>
+
+      <div class="pricing-card reveal-stagger" data-category="print">
+        <div class="pricing-card-header">
+          <h3>菜單</h3>
+          <p class="subtitle">餐飲品項、價格與分類資訊編排</p>
+          <div class="price price-range" style="flex-direction: column; align-items: flex-start; gap: 0.35rem;">
+            <span><span class="price-amount"><span class="price-currency">$</span>1,200～3,000</span><span class="price-unit"> / 首版（第 1 頁）</span></span>
+            <span><span class="price-unit">第 2 頁起 </span><span class="price-amount"><span class="price-currency">$</span>600～800</span><span class="price-unit"> / 頁</span></span>
+          </div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">規格｜</strong>A4／A5，亦可客製</li>
+          <li><strong class="feature-label">結構｜</strong>單／雙面、摺頁或多頁</li>
+          <li><strong class="feature-label">素材｜</strong>品項、價格與圖片需確認定稿</li>
+          <li><strong class="feature-label">交付｜</strong>PDF 印刷檔</li>
+        </ul>
+        <div class="note">如需印刷，費用另計</div>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?service=menu">前往試算 <span>→</span></a>
+      </div>
+
+      <div class="pricing-card reveal-stagger" data-category="print">
+        <div class="pricing-card-header">
+          <h3>名片／會員卡</h3>
+          <p class="subtitle">個人名片、品牌名片與會員卡</p>
+          <div class="price price-range" style="flex-direction: column; align-items: flex-start; gap: 0.35rem;">
+            <span><span class="price-unit">單面 </span><span class="price-amount"><span class="price-currency">$</span>1,000～1,500</span><span class="price-unit"> / 款</span></span>
+            <span><span class="price-unit">雙面 </span><span class="price-amount"><span class="price-currency">$</span>1,200～2,200</span><span class="price-unit"> / 款</span></span>
+          </div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">尺寸｜</strong>9 × 5.4 cm（標準）</li>
+          <li><strong class="feature-label">結構｜</strong>單面或雙面可選</li>
+          <li><strong class="feature-label">素材｜</strong>姓名與聯絡資訊需確認定稿</li>
+          <li><strong class="feature-label">延伸｜</strong>同版型更換姓名／職稱，每人 +$300</li>
+          <li><strong class="feature-label">交付｜</strong>PDF 印刷檔</li>
+        </ul>
+        <div class="note">如需印刷，費用另計</div>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?service=card">前往試算 <span>→</span></a>
+      </div>
+
+      <!-- 其他 -->
+      <div class="pricing-card reveal-stagger" data-category="other">
+        <div class="pricing-card-header">
+          <h3>Resize 尺寸延伸</h3>
+          <p class="subtitle">依現有設計延伸不同使用尺寸</p>
+          <div class="price price-range"><span class="price-amount"><span class="price-currency">$</span>250～500</span><span class="price-unit"> / 張</span></div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">素材｜</strong>需提供可編輯原始檔</li>
+          <li><strong class="feature-label">範圍｜</strong>僅調整尺寸，不含重新配置版面</li>
+          <li><strong class="feature-label">交付｜</strong>PNG／JPG</li>
+        </ul>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?service=resize">前往試算 <span>→</span></a>
+      </div>
+
+      <div class="pricing-card reveal-stagger" data-category="other">
+        <div class="pricing-card-header">
+          <h3>照片後製</h3>
+          <p class="subtitle">調色、去背、修整與簡易合成</p>
+          <div class="price price-range"><span class="price-amount"><span class="price-currency">$</span>150～750</span><span class="price-unit"> / 張</span></div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">包含｜</strong>基礎調色、去背與細節修整</li>
+          <li><strong class="feature-label">估價｜</strong>依照片狀況與合成難度</li>
+          <li><strong class="feature-label">交付｜</strong>PNG／JPG</li>
+        </ul>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?service=photo">前往試算 <span>→</span></a>
+      </div>
+
+      <div class="pricing-card reveal-stagger" data-category="other">
+        <div class="pricing-card-header">
+          <h3>模板設計</h3>
+          <p class="subtitle">業務簡報、講座教材與會議版型</p>
+          <div class="price price-range"><span class="price-amount"><span class="price-currency">$</span>1,000～3,000</span><span class="price-unit"> / 版</span></div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">範圍｜</strong>版面設計與視覺風格統一</li>
+          <li><strong class="feature-label">素材｜</strong>文字與圖片需完成整理</li>
+          <li><strong class="feature-label">不含｜</strong>動畫、文案撰寫與資料整理</li>
+        </ul>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?service=slides">前往試算 <span>→</span></a>
+      </div>
+
+    </div>
+
+    <div class="category-note reveal" data-category="ecommerce print other" style="padding: var(--space-lg); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); margin-top: var(--space-xl); box-shadow: var(--shadow-sm);">
+      <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text); margin-bottom: var(--space-md);">注意事項</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          以上報價僅為初估，實際收費以了解需求後之正式報價單為準
+        </li>
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          單次設計每案包含 3 次細節修改，可調整文字、色彩與版面；若需更換整體設計方向，將重新評估費用。第 4 次起，每次修改費用為 $300 起。
+        </li>
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          需請您提供文字檔、圖片（商品照、情境圖等）及其他必要品牌素材；如需協助整理文案、處理圖片或準備素材，相關費用將於正式報價前確認。
+        </li>
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          一般交付不含可編輯原始檔；單次服務如需加購，依基本設計費的 50% 計費，網站主視覺延伸不計入原始檔費用；月方案另行確認。產品圖框的原始檔價格僅含第一版（不含追加產品）。
+        </li>
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          如需代辦印刷，代辦服務費為該項設計費 15%；可為您建議合適的印刷材質、確認檔案、安排送印及配送到府（如有需求）
+        </li>
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          印刷品及運送產生的費用採實報實銷，需請您另外支付
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Monthly Plans -->
+<section id="monthly" class="pricing-section" style="background: var(--color-surface-alt);">
+  <div class="container">
+    <div class="section-header reveal">
+      <h2>月方案</h2>
+      <p>適合需要持續產出的品牌與創作者，依需求訂製您的專屬方案</p>
+    </div>
+
+    <div class="pricing-grid monthly-grid">
+
+      <div class="pricing-card reveal-stagger" data-category="ecommerce print">
+        <div class="pricing-card-header">
+          <h3>小資方案</h3>
+          <p class="subtitle">預算有限，需穩定日常更新</p>
+          <div class="price price-range"><span class="price-amount">9.2～9.5 折</span><span class="price-unit"> / 單次設計費合計</span></div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">組數｜</strong>3～5 組設計</li>
+          <li><strong class="feature-label">修改｜</strong>每組含 3 次細節修改</li>
+          <li><strong class="feature-label">交付｜</strong>JPG／PNG／PDF</li>
+        </ul>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?mode=monthly">前往試算 <span>→</span></a>
+      </div>
+
+      <div class="pricing-card reveal-stagger" data-category="ecommerce print">
+        <div class="pricing-card-header">
+          <h3>輕量方案</h3>
+          <p class="subtitle">已有節奏，但不想為設計耗時</p>
+          <div class="price price-range"><span class="price-amount">9 折</span><span class="price-unit"> / 單次設計費合計</span></div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">組數｜</strong>6～7 組設計</li>
+          <li><strong class="feature-label">修改｜</strong>每組含 3 次細節修改</li>
+          <li><strong class="feature-label">交付｜</strong>JPG／PNG／PDF</li>
+        </ul>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?mode=monthly">前往試算 <span>→</span></a>
+      </div>
+
+      <div class="pricing-card reveal-stagger" data-category="ecommerce print">
+        <div class="pricing-card-header">
+          <h3>標準方案</h3>
+          <p class="subtitle">長期經營、需要穩定配合</p>
+          <div class="price price-range"><span class="price-amount">8.8 折</span><span class="price-unit"> / 單次設計費合計</span></div>
+        </div>
+        <ul class="features">
+          <li><strong class="feature-label">組數｜</strong>8～10 組設計</li>
+          <li><strong class="feature-label">修改｜</strong>每組含 3 次細節修改</li>
+          <li><strong class="feature-label">交付｜</strong>JPG／PNG／PDF</li>
+        </ul>
+        <a class="service-card-cta" href="/samdesign-pricing/calculator/?mode=monthly">前往試算 <span>→</span></a>
+      </div>
+
+    </div>
+
+    <div class="monthly-cooperation-note reveal" style="padding: var(--space-lg); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); margin-top: var(--space-xl); box-shadow: var(--shadow-sm);">
+      <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text); margin-bottom: var(--space-md);">合作說明</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          月方案提供電商與平面設計服務，每月可選 3～10 組，依總組數享有 9.5 折至 8.8 折優惠。
+        </li>
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          每 1 份設計計為 1 組；IG／FB 社群圖文以每篇計 1 組。平面設計每月最多 2 組，未使用的組數不會累積到下個月。
+        </li>
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          網站主視覺延伸及傳單／菜單追加頁不增加組數。費用會先與其他單次設計費加總，再套用月方案折扣。
+        </li>
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          商品圖框追加產品按單次價格計算，不適用月方案折扣。IG／FB 社群圖文總圖滿 10 張的 5% 優惠也僅適用單次服務。
+        </li>
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          每組包含 3 次細節修改，可調整文字、顏色與版面。若要更換整體設計方向，需重新估價；第 4 次起，每次修改費用為 $300 起。
+        </li>
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          網站金額為初步估價，正式價格會依設計內容、複雜度與素材狀況確認。試算時可先選擇交付節奏，實際日期會在合作時安排。
+        </li>
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          確認合作後支付 20% 訂金，80% 尾款於交付前付清。如需取消或調整，請最晚在製作前 2 日告知；已開始製作的部分不予退款，尚未開始的部分可依進度評估退款，訂金不退。
+        </li>
+        <li style="padding: 0.5rem 0; padding-left: 1.25rem; position: relative; color: var(--color-text); font-size: 0.92rem; font-weight: 500;">
+          <span style="position: absolute; left: 0; width: 4px; height: 4px; background: var(--color-text-light); border-radius: 50%; top: 1rem;"></span>
+          月方案原始檔可依服務與數量加購，代辦印刷費用也會另行確認，兩者目前都不計入網站初估。第三方圖庫、字體、攝影、插畫與商用授權費也不包含；如有需要，會先確認內容與費用。
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Process -->
+<section id="process" class="process-section">
+  <div class="container">
+    <div class="section-header reveal">
+      <h2>合作流程</h2>
+      <p>簡單五步驟，讓設計合作更順暢</p>
+    </div>
+    <div class="process-steps">
+      <div class="step reveal-stagger">
+        <div class="step-number" role="img" aria-label="需求諮詢">
+          <img src="assets/process-icons/consultation.png" alt="">
+        </div>
+        <div class="step-content">
+          <h3>需求諮詢</h3>
+              <p>與您討論設計需求、預算、交期，確認專案範圍與目標。會仔細聆聽您的想法，了解品牌調性與視覺偏好；若有參考圖，也歡迎一併提供，為後續設計打下良好基礎。</p>
+        </div>
+      </div>
+      <div class="step reveal-stagger">
+        <div class="step-number" role="img" aria-label="報價確認">
+          <img src="assets/process-icons/quotation.png" alt="">
+        </div>
+        <div class="step-content">
+          <h3>報價確認</h3>
+              <p>提供正式報價單，確認設計項目與交付內容。所有細節都會清楚列出，確保雙方對專案範圍與費用有一致的理解。</p>
+        </div>
+      </div>
+      <div class="step reveal-stagger">
+        <div class="step-number" role="img" aria-label="設計製作">
+          <img src="assets/process-icons/design.png" alt="">
+        </div>
+        <div class="step-content">
+          <h3>設計製作</h3>
+              <p>進入設計流程後，會依約定排程提供初稿。單次服務依項目約 2～10 個工作天，以試算頁顯示的時間為準；月方案則依選擇的交付節奏安排。實際時間仍會受到當時排程、素材完整度與設計複雜度影響。</p>
+        </div>
+      </div>
+      <div class="step reveal-stagger">
+        <div class="step-number" role="img" aria-label="修改與調整">
+          <img src="assets/process-icons/revision.png" alt="">
+        </div>
+        <div class="step-content">
+          <h3>修改與調整</h3>
+              <p>依據初稿回饋進行細節修改與版面調整，單次服務每案、月方案每組皆包含 3 次細節修改。確認文字、色彩與整體視覺都符合需求後，再進入最終檔案整理。</p>
+        </div>
+      </div>
+      <div class="step reveal-stagger">
+        <div class="step-number" role="img" aria-label="交付檔案">
+          <img src="assets/process-icons/delivery.png" alt="">
+        </div>
+        <div class="step-content">
+          <h3>交付檔案</h3>
+              <p>完成修改與尾款確認後交付最終檔案，依服務項目提供 PNG / JPG / PDF 等適用格式。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ Section -->
+<section id="faq" class="faq-section">
+  <div class="container">
+    <div class="section-header reveal">
+      <h2>常見問題</h2>
+      <p>關於設計服務的疑問解答</p>
+    </div>
+    <div class="faq-list">
+      
+      <div class="faq-item reveal-stagger">
+        <div class="faq-question">修改次數是怎麼計算的？</div>
+        <div class="faq-answer">
+          <div class="faq-answer-content">
+            單次設計每案、月方案每組皆包含 3 次細節修改，每次以一輪回饋計算，您可集中提出文字、顏色與排版調整。不含風格或設計方向重置；超出 3 次，費用 $300 起 / 次。
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item reveal-stagger">
+        <div class="faq-question">月方案可以中途調整內容嗎？</div>
+        <div class="faq-answer">
+          <div class="faq-answer-content">
+            可以，尚未進入製作的組別可於當月額度內調整電商／平面設計；已排程或已開始製作的項目不適用。平面設計每月合計限 2 組，超過部分請使用單次估價；Resize、照片後製與模板設計亦採單次估價。網站主視覺延伸與宣傳單／菜單多頁依加價計算並套用月方案優惠；商品主圖套版追加產品按單次價格另計且不套用月方案折扣，未使用組數不累積。
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item reveal-stagger">
+        <div class="faq-question">付款方式是什麼？</div>
+        <div class="faq-answer">
+          <div class="faq-answer-content">
+            單次設計案與月方案皆採 20% 訂金、80% 尾款。款項確認後開始製作，尾款確認後交付正式檔案；可使用銀行轉帳或電子支付。
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item reveal-stagger">
+        <div class="faq-question">下單後可以取消或退款嗎？</div>
+        <div class="faq-answer">
+          <div class="faq-answer-content">
+            單次服務確認合作並支付訂金後，如取消合作，20% 訂金不予退還。月方案如需取消或調整，最晚於製作前 2 日告知；已開始製作的部分不予退款，僅尚未開始製作的部分可依實際進度評估退款。若必要素材延遲提供，交期將順延。
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item reveal-stagger">
+        <div class="faq-question">素材與授權需要注意什麼？</div>
+        <div class="faq-answer">
+          <div class="faq-answer-content">
+            請您確認提供的圖片、文字、商標與商品素材具備合法使用權。基本報價不含商業授權字體、圖庫、攝影或插畫購買費用。
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item reveal-stagger">
+        <div class="faq-question">可以接急件嗎？</div>
+        <div class="faq-answer">
+          <div class="faq-answer-content">
+            目前不接受急件。單次服務依項目約 2～10 個工作天，以試算頁顯示的時間為準；月方案依選擇的交付節奏安排，實際日期於合作時確認。
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="contact" class="cta-section">
+  <div class="container reveal">
+    <h2>準備好開始合作了嗎<span class="cta-question-mark">？</span></h2>
+    <p>無論是單次設計或長期配合，歡迎討論您的需求</p>
+    <div style="margin-top: 2.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+      <img src="assets/embedded/87272102c4a651a7.webp" alt="LINE QR Code" style="width: 160px; height: 160px; border-radius: 12px; box-shadow: 0 4px 12px rgba(91,74,58,0.15);">
+      <p style="font-size: 0.92rem; color: var(--color-text-light); margin: 0; font-weight: 500;">掃描 QR Code 加 LINE 諮詢<br><span class="contact-or">或是</span></p>
+      <div class="cta-buttons contact-buttons">
+        <a href="/samdesign-pricing/calculator/" class="btn btn-primary">立即試算</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // 作品輪播：可用滑鼠或手指拖曳，滑動速度會影響放開後的慣性速度
+  const marqueeWrapper = document.querySelector('.marquee-wrapper');
+  const marqueeTrack = document.querySelector('.marquee-track');
+
+  if (marqueeWrapper && marqueeTrack) {
+    const replacementPortfolioImages = [
+      { src: 'assets/portfolio/fashion-sale-luxe.webp', alt: 'Luxe Mode 年末限定促銷網頁桌機展示' },
+      { src: 'assets/portfolio/fashion-sale-simple.webp', alt: 'Simple Fashion 年末限定促銷網頁桌機展示' },
+      { src: 'assets/portfolio/fashion-mockup-dark.webp', alt: '深色服飾促銷網頁桌機展示' },
+      { src: 'assets/portfolio/fashion-mockup-bright.webp', alt: '明亮服飾促銷網頁桌機展示' }
+    ];
+    const marqueeItems = Array.from(marqueeTrack.children);
+    const uniqueItemCount = Math.floor(marqueeItems.length / 2);
+
+    replacementPortfolioImages.forEach(({ src, alt }, index) => {
+      [index + 1, uniqueItemCount + index + 1].forEach(itemIndex => {
+        const image = marqueeItems[itemIndex]?.querySelector('img');
+        if (image) {
+          image.src = src;
+          image.alt = itemIndex < uniqueItemCount ? alt : '';
+          image.decoding = 'async';
+        }
+      });
+    });
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const normalSpeed = -32;
+    const maxSpeed = 1800;
+    let position = 0;
+    let speed = reduceMotion.matches ? 0 : normalSpeed;
+    let isDragging = false;
+    let isHovering = false;
+    let lastPointerX = 0;
+    let lastPointerTime = 0;
+    let lastFrameTime = performance.now();
+    let loopWidth = 0;
+    let animationFrameId = 0;
+    let isAnimating = false;
+    let isInViewport = false;
+    let pageVisible = !document.hidden;
+
+    const updateLoopWidth = () => {
+      loopWidth = marqueeTrack.scrollWidth / 2;
+    };
+
+    const wrapPosition = () => {
+      if (!loopWidth) return;
+      while (position <= -loopWidth) position += loopWidth;
+      while (position > 0) position -= loopWidth;
+    };
+
+    const animateMarquee = (now) => {
+      if (!isAnimating) return;
+      const deltaSeconds = Math.min((now - lastFrameTime) / 1000, 0.05);
+      lastFrameTime = now;
+
+      if (!isDragging) {
+        position += speed * deltaSeconds;
+        const targetSpeed = reduceMotion.matches || isHovering ? 0 : normalSpeed;
+        speed += (targetSpeed - speed) * Math.min(deltaSeconds * 1.8, 1);
+      }
+
+      wrapPosition();
+      marqueeTrack.style.transform = `translate3d(${position}px, 0, 0)`;
+      animationFrameId = requestAnimationFrame(animateMarquee);
+    };
+
+    const pauseMarquee = () => {
+      isAnimating = false;
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      animationFrameId = 0;
+      marqueeWrapper.classList.remove('is-running');
+    };
+
+    const resumeMarquee = () => {
+      if (isAnimating || !isInViewport || !pageVisible || reduceMotion.matches) return;
+      isAnimating = true;
+      lastFrameTime = performance.now();
+      marqueeWrapper.classList.add('is-running');
+      animationFrameId = requestAnimationFrame(animateMarquee);
+    };
+
+    const syncMarqueePlayback = () => {
+      if (isInViewport && pageVisible && !reduceMotion.matches) resumeMarquee();
+      else pauseMarquee();
+    };
+
+    marqueeWrapper.addEventListener('pointerdown', (event) => {
+      isDragging = true;
+      speed = 0;
+      lastPointerX = event.clientX;
+      lastPointerTime = performance.now();
+      marqueeWrapper.classList.add('is-dragging');
+      marqueeWrapper.setPointerCapture(event.pointerId);
+    });
+
+    marqueeWrapper.addEventListener('pointermove', (event) => {
+      if (!isDragging) return;
+
+      const now = performance.now();
+      const distance = event.clientX - lastPointerX;
+      const elapsed = Math.max(now - lastPointerTime, 8);
+
+      position += distance;
+      speed = Math.max(-maxSpeed, Math.min(maxSpeed, (distance / elapsed) * 1000));
+      lastPointerX = event.clientX;
+      lastPointerTime = now;
+      wrapPosition();
+      marqueeTrack.style.transform = `translate3d(${position}px, 0, 0)`;
+    });
+
+    const releaseMarquee = (event) => {
+      if (!isDragging) return;
+      isDragging = false;
+      if (performance.now() - lastPointerTime > 80) speed = 0;
+      marqueeWrapper.classList.remove('is-dragging');
+      if (marqueeWrapper.hasPointerCapture(event.pointerId)) {
+        marqueeWrapper.releasePointerCapture(event.pointerId);
+      }
+    };
+
+    marqueeWrapper.addEventListener('pointerup', releaseMarquee);
+    marqueeWrapper.addEventListener('pointercancel', releaseMarquee);
+    if (window.matchMedia('(hover: hover)').matches) {
+      marqueeWrapper.addEventListener('pointerenter', () => { isHovering = true; });
+      marqueeWrapper.addEventListener('pointerleave', () => { isHovering = false; });
+    }
+    window.addEventListener('resize', updateLoopWidth);
+    document.addEventListener('visibilitychange', () => {
+      pageVisible = !document.hidden;
+      syncMarqueePlayback();
+    });
+    reduceMotion.addEventListener('change', () => {
+      speed = reduceMotion.matches ? 0 : normalSpeed;
+      syncMarqueePlayback();
+    });
+    const marqueeObserver = new IntersectionObserver(([entry]) => {
+      isInViewport = entry.isIntersecting;
+      syncMarqueePlayback();
+    }, { rootMargin: '120px 0px' });
+    marqueeObserver.observe(marqueeWrapper);
+    marqueeTrack.querySelectorAll('img').forEach(image => {
+      if (!image.complete) image.addEventListener('load', updateLoopWidth, { once: true });
+    });
+
+    updateLoopWidth();
+    syncMarqueePlayback();
+  }
+
+  // FAQ 手風琴效果 - 允許多個展開，並支援鍵盤操作
+  document.querySelectorAll('.faq-question').forEach((question, index) => {
+    const item = question.parentElement;
+    const answer = item.querySelector('.faq-answer');
+    const answerId = `faq-answer-${index + 1}`;
+    question.setAttribute('role', 'button');
+    question.setAttribute('tabindex', '0');
+    question.setAttribute('aria-expanded', 'false');
+    question.setAttribute('aria-controls', answerId);
+    answer.id = answerId;
+
+    const toggleFaq = () => {
+      const expanded = item.classList.toggle('active');
+      question.setAttribute('aria-expanded', String(expanded));
+    };
+
+    question.addEventListener('click', toggleFaq);
+    question.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        toggleFaq();
+      }
+    });
+  });
+
+  // Tab 切換：先淡出整組內容，再帶入新分類，避免版面瞬間跳動
+  const pricingGrid = document.querySelector('#pricing .pricing-grid');
+  const motionReduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let pricingFilterTimer;
+  let pricingHeightTimer;
+
+  const applyPricingFilter = (category) => {
+    document.querySelectorAll('#pricing .pricing-card').forEach(card => {
+      const cardCategories = card.dataset.category ? card.dataset.category.split(' ') : [];
+      if (cardCategories.includes(category)) {
+        card.classList.remove('hide');
+      } else {
+        card.classList.add('hide');
+      }
+    });
+
+    document.querySelectorAll('#pricing .category-note').forEach(note => {
+      const noteCategories = note.dataset.category ? note.dataset.category.split(' ') : [];
+      if (noteCategories.includes(category)) {
+        note.classList.remove('hide');
+      } else {
+        note.classList.add('hide');
+      }
+    });
+  };
+
+  const filterPricingCards = (category, animate = false) => {
+    if (!animate || motionReduced.matches || !pricingGrid) {
+      if (pricingGrid) {
+        window.clearTimeout(pricingFilterTimer);
+        window.clearTimeout(pricingHeightTimer);
+        pricingGrid.classList.remove('is-filtering', 'is-settling');
+        pricingGrid.style.height = '';
+      }
+      applyPricingFilter(category);
+      return;
+    }
+
+    window.clearTimeout(pricingFilterTimer);
+    window.clearTimeout(pricingHeightTimer);
+    const previousHeight = pricingGrid.getBoundingClientRect().height;
+    pricingGrid.style.height = `${previousHeight}px`;
+    pricingGrid.classList.remove('is-settling');
+    pricingGrid.classList.add('is-filtering');
+    pricingFilterTimer = window.setTimeout(() => {
+      applyPricingFilter(category);
+      pricingGrid.querySelectorAll('.pricing-card:not(.hide)').forEach(card => {
+        card.style.setProperty('--reveal-delay', '0ms');
+        card.classList.add('in', 'reveal-complete');
+      });
+      pricingGrid.style.height = 'auto';
+      const nextHeight = pricingGrid.getBoundingClientRect().height;
+      pricingGrid.style.height = `${previousHeight}px`;
+      void pricingGrid.offsetHeight;
+      pricingGrid.classList.add('is-settling');
+      window.requestAnimationFrame(() => {
+        pricingGrid.style.height = `${nextHeight}px`;
+        pricingGrid.classList.remove('is-filtering');
+      });
+      pricingHeightTimer = window.setTimeout(() => {
+        pricingGrid.style.height = '';
+        pricingGrid.classList.remove('is-settling');
+      }, 480);
+    }, 140);
+  };
+
+  const pricingTabs = document.querySelector('#pricing .pricing-tabs');
+  const pricingTabButtons = Array.from(document.querySelectorAll('#pricing .tab'));
+  if (pricingTabs) pricingTabs.setAttribute('role', 'tablist');
+
+  const updateTabIndicator = (activeTab) => {
+    if (!pricingTabs || !activeTab) return;
+    pricingTabs.style.setProperty('--tab-left', `${activeTab.offsetLeft}px`);
+    pricingTabs.style.setProperty('--tab-top', `${activeTab.offsetTop}px`);
+    pricingTabs.style.setProperty('--tab-width', `${activeTab.offsetWidth}px`);
+    pricingTabs.style.setProperty('--tab-height', `${activeTab.offsetHeight}px`);
+  };
+
+  pricingTabButtons.forEach(tab => {
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', String(tab.classList.contains('active')));
+    tab.addEventListener('click', () => {
+      pricingTabButtons.forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      updateTabIndicator(tab);
+      filterPricingCards(tab.dataset.category, true);
+    });
+  });
+
+  const activePricingTab = document.querySelector('#pricing .tab.active');
+  if (activePricingTab) {
+    filterPricingCards(activePricingTab.dataset.category);
+    window.requestAnimationFrame(() => updateTabIndicator(activePricingTab));
+  }
+  window.addEventListener('resize', () => updateTabIndicator(document.querySelector('#pricing .tab.active')));
+
+  // 滾動動畫：同一組項目以短間隔依序出現，完成後移除延遲避免 hover 反應變慢
+  ['ecommerce', 'print', 'other'].forEach(category => {
+    document.querySelectorAll(`#pricing .pricing-card[data-category~="${category}"]`).forEach((card, index) => {
+      card.style.setProperty('--reveal-delay', `${Math.min(index, 5) * 55}ms`);
+    });
+  });
+  document.querySelectorAll('.monthly-grid, .process-steps, .faq-list').forEach(group => {
+    group.querySelectorAll('.reveal-stagger').forEach((element, index) => {
+      element.style.setProperty('--reveal-delay', `${Math.min(index, 5) * 55}ms`);
+    });
+  });
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        entry.target.classList.add('in');
+        entry.target.addEventListener('transitionend', () => {
+          entry.target.style.setProperty('--reveal-delay', '0ms');
+          if (entry.target.classList.contains('pricing-card')) entry.target.classList.add('reveal-complete');
+        }, { once: true });
+        io.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  });
+
+  document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => io.observe(el));
+
+  // 月方案說明逐條進場
+  document.querySelectorAll('.monthly-cooperation-note li').forEach((item, index) => {
+    item.style.setProperty('--note-index', String(index));
+  });
+
+  // 滾動進度、首屏視差與合作流程進度
+  const scrollProgress = document.querySelector('.scroll-progress');
+  const hero = document.querySelector('.hero');
+  const processSteps = document.querySelector('.process-steps');
+  const processItems = Array.from(document.querySelectorAll('.process-steps .step'));
+  const contactSection = document.querySelector('.cta-section');
+  const heroNav = document.querySelector('.hero-secondary-links');
+  const heroNavButtons = Array.from(document.querySelectorAll('.hero-secondary-links .btn'));
+  const heroSectionLinks = heroNavButtons
+    .filter(link => link.getAttribute('href')?.startsWith('#'))
+    .map(link => ({ link, section: document.querySelector(link.getAttribute('href')) }))
+    .filter(item => item.section);
+  let motionFrame = 0;
+
+  const setHeroNavActive = (activeLink) => {
+    heroSectionLinks.forEach(({ link }) => {
+      const isActive = link === activeLink;
+      link.classList.toggle('is-active', isActive);
+      if (isActive) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
+  };
+
+  heroSectionLinks.forEach(({ link }) => {
+    link.addEventListener('click', () => setHeroNavActive(link));
+  });
+
+  // 桌面窄視窗可用滑鼠拖曳超出範圍的導覽列
+  if (heroNav && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    let isDraggingNav = false;
+    let didDragNav = false;
+    let dragStartX = 0;
+    let dragStartScroll = 0;
+
+    const updateHeroNavOverflow = () => {
+      heroNav.classList.toggle('can-scroll', heroNav.scrollWidth > heroNav.clientWidth + 1);
+    };
+    const finishHeroNavDrag = (event) => {
+      if (!isDraggingNav) return;
+      isDraggingNav = false;
+      heroNav.classList.remove('is-dragging');
+      if (heroNav.hasPointerCapture(event.pointerId)) heroNav.releasePointerCapture(event.pointerId);
+      window.setTimeout(() => { didDragNav = false; }, 0);
+    };
+
+    heroNav.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0 || heroNav.scrollWidth <= heroNav.clientWidth + 1) return;
+      isDraggingNav = true;
+      didDragNav = false;
+      dragStartX = event.clientX;
+      dragStartScroll = heroNav.scrollLeft;
+      heroNav.setPointerCapture(event.pointerId);
+      heroNav.classList.add('is-dragging');
+    });
+    heroNav.addEventListener('pointermove', (event) => {
+      if (!isDraggingNav) return;
+      const dragDistance = event.clientX - dragStartX;
+      if (Math.abs(dragDistance) > 5) didDragNav = true;
+      heroNav.scrollLeft = dragStartScroll - dragDistance;
+      if (didDragNav) event.preventDefault();
+    });
+    heroNav.addEventListener('pointerup', finishHeroNavDrag);
+    heroNav.addEventListener('pointercancel', finishHeroNavDrag);
+    heroNav.addEventListener('dragstart', event => event.preventDefault());
+    heroNav.addEventListener('click', (event) => {
+      if (!didDragNav) return;
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
+    window.addEventListener('resize', updateHeroNavOverflow);
+    updateHeroNavOverflow();
+  }
+
+  if (!motionReduced.matches) {
+    heroNavButtons.forEach(button => {
+      button.addEventListener('pointerdown', (event) => {
+        const rect = button.getBoundingClientRect();
+        const ripple = document.createElement('span');
+        ripple.className = 'btn-ripple';
+        ripple.style.left = `${event.clientX - rect.left}px`;
+        ripple.style.top = `${event.clientY - rect.top}px`;
+        button.appendChild(ripple);
+        ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+      });
+    });
+  }
+
+  const updateScrollMotion = () => {
+    motionFrame = 0;
+    const scrollTop = window.scrollY || window.pageYOffset;
+    const scrollRange = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    if (scrollProgress) scrollProgress.style.setProperty('--scroll-progress', String(Math.min(1, scrollTop / scrollRange)));
+
+    const navMarker = window.innerHeight * 0.42;
+    const currentNavItem = heroSectionLinks.find(({ section }) => {
+      const rect = section.getBoundingClientRect();
+      return rect.top <= navMarker && rect.bottom > navMarker;
+    });
+    if (currentNavItem) setHeroNavActive(currentNavItem.link);
+    else if (hero && scrollTop < hero.offsetHeight * 0.6) setHeroNavActive(null);
+
+    if (hero && !motionReduced.matches) {
+      const heroRect = hero.getBoundingClientRect();
+      const heroShift = Math.max(-46, Math.min(46, -heroRect.top * 0.09));
+      hero.style.setProperty('--hero-scroll', `${heroShift}px`);
+    }
+
+    if (processSteps && processItems.length) {
+      const rect = processSteps.getBoundingClientRect();
+      const viewportMarker = window.innerHeight * 0.5;
+      const progress = Math.max(0, Math.min(1, (viewportMarker - rect.top) / Math.max(1, rect.height)));
+      processSteps.style.setProperty('--process-progress', `${progress * 100}%`);
+
+      let closestIndex = 0;
+      let closestDistance = Infinity;
+      processItems.forEach((item, index) => {
+        const itemRect = item.getBoundingClientRect();
+        const distance = Math.abs(itemRect.top + itemRect.height / 2 - viewportMarker);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = index;
+        }
+      });
+      processItems.forEach((item, index) => {
+        item.classList.toggle('is-active', index === closestIndex && rect.top < viewportMarker && rect.bottom > viewportMarker);
+        item.classList.toggle('is-passed', index < closestIndex && rect.top < viewportMarker);
+      });
+    }
+  };
+
+  const requestScrollMotion = () => {
+    if (!motionFrame) motionFrame = window.requestAnimationFrame(updateScrollMotion);
+  };
+
+  window.addEventListener('scroll', requestScrollMotion, { passive: true });
+  window.addEventListener('resize', requestScrollMotion);
+  updateScrollMotion();
+
+  // 滑鼠移動時的首屏與聯絡區背景視差
+  const bindSectionParallax = (section, prefix) => {
+    if (!section || motionReduced.matches || !window.matchMedia('(hover: hover)').matches) return;
+    section.addEventListener('pointermove', (event) => {
+      const rect = section.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+      const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+      if (prefix === 'hero') {
+        section.style.setProperty('--hero-x-soft', `${x * 9}px`);
+        section.style.setProperty('--hero-y-soft', `${y * 9}px`);
+        section.style.setProperty('--hero-x-strong', `${x * 26}px`);
+        section.style.setProperty('--hero-y-strong', `${y * 26}px`);
+        section.style.setProperty('--hero-x-negative', `${x * -17}px`);
+        section.style.setProperty('--hero-y-negative', `${y * -17}px`);
+      } else {
+        section.style.setProperty('--cta-x-soft', `${x * 18}px`);
+        section.style.setProperty('--cta-y-soft', `${y * 18}px`);
+        section.style.setProperty('--cta-x-negative', `${x * -12}px`);
+        section.style.setProperty('--cta-y-negative', `${y * -12}px`);
+      }
+    });
+    section.addEventListener('pointerleave', () => {
+      if (prefix === 'hero') {
+        ['--hero-x-soft', '--hero-y-soft', '--hero-x-strong', '--hero-y-strong', '--hero-x-negative', '--hero-y-negative'].forEach(name => section.style.setProperty(name, '0px'));
+      } else {
+        ['--cta-x-soft', '--cta-y-soft', '--cta-x-negative', '--cta-y-negative'].forEach(name => section.style.setProperty(name, '0px'));
+      }
+    });
+  };
+  bindSectionParallax(hero, 'hero');
+  bindSectionParallax(contactSection, 'cta');
+
+  // 首屏按鈕磁吸回饋
+  if (!motionReduced.matches && window.matchMedia('(hover: hover)').matches) {
+    document.querySelectorAll('.hero-secondary-links .btn').forEach(button => {
+      button.addEventListener('pointermove', (event) => {
+        const rect = button.getBoundingClientRect();
+        button.style.setProperty('--magnet-x', `${(event.clientX - rect.left - rect.width / 2) * 0.18}px`);
+        button.style.setProperty('--magnet-y', `${(event.clientY - rect.top - rect.height / 2) * 0.24}px`);
+      });
+      button.addEventListener('pointerleave', () => {
+        button.style.setProperty('--magnet-x', '0px');
+        button.style.setProperty('--magnet-y', '0px');
+      });
+    });
+
+    // 價目卡片跟隨指標傾斜與光影
+    document.querySelectorAll('.pricing-card').forEach(card => {
+      card.addEventListener('pointermove', (event) => {
+        const rect = card.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / rect.width;
+        const y = (event.clientY - rect.top) / rect.height;
+        card.style.setProperty('--tilt-x', `${(0.5 - y) * 7}deg`);
+        card.style.setProperty('--tilt-y', `${(x - 0.5) * 8}deg`);
+        card.style.setProperty('--glow-x', `${x * 100}%`);
+        card.style.setProperty('--glow-y', `${y * 100}%`);
+      });
+      card.addEventListener('pointerleave', () => {
+        card.style.setProperty('--tilt-x', '0deg');
+        card.style.setProperty('--tilt-y', '0deg');
+        card.style.setProperty('--glow-x', '50%');
+        card.style.setProperty('--glow-y', '50%');
+      });
+    });
+  }
+</script>
+
+<!-- 置頂按鈕 -->
+<button class="back-to-top" id="backToTop" aria-label="回到頂部"></button>
+
+<script>
+  // 置頂按鈕功能
+  const backToTopButton = document.getElementById('backToTop');
+  
+  // 監聽滾動事件
+  window.addEventListener('scroll', () => {
+    if (window.pageYOffset > 300) {
+      backToTopButton.classList.add('show');
+    } else {
+      backToTopButton.classList.remove('show');
+    }
+  });
+  
+  // 點擊置頂
+  backToTopButton.addEventListener('click', () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  });
+</script>
+
+</body>
+</html>

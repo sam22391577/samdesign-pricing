@@ -208,6 +208,15 @@ type Message = {
   text: string;
 };
 
+const configuredPublicBaseUrl = typeof globalThis === "object"
+  ? Reflect.get(globalThis, "__SITE_BASE_URL__")
+  : undefined;
+const publicBaseUrl = `${configuredPublicBaseUrl || "/"}`.replace(/\/?$/, "/");
+
+function withPublicBasePath(path = "") {
+  return `${publicBaseUrl}${path.replace(/^\/+/, "")}`;
+}
+
 type HistoryEntry = {
   step: Step;
   answers: Answers;
@@ -2144,7 +2153,7 @@ function loadPdfLogoWatermark() {
     const image = new Image();
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error("無法載入估價單 Logo 浮水印"));
-    image.src = "/assets/brand/sa-design-logo-square.png";
+    image.src = withPublicBasePath("assets/brand/sa-design-logo-square.png");
   });
 }
 
@@ -2153,7 +2162,7 @@ function loadPdfContactQrCode() {
     const image = new Image();
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error("無法載入 LINE 聯絡 QR Code"));
-    image.src = "/assets/embedded/87272102c4a651a7.webp";
+    image.src = withPublicBasePath("assets/embedded/87272102c4a651a7.webp");
   });
 }
 
@@ -2286,6 +2295,7 @@ export default function Home() {
   const [isSingleSpecificationAdvancing, setIsSingleSpecificationAdvancing] = useState(false);
   const [confirmedSingleServiceIds, setConfirmedSingleServiceIds] = useState<string[]>([]);
   const [showQuoteUpdated, setShowQuoteUpdated] = useState(false);
+  const [usesStaticContactFlow, setUsesStaticContactFlow] = useState(false);
   const chatBodyRef = useRef<HTMLDivElement>(null);
   const currentQuestionRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -2307,6 +2317,10 @@ export default function Home() {
     if (stepTransitionTimerRef.current !== undefined) window.clearTimeout(stepTransitionTimerRef.current);
     if (monthlySpecificationTimerRef.current !== undefined) window.clearTimeout(monthlySpecificationTimerRef.current);
     if (singleSpecificationTimerRef.current !== undefined) window.clearTimeout(singleSpecificationTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    setUsesStaticContactFlow(window.location.hostname.endsWith(".github.io"));
   }, []);
 
   useEffect(() => {
@@ -6810,7 +6824,17 @@ export default function Home() {
               </section>
             </details>
             {renderSpecificationServiceSwitcher()}
-            {inquirySubmitState === "success" ? (
+            {usesStaticContactFlow ? (
+              <section className="inquiry-capture" aria-labelledby="inquiry-capture-title">
+                <div className="inquiry-success" role="status">
+                  <span aria-hidden="true">LINE</span>
+                  <div>
+                    <strong id="inquiry-capture-title">需要正式報價？請用下方 LINE 聯繫</strong>
+                    <small>點擊後會先複製本次需求摘要，進入 LINE 再貼上即可。</small>
+                  </div>
+                </div>
+              </section>
+            ) : inquirySubmitState === "success" ? (
               <section className="inquiry-capture" aria-labelledby="inquiry-capture-title">
                 <div className="inquiry-success" role="status">
                   <span aria-hidden="true">✓</span>
@@ -6875,14 +6899,14 @@ export default function Home() {
   return (
     <main className={`site-shell${step === "result" ? " estimate-complete" : ""}`}>
       <header className="topbar">
-        <a className="brand" href="/" aria-label="返回 Design Studio 服務價目首頁">
+        <a className="brand" href={withPublicBasePath()} aria-label="返回 Design Studio 服務價目首頁">
           <span className="brand-mark">S</span>
           <span>
             <strong>SAM</strong>
             <small>DESIGN STUDIO</small>
           </span>
         </a>
-        <a className="topbar-note" href="/">
+        <a className="topbar-note" href={withPublicBasePath()}>
           <span aria-hidden="true">←</span>
           返回設計服務價目
         </a>

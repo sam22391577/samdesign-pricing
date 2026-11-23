@@ -426,12 +426,12 @@ test("completed estimate can be downloaded as a branded PDF", async () => {
   assert.match(source, /const validUntilDate = new Date\(now\.getTime\(\) \+ 14 \* 24 \* 60 \* 60 \* 1000\)/);
   assert.match(source, /label: "有效期限", value: validUntil/);
   assert.match(source, /function loadPdfContactQrCode/);
-  assert.match(source, /\/assets\/embedded\/87272102c4a651a7\.webp/);
+  assert.match(source, /withPublicBasePath\("assets\/embedded\/87272102c4a651a7\.webp"\)/);
   assert.match(source, /label: "聯絡方式", value: "掃描 QR Code\\n確認正式報價與可安排檔期", qrCode: true/);
   assert.doesNotMatch(source, /label: "聯絡方式"[^\n]*lineContactUrl/);
   assert.match(source, /pageCanvases/);
   assert.match(source, /function loadPdfLogoWatermark/);
-  assert.match(source, /\/assets\/brand\/sa-design-logo-square\.png/);
+  assert.match(source, /withPublicBasePath\("assets\/brand\/sa-design-logo-square\.png"\)/);
   assert.match(source, /function drawPdfLogoWatermark/);
   assert.match(source, /const markWidth = 810/);
   assert.match(source, /context\.globalAlpha = 0\.1/);
