@@ -7,8 +7,8 @@ import "./inquiries.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "問卷管理中心｜Sam Design Studio",
-  description: "集中整理設計需求問卷、追蹤聯絡進度與報價狀態。",
+  title: "客戶需求管理｜Sam Design Studio",
+  description: "集中整理客戶設計需求、追蹤聯絡進度與報價狀態。",
 };
 
 export default async function InquiryManagementPage() {

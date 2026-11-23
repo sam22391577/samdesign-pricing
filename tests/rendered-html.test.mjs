@@ -2,44 +2,21 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("questionnaire manager keeps the essential workflow easy to find", async () => {
-  const [dashboard, publicForm, adminPage, questionTypes, migration] = await Promise.all([
-    readFile(new URL("../app/admin/forms/questionnaire-dashboard.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/forms/[slug]/questionnaire-form.tsx", import.meta.url), "utf8"),
+test("admin console only exposes customer inquiries", async () => {
+  const [dashboard, formerQuestionnairePage, inquiryPage, inquiryRecordPage] = await Promise.all([
+    readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/forms/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/questionnaire-types.ts", import.meta.url), "utf8"),
-    readFile(new URL("../drizzle/0001_nifty_xorn.sql", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/inquiries/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/inquiries/[id]/page.tsx", import.meta.url), "utf8"),
   ]);
 
-  for (const label of [
-    "建立問卷",
-    "新增問題",
-    "即時預覽",
-    "發布問卷",
-    "查看回覆",
-    "下載 CSV",
-    "正在自動儲存",
-  ]) {
-    assert.match(dashboard, new RegExp(label));
-  }
-
-  assert.match(questionTypes, /短文字/);
-  assert.match(questionTypes, /單選/);
-  assert.match(questionTypes, /複選/);
-  assert.match(questionTypes, /下拉選單/);
-  assert.match(publicForm, /送出問卷/);
-  assert.match(publicForm, /填寫進度/);
-  assert.match(adminPage, /requireChatGPTUser/);
-  assert.match(adminPage, /isInquiryAdminEmail/);
-  assert.match(migration, /CREATE TABLE `questionnaires`/);
-  assert.match(migration, /CREATE TABLE `questionnaire_responses`/);
-});
-
-test("inquiry console links to the questionnaire manager", async () => {
-  const dashboard = await readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8");
-
-  assert.match(dashboard, /href="\/admin\/forms"/);
-  assert.match(dashboard, /> 問卷管理<\/a>/);
+  assert.match(dashboard, /href="\/admin\/inquiries"/);
+  assert.match(dashboard, /> 客戶需求 <b>/);
+  assert.doesNotMatch(dashboard, /href="\/admin\/forms"|問卷管理/);
+  assert.match(formerQuestionnairePage, /redirect\("\/admin\/inquiries"\)/);
+  assert.doesNotMatch(formerQuestionnairePage, /QuestionnaireDashboard/);
+  assert.match(inquiryPage, /title: "客戶需求管理｜Sam Design Studio"/);
+  assert.match(inquiryRecordPage, /title: "需求內容｜客戶需求管理"/);
 });
 
 test("price site keeps print guidance inside one notes section", async () => {

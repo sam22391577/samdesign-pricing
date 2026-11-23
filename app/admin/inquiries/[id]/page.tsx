@@ -7,7 +7,7 @@ import "../inquiries.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "需求內容｜問卷管理中心",
+  title: "需求內容｜客戶需求管理",
   description: "查看並管理單筆客戶設計需求。",
 };
 
