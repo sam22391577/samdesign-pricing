@@ -417,6 +417,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
         <nav className="admin-nav" aria-label="後台導覽">
           <span className="nav-label">工作台</span>
           <a className="nav-item is-active" href="/admin/inquiries"><span aria-hidden="true">▤</span> 客戶需求 <b>{newCount}</b></a>
+          <a className="nav-item" href="/admin/forms"><span aria-hidden="true">☷</span> 問卷管理</a>
           <a className="nav-item" href="#overview"><span aria-hidden="true">◫</span> 數據總覽</a>
           <span className="nav-label">管理</span>
           <a className="nav-item" href="/"><span aria-hidden="true">⌁</span> 前台試算</a>
