@@ -122,12 +122,13 @@ export async function POST(request: Request) {
 
     const id = formatInquiryId();
     const submittedAt = new Date().toISOString();
+    const defaultNextFollowUpAt = new Date(new Date(submittedAt).getTime() + 5 * 24 * 60 * 60 * 1000).toISOString();
     await ensureInquirySchema();
     await getD1().prepare(`INSERT INTO inquiries (
       id, submitted_at, updated_at, client_name, company, email, contact,
       project_type, services_json, estimate_low, estimate_high, budget,
-      summary_json, answers_json, status, priority, assignee, note
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', 'normal', 'Sam', '')`)
+      summary_json, answers_json, status, priority, assignee, next_follow_up_at, note
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', 'normal', 'Sam', ?, '')`)
       .bind(
         id,
         submittedAt,
@@ -143,6 +144,7 @@ export async function POST(request: Request) {
         budget,
         JSON.stringify(summary),
         JSON.stringify(payload.answers ?? {}),
+        defaultNextFollowUpAt,
       ).run();
 
     return publicFormJson(request, { inquiry: { id, submittedAt } }, { status: 201 });

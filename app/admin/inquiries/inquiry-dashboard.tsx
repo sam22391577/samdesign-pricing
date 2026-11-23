@@ -243,6 +243,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   const [detailInquiryId, setDetailInquiryId] = useState<string | null>(null);
   const [copiedContactId, setCopiedContactId] = useState<string | null>(null);
   const [dashboardNow] = useState(() => new Date().getTime());
+  const defaultFollowUpAt = new Date(dashboardNow + 5 * 24 * 60 * 60 * 1000).toISOString();
 
   useEffect(() => {
     let cancelled = false;
@@ -745,7 +746,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
               <form key={`${detailInquiry.id}-${detailInquiry.replyStatus}-${detailInquiry.nextFollowUpAt}-${detailInquiry.nextAction}`} className="quick-workflow-form" onSubmit={(event) => { void saveFollowUp(event, detailInquiry); }}>
                 <div className="quick-workflow-heading"><div><span>回覆與排程</span><strong>下一步要做什麼？</strong></div><ReplyStatusBadge status={detailInquiry.replyStatus} /></div>
                 <label><span>回覆狀況</span><select name="replyStatus" defaultValue={detailInquiry.replyStatus}>{editableReplyStatuses.map((status) => <option key={status} value={status}>{replyStatusLabels[status]}</option>)}</select></label>
-                <label><span>下次追蹤時間</span><input name="nextFollowUpAt" type="datetime-local" defaultValue={toDateTimeLocalValue(detailInquiry.nextFollowUpAt)} /></label>
+                <label><span>下次追蹤時間</span><input name="nextFollowUpAt" type="datetime-local" defaultValue={toDateTimeLocalValue(detailInquiry.nextFollowUpAt || defaultFollowUpAt)} /></label>
                 <label><span>下一步事項</span><input name="nextAction" maxLength={180} defaultValue={detailInquiry.nextAction} placeholder="例如：確認需求、寄送報價、安排交稿" /></label>
                 <div className="quick-workflow-actions">
                   <button type="button" disabled={updatingStatuses.has(detailInquiry.id)} onClick={() => { void markResponded(detailInquiry); }}>已回覆客戶</button>

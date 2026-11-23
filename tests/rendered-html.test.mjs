@@ -1757,6 +1757,20 @@ test("inquiry backend stores reply tracking and follow-up schedule fields", asyn
   assert.match(detailApi, /next_follow_up_at = \?/);
 });
 
+test("new inquiries default the next follow-up date to five days later", async () => {
+  const [listApi, dashboard, record] = await Promise.all([
+    readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/inquiries/[id]/inquiry-record.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(listApi, /defaultNextFollowUpAt = new Date\(new Date\(submittedAt\)\.getTime\(\) \+ 5 \* 24 \* 60 \* 60 \* 1000\)\.toISOString\(\)/);
+  assert.match(listApi, /assignee, next_follow_up_at, note/);
+  assert.match(listApi, /defaultNextFollowUpAt,/);
+  assert.match(dashboard, /detailInquiry\.nextFollowUpAt \|\| defaultFollowUpAt/);
+  assert.match(record, /inquiry\.nextFollowUpAt \|\| defaultFollowUpAt/);
+});
+
 test("inquiry backend presents a compact working summary while preserving raw answers", async () => {
   const [compactSummary, dashboard, record] = await Promise.all([
     readFile(new URL("../app/admin/inquiries/compact-summary.ts", import.meta.url), "utf8"),

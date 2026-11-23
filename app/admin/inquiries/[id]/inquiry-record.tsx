@@ -102,6 +102,7 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [contactCopied, setContactCopied] = useState(false);
+  const [defaultFollowUpAt] = useState(() => new Date(new Date().getTime() + 5 * 24 * 60 * 60 * 1000).toISOString());
 
   useEffect(() => {
     let cancelled = false;
@@ -224,7 +225,7 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
               <div className="record-card-heading"><div><span>03</span><h2>聯絡與排程</h2></div><small>掌握下一步</small></div>
               <div className="record-workflow-grid">
                 <label><span>回覆狀況</span><select value={inquiry.replyStatus} onChange={(event) => savePatch({ replyStatus: event.target.value as ReplyStatus })}>{Object.entries(replyStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-                <label><span>下次追蹤時間</span><input type="datetime-local" value={toDateTimeLocalValue(inquiry.nextFollowUpAt)} onChange={(event) => savePatch({ nextFollowUpAt: event.target.value ? new Date(event.target.value).toISOString() : null })} /></label>
+                <label><span>下次追蹤時間</span><input type="datetime-local" value={toDateTimeLocalValue(inquiry.nextFollowUpAt || defaultFollowUpAt)} onChange={(event) => savePatch({ nextFollowUpAt: event.target.value ? new Date(event.target.value).toISOString() : null })} /></label>
                 <label className="record-next-action"><span>下一步事項</span><input value={inquiry.nextAction} maxLength={180} onChange={(event) => setInquiry({ ...inquiry, nextAction: event.target.value })} placeholder="例如：確認需求、寄送報價、安排交稿" /></label>
               </div>
               <div className="record-workflow-actions"><button type="button" disabled={saving} onClick={markResponded}>標記已回覆客戶</button><button type="button" disabled={saving} onClick={() => savePatch({ nextAction: inquiry.nextAction })}>儲存下一步</button></div>
