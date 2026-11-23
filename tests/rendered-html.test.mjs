@@ -1771,6 +1771,27 @@ test("new inquiries default the next follow-up date to five days later", async (
   assert.match(record, /inquiry\.nextFollowUpAt \|\| defaultFollowUpAt/);
 });
 
+test("new inquiry submissions schedule a private Gmail notification without blocking storage", async () => {
+  const [listApi, notification, appsScript, worker] = await Promise.all([
+    readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/inquiry-notifications.ts", import.meta.url), "utf8"),
+    readFile(new URL("../integrations/gmail-notification/Code.gs", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(listApi, /scheduleInquiryNotification\(\{/);
+  assert.ok(listApi.indexOf(".run();") < listApi.indexOf("scheduleInquiryNotification({"));
+  assert.match(notification, /import \{ env, waitUntil \} from "cloudflare:workers"/);
+  assert.match(notification, /GMAIL_NOTIFICATION_WEBHOOK_URL/);
+  assert.match(notification, /waitUntil\(sendInquiryNotification/);
+  assert.match(notification, /console\.error\("Unable to send inquiry notification\.", error\)/);
+  assert.match(appsScript, /NOTIFICATION_RECIPIENT/);
+  assert.match(appsScript, /PropertiesService\.getScriptProperties\(\)/);
+  assert.match(appsScript, /MailApp\.sendEmail/);
+  assert.match(appsScript, /聯絡方式與完整需求請至私人後台查看/);
+  assert.match(worker, /GMAIL_NOTIFICATION_WEBHOOK_URL\?: string/);
+});
+
 test("inquiry backend presents compact and complete answers in readable language", async () => {
   const [compactSummary, dashboard, record, css] = await Promise.all([
     readFile(new URL("../app/admin/inquiries/compact-summary.ts", import.meta.url), "utf8"),

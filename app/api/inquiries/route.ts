@@ -1,4 +1,5 @@
 import { ensureInquirySchema, getD1 } from "../../../db";
+import { scheduleInquiryNotification } from "../../inquiry-notifications";
 import { canManageInquiries, unauthorizedResponse } from "./access";
 
 type NewInquiryPayload = {
@@ -146,6 +147,18 @@ export async function POST(request: Request) {
         JSON.stringify(payload.answers ?? {}),
         defaultNextFollowUpAt,
       ).run();
+
+    scheduleInquiryNotification({
+      id,
+      submittedAt,
+      clientName,
+      company,
+      projectType,
+      services,
+      estimateLow,
+      estimateHigh,
+      adminUrl: `${new URL(request.url).origin}/admin/inquiries/${encodeURIComponent(id)}`,
+    });
 
     return publicFormJson(request, { inquiry: { id, submittedAt } }, { status: 201 });
   } catch (error) {

@@ -9,6 +9,7 @@ interface Env {
   ADMIN_USERNAME?: string;
   ADMIN_PASSWORD?: string;
   ADMIN_DISPLAY_NAME?: string;
+  GMAIL_NOTIFICATION_WEBHOOK_URL?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
