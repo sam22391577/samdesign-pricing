@@ -323,9 +323,11 @@ a { color: inherit; text-decoration: none; }
   margin-bottom: var(--space-xl);
   opacity: 1;
   transform: translateY(0);
-  overflow: clip;
+  overflow: visible;
   transition: height var(--motion-standard) var(--motion-ease), opacity var(--motion-fast) ease, transform 220ms var(--motion-ease);
 }
+.pricing-grid.is-filtering,
+.pricing-grid.is-settling { overflow: clip; }
 .pricing-grid.is-filtering { opacity: 1; transform: translateY(5px); }
 .pricing-grid.is-settling .pricing-card:not(.hide) { animation: pricing-card-settle var(--motion-standard) var(--motion-ease) both; }
 .monthly-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -903,6 +905,7 @@ a { color: inherit; text-decoration: none; }
 .pricing-card > * { position: relative; z-index: 1; transform: translateZ(0); transition: transform 340ms var(--motion-ease); }
 .pricing-card:hover,
 .pricing-card:focus-within {
+  z-index: 2;
   transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(-13px) scale(1.016);
   box-shadow: 0 38px 82px rgba(91, 74, 58, 0.2);
 }
