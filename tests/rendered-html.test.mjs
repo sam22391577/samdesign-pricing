@@ -301,10 +301,11 @@ test("homepage interaction polish stays compact and motion-aware", async () => {
   assert.match(html, /const normalSpeed = -32/);
   assert.match(html, /prefers-reduced-motion: reduce/);
   assert.match(html, /pointerdown|pointermove|pointerup/);
-  assert.match(html, /\.pricing-card:hover,[\s\S]*?\.pricing-card:focus-within \{[\s\S]*?transform: translateY\(-2px\)/);
   assert.match(html, /\.pricing-grid \{[\s\S]*?overflow: visible/);
   assert.match(html, /\.pricing-grid\.is-filtering,[\s\S]*?\.pricing-grid\.is-settling \{ overflow: clip; \}/);
-  assert.match(html, /\.pricing-card:hover,[\s\S]*?\.pricing-card:focus-within \{[\s\S]*?z-index: 2;[\s\S]*?translateY\(-13px\) scale\(1\.016\)/);
+  assert.match(html, /\.pricing-card:hover,[\s\S]*?\.pricing-card:focus-within \{[\s\S]*?transform: none;[\s\S]*?box-shadow: var\(--shadow-sm\)/);
+  assert.match(html, /\.pricing-card:hover \.pricing-card-header,[\s\S]*?\.pricing-card:focus-within \.service-card-cta \{ transform: none; \}/);
+  assert.doesNotMatch(html, /setProperty\('--tilt-[xy]'/);
   assert.match(html, /--motion-standard: 460ms/);
   assert.match(html, /transition-delay: var\(--reveal-delay, 0ms\)/);
   assert.match(html, /Math\.min\(index, 5\) \* 55/);

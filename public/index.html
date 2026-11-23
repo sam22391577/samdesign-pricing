@@ -884,13 +884,10 @@ a { color: inherit; text-decoration: none; }
 .pricing-grid.is-filtering { opacity: 1; transform: translateX(-14px) scale(0.985); }
 .pricing-grid.is-settling .pricing-card:not(.hide) { animation: pricing-card-spring 620ms var(--motion-ease) both; }
 .pricing-card {
-  --tilt-x: 0deg;
-  --tilt-y: 0deg;
   --glow-x: 50%;
   --glow-y: 50%;
-  transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(0);
-  transform-style: preserve-3d;
-  will-change: transform;
+  transform: none;
+  transform-style: flat;
 }
 .pricing-card::before {
   content: '';
@@ -905,18 +902,17 @@ a { color: inherit; text-decoration: none; }
 .pricing-card > * { position: relative; z-index: 1; transform: translateZ(0); transition: transform 340ms var(--motion-ease); }
 .pricing-card:hover,
 .pricing-card:focus-within {
-  z-index: 2;
-  transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(-13px) scale(1.016);
-  box-shadow: 0 38px 82px rgba(91, 74, 58, 0.2);
+  transform: none;
+  box-shadow: var(--shadow-sm);
 }
 .pricing-card:hover::before,
 .pricing-card:focus-within::before { opacity: 1; }
 .pricing-card:hover .pricing-card-header,
-.pricing-card:focus-within .pricing-card-header { transform: translateZ(24px); }
+.pricing-card:focus-within .pricing-card-header { transform: none; }
 .pricing-card:hover .features,
-.pricing-card:focus-within .features { transform: translateZ(16px); }
+.pricing-card:focus-within .features { transform: none; }
 .pricing-card:hover .service-card-cta,
-.pricing-card:focus-within .service-card-cta { transform: translate3d(4px, -2px, 24px); }
+.pricing-card:focus-within .service-card-cta { transform: none; }
 .monthly-grid:has(.pricing-card:hover) .pricing-card:not(:hover),
 .monthly-grid:has(.pricing-card:focus-within) .pricing-card:not(:focus-within) {
   opacity: 1;
@@ -2169,20 +2165,16 @@ a { color: inherit; text-decoration: none; }
       });
     });
 
-    // 價目卡片跟隨指標傾斜與光影
+    // 價目卡片只保留跟隨指標的光影，不移動或傾斜內容
     document.querySelectorAll('.pricing-card').forEach(card => {
       card.addEventListener('pointermove', (event) => {
         const rect = card.getBoundingClientRect();
         const x = (event.clientX - rect.left) / rect.width;
         const y = (event.clientY - rect.top) / rect.height;
-        card.style.setProperty('--tilt-x', `${(0.5 - y) * 7}deg`);
-        card.style.setProperty('--tilt-y', `${(x - 0.5) * 8}deg`);
         card.style.setProperty('--glow-x', `${x * 100}%`);
         card.style.setProperty('--glow-y', `${y * 100}%`);
       });
       card.addEventListener('pointerleave', () => {
-        card.style.setProperty('--tilt-x', '0deg');
-        card.style.setProperty('--tilt-y', '0deg');
         card.style.setProperty('--glow-x', '50%');
         card.style.setProperty('--glow-y', '50%');
       });
