@@ -2139,6 +2139,15 @@ function wrapCanvasText(context: CanvasRenderingContext2D, text: string, maxWidt
   return lines.length > 0 ? lines : [""];
 }
 
+function loadPdfLogoWatermark() {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("無法載入估價單 Logo 浮水印"));
+    image.src = "/assets/brand/sa-design-logo-square.png";
+  });
+}
+
 function loadPdfContactQrCode() {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
@@ -2148,16 +2157,18 @@ function loadPdfContactQrCode() {
   });
 }
 
-function drawPdfLogoWatermark(context: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number) {
+function drawPdfLogoWatermark(context: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number, logo: HTMLImageElement) {
+  const markWidth = 810;
+  const markHeight = markWidth * (logo.naturalHeight / logo.naturalWidth);
   context.save();
-  context.globalAlpha = 0.08;
-  context.fillStyle = "#806957";
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.font = '700 220px Georgia, "Noto Serif TC", serif';
-  context.fillText("SA", canvasWidth / 2, canvasHeight / 2 - 42);
-  context.font = '600 44px Georgia, "Noto Serif TC", serif';
-  context.fillText("DESIGN", canvasWidth / 2, canvasHeight / 2 + 112);
+  context.globalAlpha = 0.1;
+  context.drawImage(
+    logo,
+    (canvasWidth - markWidth) / 2,
+    (canvasHeight - markHeight) / 2,
+    markWidth,
+    markHeight,
+  );
   context.restore();
 }
 
@@ -5032,7 +5043,10 @@ export default function Home() {
       },
     ];
     await document.fonts.ready;
-    const contactQrCode = await loadPdfContactQrCode();
+    const [watermarkLogo, contactQrCode] = await Promise.all([
+      loadPdfLogoWatermark(),
+      loadPdfContactQrCode(),
+    ]);
     const pageCanvases: HTMLCanvasElement[] = [];
     const pageTextLayers: string[][] = [];
     const drawRoundedRect = (
@@ -5238,7 +5252,7 @@ export default function Home() {
     pageCanvases.forEach((canvas, index) => {
       const footerContext = canvas.getContext("2d");
       if (!footerContext) return;
-      drawPdfLogoWatermark(footerContext, canvas.width, canvas.height);
+      drawPdfLogoWatermark(footerContext, canvas.width, canvas.height, watermarkLogo);
       footerContext.fillStyle = "#8a7a6e";
       footerContext.font = '17px -apple-system, BlinkMacSystemFont, "Noto Sans TC", sans-serif';
       footerContext.textAlign = "left";

@@ -430,12 +430,11 @@ test("completed estimate can be downloaded as a branded PDF", async () => {
   assert.match(source, /label: "聯絡方式", value: "掃描 QR Code\\n確認正式報價與可安排檔期", qrCode: true/);
   assert.doesNotMatch(source, /label: "聯絡方式"[^\n]*lineContactUrl/);
   assert.match(source, /pageCanvases/);
-  assert.doesNotMatch(source, /function loadPdfLogoWatermark/);
-  assert.doesNotMatch(source, /\/assets\/brand\/sa-design-logo-square\.png/);
+  assert.match(source, /function loadPdfLogoWatermark/);
+  assert.match(source, /\/assets\/brand\/sa-design-logo-square\.png/);
   assert.match(source, /function drawPdfLogoWatermark/);
-  assert.match(source, /context\.globalAlpha = 0\.08/);
-  assert.match(source, /context\.fillText\("SA", canvasWidth \/ 2, canvasHeight \/ 2 - 42\)/);
-  assert.match(source, /context\.fillText\("DESIGN", canvasWidth \/ 2, canvasHeight \/ 2 \+ 112\)/);
+  assert.match(source, /const markWidth = 810/);
+  assert.match(source, /context\.globalAlpha = 0\.1/);
   assert.match(source, /const rowFontSize = 19/);
   assert.match(source, /const measureEstimateRow =/);
   assert.match(source, /Math\.max\(labelLines\.length, valueLines\.length\)/);
