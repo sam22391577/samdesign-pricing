@@ -1,10 +1,11 @@
 "use client";
 /* eslint-disable @next/next/no-html-link-for-pages */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { compactInquirySummary } from "./compact-summary";
 
 type InquiryStatus = "new" | "contacted" | "quoted" | "won" | "archived";
+type ReplyStatus = "needs_reply" | "waiting_client" | "client_replied" | "scheduled" | "paused" | "completed";
 type Priority = "high" | "normal" | "low";
 type StatusView = "todo" | "active" | "done" | "all";
 type DateFilter = "all" | "today" | "week" | "month";
@@ -23,8 +24,13 @@ type Inquiry = {
   submittedTime: number;
   relativeTime: string;
   status: InquiryStatus;
+  replyStatus: ReplyStatus;
   priority: Priority;
   assignee: string;
+  lastContactAt: string;
+  nextFollowUpAt: string;
+  nextFollowUpTime: number | null;
+  nextAction: string;
   summary: string[];
   note: string;
   persisted?: boolean;
@@ -44,8 +50,12 @@ type ApiInquiry = {
   budget: number | null;
   summaryJson: string;
   status: InquiryStatus;
+  replyStatus: ReplyStatus;
   priority: Priority;
   assignee: string;
+  lastContactAt: string | null;
+  nextFollowUpAt: string | null;
+  nextAction: string;
   note: string;
 };
 
@@ -61,6 +71,17 @@ const statusLabels: Record<InquiryStatus, string> = {
   archived: "已封存",
 };
 
+const replyStatusLabels: Record<ReplyStatus, string> = {
+  needs_reply: "待我回覆",
+  waiting_client: "等待客戶",
+  client_replied: "客戶已回覆",
+  scheduled: "已安排處理",
+  paused: "暫緩",
+  completed: "已完成",
+};
+
+const editableReplyStatuses: ReplyStatus[] = ["needs_reply", "client_replied", "waiting_client", "scheduled", "paused", "completed"];
+
 const priorityLabels: Record<Priority, string> = {
   high: "優先",
   normal: "一般",
@@ -68,8 +89,8 @@ const priorityLabels: Record<Priority, string> = {
 };
 
 const filters: Array<{ key: StatusView; label: string }> = [
-  { key: "todo", label: "待處理" },
-  { key: "active", label: "處理中" },
+  { key: "todo", label: "待我處理" },
+  { key: "active", label: "追蹤中" },
   { key: "done", label: "已完成" },
   { key: "all", label: "全部" },
 ];
@@ -92,6 +113,46 @@ function safeStringArray(value: string) {
   } catch {
     return [];
   }
+}
+
+function formatTaipeiDateTime(value: string) {
+  if (!value) return "尚未設定";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "尚未設定";
+  return new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+function taipeiDateKey(value: string | number) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(value));
+}
+
+function toDateTimeLocalValue(value: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
 }
 
 function toInquiry(row: ApiInquiry): Inquiry {
@@ -121,12 +182,25 @@ function toInquiry(row: ApiInquiry): Inquiry {
     submittedTime: submittedDate.getTime(),
     relativeTime,
     status: row.status,
+    replyStatus: row.replyStatus || "needs_reply",
     priority: row.priority,
     assignee: row.assignee,
+    lastContactAt: row.lastContactAt || "",
+    nextFollowUpAt: row.nextFollowUpAt || "",
+    nextFollowUpTime: row.nextFollowUpAt ? new Date(row.nextFollowUpAt).getTime() : null,
+    nextAction: row.nextAction || "",
     summary: compactInquirySummary(safeStringArray(row.summaryJson)),
     note: row.note,
     persisted: true,
   };
+}
+
+function ReplyStatusBadge({ status }: { status: ReplyStatus }) {
+  return <span className={`reply-status reply-${status}`}><i />{replyStatusLabels[status]}</span>;
+}
+
+function isInquiryOverdue(inquiry: Inquiry, now: number) {
+  return inquiry.nextFollowUpTime !== null && inquiry.nextFollowUpTime < now && inquiry.replyStatus !== "completed";
 }
 
 function StatusEditor({ inquiry, updating, onChange }: { inquiry: Inquiry; updating: boolean; onChange: (status: InquiryStatus) => void }) {
@@ -168,6 +242,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   const [batchDeleteArmed, setBatchDeleteArmed] = useState(false);
   const [detailInquiryId, setDetailInquiryId] = useState<string | null>(null);
   const [copiedContactId, setCopiedContactId] = useState<string | null>(null);
+  const [dashboardNow] = useState(() => new Date().getTime());
 
   useEffect(() => {
     let cancelled = false;
@@ -210,50 +285,69 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
 
   const filteredInquiries = useMemo(() => {
     const keyword = search.trim().toLocaleLowerCase("zh-Hant");
-    const now = Date.now();
-    const startOfToday = new Date();
+    const startOfToday = new Date(dashboardNow);
     startOfToday.setHours(0, 0, 0, 0);
     return inquiries.filter((inquiry) => {
+      const isOverdue = inquiry.nextFollowUpTime !== null
+        && inquiry.nextFollowUpTime < dashboardNow
+        && inquiry.replyStatus !== "completed";
       const matchesStatus = activeFilter === "all"
-        || (activeFilter === "todo" && inquiry.status === "new")
-        || (activeFilter === "active" && ["contacted", "quoted"].includes(inquiry.status))
-        || (activeFilter === "done" && ["won", "archived"].includes(inquiry.status));
+        || (activeFilter === "todo" && (["needs_reply", "client_replied"].includes(inquiry.replyStatus) || isOverdue))
+        || (activeFilter === "active" && ["waiting_client", "scheduled", "paused"].includes(inquiry.replyStatus))
+        || (activeFilter === "done" && (inquiry.replyStatus === "completed" || ["won", "archived"].includes(inquiry.status)));
       const matchesProject = projectFilter === "all" || inquiry.projectType === projectFilter;
       const matchesPriority = priorityFilter === "all" || inquiry.priority === priorityFilter;
       const matchesDate = dateFilter === "all"
         || (dateFilter === "today" && inquiry.submittedTime >= startOfToday.getTime())
-        || (dateFilter === "week" && inquiry.submittedTime >= now - 7 * 24 * 60 * 60 * 1000)
-        || (dateFilter === "month" && inquiry.submittedTime >= now - 30 * 24 * 60 * 60 * 1000);
+        || (dateFilter === "week" && inquiry.submittedTime >= dashboardNow - 7 * 24 * 60 * 60 * 1000)
+        || (dateFilter === "month" && inquiry.submittedTime >= dashboardNow - 30 * 24 * 60 * 60 * 1000);
       const searchable = [inquiry.client, inquiry.company, inquiry.email, inquiry.contact, inquiry.id, ...inquiry.services]
         .join(" ")
         .toLocaleLowerCase("zh-Hant");
       return matchesStatus && matchesProject && matchesPriority && matchesDate && (!keyword || searchable.includes(keyword));
+    }).sort((left, right) => {
+      const urgency = (inquiry: Inquiry) => {
+        if (inquiry.nextFollowUpTime !== null && inquiry.nextFollowUpTime < dashboardNow && inquiry.replyStatus !== "completed") return 0;
+        if (inquiry.replyStatus === "client_replied") return 1;
+        if (inquiry.replyStatus === "needs_reply") return 2;
+        if (inquiry.nextFollowUpTime !== null) return 3;
+        return 4;
+      };
+      return urgency(left) - urgency(right) || (left.nextFollowUpTime ?? Number.MAX_SAFE_INTEGER) - (right.nextFollowUpTime ?? Number.MAX_SAFE_INTEGER) || right.submittedTime - left.submittedTime;
     });
-  }, [activeFilter, dateFilter, inquiries, priorityFilter, projectFilter, search]);
+  }, [activeFilter, dashboardNow, dateFilter, inquiries, priorityFilter, projectFilter, search]);
 
   const selectedInquiries = inquiries.filter((inquiry) => selectedIds.has(inquiry.id));
   const filteredIds = filteredInquiries.map((inquiry) => inquiry.id);
   const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
   const detailInquiry = inquiries.find((inquiry) => inquiry.id === detailInquiryId) ?? null;
+  const relatedInquiries = detailInquiry ? inquiries.filter((inquiry) => {
+    const sameContact = detailInquiry.contact !== "未填寫" && inquiry.contact === detailInquiry.contact;
+    return inquiry.id !== detailInquiry.id && (sameContact || (inquiry.client === detailInquiry.client && inquiry.company === detailInquiry.company));
+  }) : [];
 
-  const newCount = inquiries.filter((inquiry) => inquiry.status === "new").length;
-  const activeCount = inquiries.filter((inquiry) => ["contacted", "quoted"].includes(inquiry.status)).length;
-  const wonCount = inquiries.filter((inquiry) => inquiry.status === "won").length;
-  const completedCount = inquiries.filter((inquiry) => ["won", "archived"].includes(inquiry.status)).length;
-  const todayDateKey = new Intl.DateTimeFormat("zh-TW", {
-    timeZone: "Asia/Taipei",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  const todayNewCount = inquiries.filter((inquiry) => inquiry.submittedAt.startsWith(todayDateKey)).length;
+  const newCount = inquiries.filter((inquiry) => inquiry.replyStatus === "needs_reply").length;
+  const waitingClientCount = inquiries.filter((inquiry) => inquiry.replyStatus === "waiting_client").length;
+  const clientRepliedCount = inquiries.filter((inquiry) => inquiry.replyStatus === "client_replied").length;
+  const needsReplyCount = newCount + clientRepliedCount;
+  const activeCount = inquiries.filter((inquiry) => ["waiting_client", "scheduled", "paused"].includes(inquiry.replyStatus)).length;
+  const completedCount = inquiries.filter((inquiry) => inquiry.replyStatus === "completed" || ["won", "archived"].includes(inquiry.status)).length;
+  const todayDateKey = taipeiDateKey(dashboardNow);
+  const todayFollowUpCount = inquiries.filter((inquiry) => inquiry.nextFollowUpAt && taipeiDateKey(inquiry.nextFollowUpAt) === todayDateKey && inquiry.replyStatus !== "completed").length;
+  const overdueCount = inquiries.filter((inquiry) => inquiry.nextFollowUpTime !== null && inquiry.nextFollowUpTime < dashboardNow && inquiry.replyStatus !== "completed").length;
+  const todoCount = inquiries.filter((inquiry) => ["needs_reply", "client_replied"].includes(inquiry.replyStatus) || isInquiryOverdue(inquiry, dashboardNow)).length;
+  const customerCount = new Set(inquiries.map((inquiry) => inquiry.contact !== "未填寫" ? inquiry.contact : `${inquiry.client}|${inquiry.company}`)).size;
+  const scheduledInquiries = inquiries
+    .filter((inquiry) => inquiry.nextFollowUpTime !== null && inquiry.replyStatus !== "completed")
+    .sort((left, right) => (left.nextFollowUpTime ?? Number.MAX_SAFE_INTEGER) - (right.nextFollowUpTime ?? Number.MAX_SAFE_INTEGER))
+    .slice(0, 6);
   const todayParts = new Intl.DateTimeFormat("zh-TW", {
     timeZone: "Asia/Taipei",
     year: "numeric",
     month: "long",
     day: "numeric",
     weekday: "long",
-  }).formatToParts(new Date());
+  }).formatToParts(new Date(dashboardNow));
   const todayPart = (type: Intl.DateTimeFormatPartTypes) => todayParts.find((part) => part.type === type)?.value ?? "";
   const todayLabel = `${todayPart("year")}年${todayPart("month")}月${todayPart("day")}日・${todayPart("weekday")}`;
   const extraFilterCount = Number(projectFilter !== "all") + Number(priorityFilter !== "all") + Number(dateFilter !== "all");
@@ -283,8 +377,8 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
 
   function exportCsv() {
     const rows = [
-      ["編號", "收到時間", "客戶", "品牌／公司", "聯絡方式", "合作方式", "服務項目", "網站初估", "預算", "狀態", "負責人"],
-      ...filteredInquiries.map((item) => [item.id, item.submittedAt, item.client, item.company, item.contact, item.projectType, item.services.join("、"), item.estimate, item.budget, statusLabels[item.status], item.assignee]),
+      ["編號", "收到時間", "客戶", "品牌／公司", "聯絡方式", "合作方式", "服務項目", "網站初估", "預算", "回覆狀況", "案件進度", "下一步", "下次追蹤", "最後聯絡", "負責人"],
+      ...filteredInquiries.map((item) => [item.id, item.submittedAt, item.client, item.company, item.contact, item.projectType, item.services.join("、"), item.estimate, item.budget, replyStatusLabels[item.replyStatus], statusLabels[item.status], item.nextAction, formatTaipeiDateTime(item.nextFollowUpAt), formatTaipeiDateTime(item.lastContactAt), item.assignee]),
     ];
     const csv = `\uFEFF${rows.map((row) => row.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(",")).join("\n")}`;
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
@@ -295,11 +389,20 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
     URL.revokeObjectURL(url);
   }
 
-  async function updateInquiryStatus(inquiry: Inquiry, nextStatus: InquiryStatus) {
-    if (nextStatus === inquiry.status || updatingStatuses.has(inquiry.id)) return;
-    const previousStatus = inquiry.status;
+  async function updateInquiryFields(
+    inquiry: Inquiry,
+    patch: Partial<Pick<Inquiry, "status" | "replyStatus" | "priority" | "assignee" | "lastContactAt" | "nextFollowUpAt" | "nextAction" | "note">>,
+  ) {
+    if (updatingStatuses.has(inquiry.id)) return;
+    const previousInquiry = inquiry;
+    const optimisticPatch = {
+      ...patch,
+      ...(patch.nextFollowUpAt !== undefined
+        ? { nextFollowUpTime: patch.nextFollowUpAt ? new Date(patch.nextFollowUpAt).getTime() : null }
+        : {}),
+    };
     setLoadError("");
-    setInquiries((current) => current.map((item) => item.id === inquiry.id ? { ...item, status: nextStatus } : item));
+    setInquiries((current) => current.map((item) => item.id === inquiry.id ? { ...item, ...optimisticPatch } : item));
 
     if (!inquiry.persisted) return;
 
@@ -308,15 +411,15 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
       const response = await fetch(`/api/inquiries/${encodeURIComponent(inquiry.id)}`, {
         method: "PATCH",
         headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify(patch),
       });
       if (!response.ok) {
         const payload = await response.json().catch(() => null) as { error?: string } | null;
-        throw new Error(payload?.error || "更新狀態失敗。");
+        throw new Error(payload?.error || "更新客戶進度失敗。");
       }
     } catch (error) {
-      setInquiries((current) => current.map((item) => item.id === inquiry.id ? { ...item, status: previousStatus } : item));
-      setLoadError(error instanceof Error ? error.message : "更新狀態失敗，請稍後再試。");
+      setInquiries((current) => current.map((item) => item.id === inquiry.id ? previousInquiry : item));
+      setLoadError(error instanceof Error ? error.message : "更新客戶進度失敗，請稍後再試。");
     } finally {
       setUpdatingStatuses((current) => {
         const next = new Set(current);
@@ -324,6 +427,30 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
         return next;
       });
     }
+  }
+
+  async function updateInquiryStatus(inquiry: Inquiry, nextStatus: InquiryStatus) {
+    if (nextStatus === inquiry.status) return;
+    await updateInquiryFields(inquiry, { status: nextStatus });
+  }
+
+  async function saveFollowUp(event: FormEvent<HTMLFormElement>, inquiry: Inquiry) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const localFollowUp = String(formData.get("nextFollowUpAt") ?? "");
+    const replyStatus = String(formData.get("replyStatus") ?? inquiry.replyStatus) as ReplyStatus;
+    await updateInquiryFields(inquiry, {
+      replyStatus,
+      nextFollowUpAt: localFollowUp ? new Date(localFollowUp).toISOString() : "",
+      nextAction: String(formData.get("nextAction") ?? ""),
+    });
+  }
+
+  async function markResponded(inquiry: Inquiry) {
+    await updateInquiryFields(inquiry, {
+      replyStatus: "waiting_client",
+      lastContactAt: new Date().toISOString(),
+    });
   }
 
   function toggleSelection(id: string) {
@@ -416,8 +543,8 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
 
         <nav className="admin-nav" aria-label="後台導覽">
           <span className="nav-label">工作台</span>
-          <a className="nav-item is-active" href="/admin/inquiries"><span aria-hidden="true">▤</span> 客戶需求 <b>{newCount}</b></a>
-          <a className="nav-item" href="#overview"><span aria-hidden="true">◫</span> 數據總覽</a>
+          <a className="nav-item is-active" href="/admin/inquiries"><span aria-hidden="true">▤</span> 客戶需求 <b>{needsReplyCount}</b></a>
+          <a className="nav-item" href="#schedule"><span aria-hidden="true">◫</span> 今日排程</a>
           <span className="nav-label">管理</span>
           <a className="nav-item" href="/"><span aria-hidden="true">⌁</span> 前台試算</a>
         </nav>
@@ -432,8 +559,8 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
         <header className="admin-header">
           <div>
             <p>{todayLabel}</p>
-            <h1>客戶需求</h1>
-            <span className="admin-header-subtitle">先處理待辦，再接續聯絡與報價。</span>
+            <h1>客戶工作台</h1>
+            <span className="admin-header-subtitle">{customerCount} 位客戶・先處理待回覆與今日追蹤。</span>
           </div>
           <div className="header-actions">
             <label className="admin-search">
@@ -451,25 +578,49 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
         <section className="metric-grid" id="overview" aria-label="需求處理摘要">
           <article className="metric-card">
             <span className="metric-icon" aria-hidden="true">!</span>
-            <div><span>待處理</span><strong>{newCount}</strong><small><b>優先確認</b><i>尚未開始聯絡</i></small></div>
+            <div><span>待我回覆</span><strong>{needsReplyCount}</strong><small><b>優先處理</b><i>{clientRepliedCount} 位客戶已回覆</i></small></div>
           </article>
           <article className="metric-card">
             <span className="metric-icon" aria-hidden="true">●</span>
-            <div><span>處理中</span><strong>{activeCount}</strong><small><b>持續跟進</b><i>已聯絡或已報價</i></small></div>
+            <div><span>等待客戶</span><strong>{waitingClientCount}</strong><small><b>持續跟進</b><i>已回覆，等待客戶確認</i></small></div>
           </article>
           <article className="metric-card">
-            <span className="metric-icon" aria-hidden="true">✓</span>
-            <div><span>已成交</span><strong>{wonCount}</strong><small><b>合作確認</b><i>共 {completedCount} 筆已完成</i></small></div>
+            <span className="metric-icon" aria-hidden="true">◷</span>
+            <div><span>今日追蹤</span><strong>{todayFollowUpCount}</strong><small><b>依排程處理</b><i>今天需要再次聯絡</i></small></div>
           </article>
-          <article className="metric-card">
-            <span className="metric-icon" aria-hidden="true">＋</span>
-            <div><span>今日新增</span><strong>{todayNewCount}</strong><small><b>即時統計</b><i>今天收到的需求</i></small></div>
+          <article className={`metric-card${overdueCount > 0 ? " is-urgent" : ""}`}>
+            <span className="metric-icon" aria-hidden="true">⌁</span>
+            <div><span>已逾期</span><strong>{overdueCount}</strong><small><b>{overdueCount > 0 ? "需要注意" : "目前正常"}</b><i>超過追蹤時間</i></small></div>
           </article>
+        </section>
+
+        <section className="follow-up-board" id="schedule" aria-labelledby="follow-up-title">
+          <div className="follow-up-heading">
+            <div><span>今日工作</span><h2 id="follow-up-title">近期追蹤排程</h2></div>
+            <small>依時間自動排序，逾期項目會優先顯示</small>
+          </div>
+          {scheduledInquiries.length > 0 ? (
+            <div className="follow-up-list">
+              {scheduledInquiries.map((inquiry) => {
+                const isOverdue = inquiry.nextFollowUpTime !== null && inquiry.nextFollowUpTime < dashboardNow;
+                return (
+                  <button key={inquiry.id} className={isOverdue ? "is-overdue" : ""} type="button" onClick={() => setDetailInquiryId(inquiry.id)}>
+                    <span className="follow-up-time"><strong>{formatTaipeiDateTime(inquiry.nextFollowUpAt)}</strong><small>{isOverdue ? "已逾期" : "已排程"}</small></span>
+                    <span className="follow-up-client"><strong>{inquiry.client}</strong><small>{inquiry.company}</small></span>
+                    <span className="follow-up-action"><strong>{inquiry.nextAction || "聯絡客戶並確認下一步"}</strong><small>{inquiry.services.slice(0, 2).join("、")}</small></span>
+                    <ReplyStatusBadge status={inquiry.replyStatus} />
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="follow-up-empty"><span>✓</span><div><strong>目前沒有追蹤排程</strong><small>從客戶需求右側面板設定下一次聯絡時間。</small></div></div>
+          )}
         </section>
 
         <section className="response-panel">
           <div className="panel-heading">
-            <div><h2>全部需求</h2><span>目前顯示 {filteredInquiries.length} 筆</span></div>
+            <div><h2>客戶與需求</h2><span>目前顯示 {filteredInquiries.length} 筆</span></div>
             <div className="panel-tools">
               <div className="filter-control">
                 <button className={filterOpen || extraFilterCount > 0 ? "is-active" : ""} type="button" aria-expanded={filterOpen} aria-controls="inquiry-filter-menu" onClick={() => setFilterOpen((current) => !current)}>
@@ -494,7 +645,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
               const count = filter.key === "all"
                 ? inquiries.length
                 : filter.key === "todo"
-                  ? newCount
+                  ? todoCount
                   : filter.key === "active"
                     ? activeCount
                     : completedCount;
@@ -541,15 +692,16 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
 
           <div className="response-table-wrap">
             <table className="response-table">
-              <thead><tr><th><input className="selection-checkbox" type="checkbox" checked={allFilteredSelected} onChange={toggleAllFiltered} aria-label="選取目前顯示的全部需求" /></th><th>客戶／品牌</th><th>服務項目</th><th>網站初估</th><th>收到時間</th><th>狀態</th><th><span className="sr-only">操作</span></th></tr></thead>
+              <thead><tr><th><input className="selection-checkbox" type="checkbox" checked={allFilteredSelected} onChange={toggleAllFiltered} aria-label="選取目前顯示的全部需求" /></th><th>客戶／品牌</th><th>需求項目</th><th>網站初估</th><th>回覆狀況</th><th>下次追蹤</th><th>案件進度</th><th><span className="sr-only">操作</span></th></tr></thead>
               <tbody>
                 {filteredInquiries.map((inquiry) => (
                   <tr key={inquiry.id} className={`is-clickable${selectedIds.has(inquiry.id) ? " is-selected" : ""}`} tabIndex={0} role="button" aria-label={`查看 ${inquiry.client} 的需求`} onClick={() => setDetailInquiryId(inquiry.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setDetailInquiryId(inquiry.id); }}>
                     <td><input className="selection-checkbox" type="checkbox" checked={selectedIds.has(inquiry.id)} onClick={(event) => event.stopPropagation()} onChange={() => toggleSelection(inquiry.id)} aria-label={`選取 ${inquiry.client} 的需求`} /></td>
-                    <td><div className="client-cell"><span className="client-avatar">{inquiry.client.slice(0, 1)}<i className={`priority-dot priority-${inquiry.priority}`} /></span><span><strong>{inquiry.client}</strong><small>{inquiry.company}・{inquiry.id}</small></span></div></td>
+                    <td><div className="client-cell"><span className="client-avatar">{inquiry.client.slice(0, 1)}<i className={`priority-dot priority-${inquiry.priority}`} /></span><span><strong>{inquiry.client}</strong><small>{inquiry.company}・{inquiry.relativeTime}</small></span></div></td>
                     <td><div className="service-tags">{inquiry.services.slice(0, 2).map((service) => <span key={service}>{service}</span>)}</div></td>
                     <td><strong className="estimate-cell">{inquiry.estimate}</strong></td>
-                    <td><span className="time-cell">{inquiry.relativeTime}</span><small>{inquiry.submittedAt.slice(0, 10)}</small></td>
+                    <td><ReplyStatusBadge status={inquiry.replyStatus} /></td>
+                    <td><span className={`follow-up-cell${isInquiryOverdue(inquiry, dashboardNow) ? " is-overdue" : ""}`}><strong>{inquiry.nextFollowUpAt ? formatTaipeiDateTime(inquiry.nextFollowUpAt) : "尚未安排"}</strong><small>{inquiry.nextAction || "設定下一步"}</small></span></td>
                     <td><StatusEditor inquiry={inquiry} updating={updatingStatuses.has(inquiry.id)} onChange={(status) => updateInquiryStatus(inquiry, status)} /></td>
                     <td><button className="row-view" type="button" onClick={(event) => { event.stopPropagation(); setDetailInquiryId(inquiry.id); }} aria-label={`查看 ${inquiry.client} 的需求`}>查看需求</button></td>
                   </tr>
@@ -559,11 +711,11 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
             <div className="mobile-response-list">
               {filteredInquiries.map((inquiry) => (
                 <article key={inquiry.id} className={`mobile-response-card${selectedIds.has(inquiry.id) ? " is-selected" : ""}`}>
-                  <div className="mobile-card-topline"><span className="mobile-card-select"><input className="selection-checkbox" type="checkbox" checked={selectedIds.has(inquiry.id)} onChange={() => toggleSelection(inquiry.id)} aria-label={`選取 ${inquiry.client} 的需求`} /><StatusEditor inquiry={inquiry} updating={updatingStatuses.has(inquiry.id)} onChange={(status) => updateInquiryStatus(inquiry, status)} /></span><small>{inquiry.relativeTime}</small></div>
+                  <div className="mobile-card-topline"><span className="mobile-card-select"><input className="selection-checkbox" type="checkbox" checked={selectedIds.has(inquiry.id)} onChange={() => toggleSelection(inquiry.id)} aria-label={`選取 ${inquiry.client} 的需求`} /><ReplyStatusBadge status={inquiry.replyStatus} /></span><small>{inquiry.relativeTime}</small></div>
                   <button className="mobile-card-open" type="button" onClick={() => setDetailInquiryId(inquiry.id)} aria-label={`查看 ${inquiry.client} 的需求`}>
                     <span className="mobile-card-identity"><span className="client-avatar">{inquiry.client.slice(0, 1)}<i className={`priority-dot priority-${inquiry.priority}`} /></span><span><strong>{inquiry.client}</strong><small>{inquiry.company}・{inquiry.id}</small></span><b aria-hidden="true">查看</b></span>
                     <span className="mobile-card-services">{inquiry.services.slice(0, 3).map((service) => <i key={service}>{service}</i>)}</span>
-                    <span className="mobile-card-footer"><span><small>網站初估</small><strong>{inquiry.estimate}</strong></span><span><small>收到時間</small><strong>{inquiry.relativeTime}</strong></span></span>
+                    <span className="mobile-card-footer"><span><small>下次追蹤</small><strong>{inquiry.nextFollowUpAt ? formatTaipeiDateTime(inquiry.nextFollowUpAt) : "尚未安排"}</strong></span><span><small>案件進度</small><strong>{statusLabels[inquiry.status]}</strong></span></span>
                   </button>
                 </article>
               ))}
@@ -587,9 +739,19 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
                 <div><h2 id="quick-detail-title">{detailInquiry.client}</h2><p>{detailInquiry.company}・{detailInquiry.projectType}</p></div>
               </div>
               <div className="quick-detail-status">
-                <span>目前狀態</span>
+                <span>案件進度</span>
                 <StatusEditor inquiry={detailInquiry} updating={updatingStatuses.has(detailInquiry.id)} onChange={(status) => updateInquiryStatus(detailInquiry, status)} />
               </div>
+              <form key={`${detailInquiry.id}-${detailInquiry.replyStatus}-${detailInquiry.nextFollowUpAt}-${detailInquiry.nextAction}`} className="quick-workflow-form" onSubmit={(event) => { void saveFollowUp(event, detailInquiry); }}>
+                <div className="quick-workflow-heading"><div><span>回覆與排程</span><strong>下一步要做什麼？</strong></div><ReplyStatusBadge status={detailInquiry.replyStatus} /></div>
+                <label><span>回覆狀況</span><select name="replyStatus" defaultValue={detailInquiry.replyStatus}>{editableReplyStatuses.map((status) => <option key={status} value={status}>{replyStatusLabels[status]}</option>)}</select></label>
+                <label><span>下次追蹤時間</span><input name="nextFollowUpAt" type="datetime-local" defaultValue={toDateTimeLocalValue(detailInquiry.nextFollowUpAt)} /></label>
+                <label><span>下一步事項</span><input name="nextAction" maxLength={180} defaultValue={detailInquiry.nextAction} placeholder="例如：確認需求、寄送報價、安排交稿" /></label>
+                <div className="quick-workflow-actions">
+                  <button type="button" disabled={updatingStatuses.has(detailInquiry.id)} onClick={() => { void markResponded(detailInquiry); }}>已回覆客戶</button>
+                  <button type="submit" disabled={updatingStatuses.has(detailInquiry.id)}>{updatingStatuses.has(detailInquiry.id) ? "儲存中…" : "儲存跟進安排"}</button>
+                </div>
+              </form>
               <section className="quick-detail-section">
                 <h3>聯絡與負責</h3>
                 <dl className="quick-detail-meta">
@@ -597,6 +759,8 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
                   <div><dt>您的聯絡方式</dt><dd><button className={`quick-contact-copy${copiedContactId === detailInquiry.id ? " is-copied" : ""}`} type="button" onClick={() => copyContact(detailInquiry)} title="點擊複製聯絡方式"><span>{detailInquiry.contact}</span><small aria-live="polite">{copiedContactId === detailInquiry.id ? "已複製" : "點擊複製"}</small></button></dd></div>
                   <div><dt>負責人</dt><dd>{detailInquiry.assignee || "尚未指派"}</dd></div>
                   <div><dt>收到時間</dt><dd>{detailInquiry.submittedAt}</dd></div>
+                  <div><dt>最後聯絡</dt><dd>{formatTaipeiDateTime(detailInquiry.lastContactAt)}</dd></div>
+                  <div><dt>客戶需求數</dt><dd>{relatedInquiries.length + 1} 筆</dd></div>
                 </dl>
               </section>
               <section className="quick-detail-section">
@@ -605,6 +769,19 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
                 <ul className="quick-detail-summary">{detailInquiry.summary.map((item, index) => <li key={`${item}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span>{item}</li>)}</ul>
                 <div className="quick-detail-estimate"><span><small>網站初估</small><strong>{detailInquiry.estimate}</strong></span><span><small>客戶預算</small><strong>{detailInquiry.budget}</strong></span></div>
               </section>
+              {relatedInquiries.length > 0 && (
+                <section className="quick-detail-section">
+                  <h3>這位客戶的歷史需求</h3>
+                  <div className="client-history-list">
+                    {relatedInquiries.slice(0, 5).map((inquiry) => (
+                      <button key={inquiry.id} type="button" onClick={() => setDetailInquiryId(inquiry.id)}>
+                        <span><strong>{inquiry.services.slice(0, 2).join("、") || inquiry.projectType}</strong><small>{inquiry.submittedAt}</small></span>
+                        <ReplyStatusBadge status={inquiry.replyStatus} />
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
               {detailInquiry.note && <section className="quick-detail-section"><h3>內部備註</h3><p className="quick-detail-note">{detailInquiry.note}</p></section>}
             </div>
             <footer className="quick-detail-footer">

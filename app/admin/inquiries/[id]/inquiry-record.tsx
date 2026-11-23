@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { compactInquirySummary } from "../compact-summary";
 
 type InquiryStatus = "new" | "contacted" | "quoted" | "won" | "archived";
+type ReplyStatus = "needs_reply" | "waiting_client" | "client_replied" | "scheduled" | "paused" | "completed";
 type Priority = "high" | "normal" | "low";
 
 type InquiryRecordData = {
@@ -24,8 +25,12 @@ type InquiryRecordData = {
   summaryJson: string;
   answersJson: string;
   status: InquiryStatus;
+  replyStatus: ReplyStatus;
   priority: Priority;
   assignee: string;
+  lastContactAt: string | null;
+  nextFollowUpAt: string | null;
+  nextAction: string;
   note: string;
 };
 
@@ -35,6 +40,15 @@ const statusLabels: Record<InquiryStatus, string> = {
   quoted: "已報價",
   won: "已成交",
   archived: "已封存",
+};
+
+const replyStatusLabels: Record<ReplyStatus, string> = {
+  needs_reply: "待我回覆",
+  waiting_client: "等待客戶",
+  client_replied: "客戶已回覆",
+  scheduled: "已安排處理",
+  paused: "暫緩",
+  completed: "已完成",
 };
 
 const priorityLabels: Record<Priority, string> = {
@@ -60,6 +74,23 @@ function prettyAnswers(value: string) {
   } catch {
     return value;
   }
+}
+
+function toDateTimeLocalValue(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
 }
 
 export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: string; displayName: string }) {
@@ -89,7 +120,7 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
   const services = useMemo(() => inquiry ? parseStringArray(inquiry.servicesJson) : [], [inquiry]);
   const summary = useMemo(() => inquiry ? compactInquirySummary(parseStringArray(inquiry.summaryJson)) : [], [inquiry]);
 
-  async function savePatch(patch: Partial<Pick<InquiryRecordData, "status" | "priority" | "assignee" | "note">>) {
+  async function savePatch(patch: Partial<Pick<InquiryRecordData, "status" | "replyStatus" | "priority" | "assignee" | "lastContactAt" | "nextFollowUpAt" | "nextAction" | "note">>) {
     if (!inquiry) return;
     const previous = inquiry;
     setInquiry({ ...inquiry, ...patch });
@@ -109,6 +140,10 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
     } finally {
       setSaving(false);
     }
+  }
+
+  async function markResponded() {
+    await savePatch({ replyStatus: "waiting_client", lastContactAt: new Date().toISOString() });
   }
 
   async function deleteInquiry() {
@@ -186,7 +221,17 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
             </section>
 
             <section className="record-card">
-              <div className="record-card-heading"><div><span>03</span><h2>內部備註</h2></div><small>僅管理員可見</small></div>
+              <div className="record-card-heading"><div><span>03</span><h2>聯絡與排程</h2></div><small>掌握下一步</small></div>
+              <div className="record-workflow-grid">
+                <label><span>回覆狀況</span><select value={inquiry.replyStatus} onChange={(event) => savePatch({ replyStatus: event.target.value as ReplyStatus })}>{Object.entries(replyStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+                <label><span>下次追蹤時間</span><input type="datetime-local" value={toDateTimeLocalValue(inquiry.nextFollowUpAt)} onChange={(event) => savePatch({ nextFollowUpAt: event.target.value ? new Date(event.target.value).toISOString() : null })} /></label>
+                <label className="record-next-action"><span>下一步事項</span><input value={inquiry.nextAction} maxLength={180} onChange={(event) => setInquiry({ ...inquiry, nextAction: event.target.value })} placeholder="例如：確認需求、寄送報價、安排交稿" /></label>
+              </div>
+              <div className="record-workflow-actions"><button type="button" disabled={saving} onClick={markResponded}>標記已回覆客戶</button><button type="button" disabled={saving} onClick={() => savePatch({ nextAction: inquiry.nextAction })}>儲存下一步</button></div>
+            </section>
+
+            <section className="record-card">
+              <div className="record-card-heading"><div><span>04</span><h2>內部備註</h2></div><small>僅管理員可見</small></div>
               <textarea value={inquiry.note} onChange={(event) => setInquiry({ ...inquiry, note: event.target.value })} rows={6} placeholder="記錄聯絡進度、報價備註或下一步…" aria-label="內部備註" />
               <button className="record-save" type="button" disabled={saving} onClick={() => savePatch({ note: inquiry.note })}>{saving ? "儲存中…" : "儲存備註"}</button>
             </section>

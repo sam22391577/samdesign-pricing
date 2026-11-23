@@ -76,8 +76,12 @@ export async function GET() {
       budget,
       summary_json AS summaryJson,
       status,
+      reply_status AS replyStatus,
       priority,
       assignee,
+      last_contact_at AS lastContactAt,
+      next_follow_up_at AS nextFollowUpAt,
+      next_action AS nextAction,
       note
       FROM inquiries
       ORDER BY submitted_at DESC

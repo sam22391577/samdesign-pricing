@@ -17,12 +17,17 @@ export const inquiries = sqliteTable("inquiries", {
   summaryJson: text("summary_json").notNull().default("[]"),
   answersJson: text("answers_json").notNull().default("{}"),
   status: text("status").notNull().default("new"),
+  replyStatus: text("reply_status").notNull().default("needs_reply"),
   priority: text("priority").notNull().default("normal"),
   assignee: text("assignee").notNull().default("Sam"),
+  lastContactAt: text("last_contact_at"),
+  nextFollowUpAt: text("next_follow_up_at"),
+  nextAction: text("next_action").notNull().default(""),
   note: text("note").notNull().default(""),
 }, (table) => [
   index("idx_inquiries_submitted_at").on(table.submittedAt),
   index("idx_inquiries_status_submitted_at").on(table.status, table.submittedAt),
+  index("idx_inquiries_reply_follow_up").on(table.replyStatus, table.nextFollowUpAt),
 ]);
 
 export const questionnaires = sqliteTable("questionnaires", {

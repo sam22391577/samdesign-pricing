@@ -1709,22 +1709,52 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   ]);
 
   assert.match(dashboard, /type StatusView = "todo" \| "active" \| "done" \| "all"/);
-  assert.match(dashboard, /\{ key: "active", label: "處理中" \}/);
+  assert.match(dashboard, /\{ key: "active", label: "追蹤中" \}/);
   assert.match(dashboard, /\{ key: "done", label: "已完成" \}/);
-  assert.match(dashboard, /activeFilter === "active" && \["contacted", "quoted"\]\.includes/);
+  assert.match(dashboard, /activeFilter === "active" && \["waiting_client", "scheduled", "paused"\]\.includes/);
   assert.match(dashboard, /<span>收到時間<\/span><select value=\{dateFilter\}/);
-  assert.match(dashboard, /<h1>客戶需求<\/h1>/);
-  assert.match(dashboard, /<h2>全部需求<\/h2>/);
-  assert.match(dashboard, /<th>網站初估<\/th><th>收到時間<\/th>/);
+  assert.match(dashboard, /<h1>客戶工作台<\/h1>/);
+  assert.match(dashboard, /<h2>客戶與需求<\/h2>/);
+  assert.match(dashboard, /<th>網站初估<\/th><th>回覆狀況<\/th><th>下次追蹤<\/th><th>案件進度<\/th>/);
+  assert.match(dashboard, /<h2 id="follow-up-title">近期追蹤排程<\/h2>/);
+  assert.match(dashboard, /待我回覆/);
+  assert.match(dashboard, /等待客戶/);
+  assert.match(dashboard, /今日追蹤/);
+  assert.match(dashboard, /已逾期/);
+  assert.match(dashboard, /儲存跟進安排/);
+  assert.match(dashboard, /這位客戶的歷史需求/);
   assert.match(dashboard, />查看需求<\/button>/);
   assert.match(dashboard, />查看完整內容<\/a>/);
   assert.match(dashboard, />下載資料<\/button>/);
   assert.match(dashboard, />更新狀態<\/button>/);
   assert.doesNotMatch(dashboard, /進行中的洽談|優先層級|快速查看|開啟完整資料|匯出 CSV/);
   assert.match(record, /<span>優先順序<\/span>/);
+  assert.match(record, /<h2>聯絡與排程<\/h2>/);
+  assert.match(record, /標記已回覆客戶/);
   assert.match(record, />返回全部需求<\/a>/);
   assert.match(css, /\.response-table \{[^}]*font-size: \.875rem/);
   assert.match(css, /\.quick-detail-summary li \{[^}]*font-size: \.875rem/);
+  assert.match(css, /\.follow-up-board \{/);
+  assert.match(css, /\.reply-needs_reply \{/);
+});
+
+test("inquiry backend stores reply tracking and follow-up schedule fields", async () => {
+  const [database, schema, listApi, detailApi] = await Promise.all([
+    readFile(new URL("../db/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/inquiries/[id]/route.ts", import.meta.url), "utf8"),
+  ]);
+
+  for (const field of ["reply_status", "last_contact_at", "next_follow_up_at", "next_action"]) {
+    assert.match(database, new RegExp(field));
+    assert.match(schema, new RegExp(field));
+    assert.match(listApi, new RegExp(field));
+    assert.match(detailApi, new RegExp(field));
+  }
+  assert.match(detailApi, /allowedReplyStatuses/);
+  assert.match(detailApi, /reply_status = \?/);
+  assert.match(detailApi, /next_follow_up_at = \?/);
 });
 
 test("inquiry backend presents a compact working summary while preserving raw answers", async () => {
