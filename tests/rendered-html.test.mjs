@@ -1771,11 +1771,12 @@ test("new inquiries default the next follow-up date to five days later", async (
   assert.match(record, /inquiry\.nextFollowUpAt \|\| defaultFollowUpAt/);
 });
 
-test("inquiry backend presents a compact working summary while preserving raw answers", async () => {
-  const [compactSummary, dashboard, record] = await Promise.all([
+test("inquiry backend presents compact and complete answers in readable language", async () => {
+  const [compactSummary, dashboard, record, css] = await Promise.all([
     readFile(new URL("../app/admin/inquiries/compact-summary.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/inquiries/[id]/inquiry-record.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/inquiries/inquiries.css", import.meta.url), "utf8"),
   ]);
 
   assert.match(compactSummary, /方案規則：/);
@@ -1784,7 +1785,11 @@ test("inquiry backend presents a compact working summary while preserving raw an
   assert.match(compactSummary, /replaceAll\("視覺／排程：", "排程："\)/);
   assert.match(dashboard, /compactInquirySummary\(safeStringArray\(row\.summaryJson\)\)/);
   assert.match(record, /compactInquirySummary\(parseStringArray\(inquiry\.summaryJson\)\)/);
-  assert.match(record, /查看完整原始問卷資料/);
+  assert.match(record, /parseReadableAnswers\(inquiry\.summaryJson\)/);
+  assert.match(record, /查看所有填寫內容/);
+  assert.match(record, /className="full-answer-list"/);
+  assert.doesNotMatch(record, /prettyAnswers|<pre>/);
+  assert.match(css, /\.full-answer-row/);
 });
 
 test("inquiry contact details support one-click copy with visible feedback", async () => {

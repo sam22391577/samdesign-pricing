@@ -68,12 +68,17 @@ function parseStringArray(value: string) {
   }
 }
 
-function prettyAnswers(value: string) {
-  try {
-    return JSON.stringify(JSON.parse(value), null, 2);
-  } catch {
-    return value;
-  }
+function parseReadableAnswers(value: string) {
+  return parseStringArray(value).flatMap((item) => {
+    const line = item.trim();
+    if (!line || line.startsWith("【") || line === "想進一步確認正式報價與可安排檔期，謝謝！") return [];
+    const divider = line.indexOf("：");
+    if (divider < 0) return [{ label: "補充說明", value: line }];
+    return [{
+      label: line.slice(0, divider).trim(),
+      value: line.slice(divider + 1).trim(),
+    }];
+  });
 }
 
 function toDateTimeLocalValue(value: string | null) {
@@ -120,6 +125,7 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
 
   const services = useMemo(() => inquiry ? parseStringArray(inquiry.servicesJson) : [], [inquiry]);
   const summary = useMemo(() => inquiry ? compactInquirySummary(parseStringArray(inquiry.summaryJson)) : [], [inquiry]);
+  const fullAnswers = useMemo(() => inquiry ? parseReadableAnswers(inquiry.summaryJson) : [], [inquiry]);
 
   async function savePatch(patch: Partial<Pick<InquiryRecordData, "status" | "replyStatus" | "priority" | "assignee" | "lastContactAt" | "nextFollowUpAt" | "nextAction" | "note">>) {
     if (!inquiry) return;
@@ -218,7 +224,19 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
               <div className="record-services">{services.map((service) => <span key={service}>{service}</span>)}</div>
               <ul className="record-summary">{summary.map((item, index) => <li key={`${item}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><p>{item}</p></li>)}</ul>
               <div className="record-estimate"><div><span>網站初估</span><strong>{currency.format(inquiry.estimateLow)} ～ {currency.format(inquiry.estimateHigh)}</strong></div><div><span>客戶預算</span><strong>{inquiry.budget ? currency.format(inquiry.budget) : "未設定"}</strong></div></div>
-              <details className="raw-answers"><summary>查看完整原始問卷資料</summary><pre>{prettyAnswers(inquiry.answersJson)}</pre></details>
+              <details className="full-answers">
+                <summary>查看所有填寫內容</summary>
+                {fullAnswers.length > 0 ? (
+                  <dl className="full-answer-list">
+                    {fullAnswers.map((item, index) => (
+                      <div className="full-answer-row" key={`${item.label}-${index}`}>
+                        <dt>{item.label}</dt>
+                        <dd>{item.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : <p className="full-answer-empty">這筆需求沒有其他填寫內容。</p>}
+              </details>
             </section>
 
             <section className="record-card">
