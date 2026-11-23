@@ -30,7 +30,7 @@ function privateWorkspaceResponse() {
     headers: {
       "content-type": "text/plain; charset=utf-8",
       "cache-control": "no-store",
-      "www-authenticate": 'Basic realm="Sam Design Studio 私人後台", charset="UTF-8"',
+      "www-authenticate": 'Basic realm="Sam Design Studio Admin", charset="UTF-8"',
     },
   });
 }
