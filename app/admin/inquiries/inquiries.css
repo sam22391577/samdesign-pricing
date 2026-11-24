@@ -313,6 +313,7 @@
 .quick-detail-identity p { overflow: hidden; margin: 5px 0 0; color: var(--admin-muted); font-size: .875rem; text-overflow: ellipsis; white-space: nowrap; }
 .quick-detail-status { display: flex; margin-top: 20px; padding: 13px 14px; align-items: center; justify-content: space-between; border: 1px solid var(--admin-line); border-radius: 10px; background: var(--admin-paper-warm); }
 .quick-detail-status > span { color: #675b52; font-size: .875rem; font-weight: 650; }
+.quick-stage-label { padding: 7px 10px; border-radius: 8px; font-size: .875rem; font-weight: 750; }
 .quick-detail-section { padding: 20px 0; border-bottom: 1px solid var(--admin-line); }
 .quick-detail-section:last-child { border-bottom: 0; }
 .quick-detail-section h3 { margin: 0 0 15px; font-family: "Noto Serif TC", Georgia, serif; font-size: 1rem; font-weight: 650; }
@@ -693,9 +694,23 @@
 }
 
 .quick-workflow-summary strong {
+  margin-left: auto;
   color: #51463e;
   font-size: .875rem;
   text-align: right;
+}
+
+.quick-workflow-summary button {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid rgba(90, 72, 57, .16);
+  border-radius: 7px;
+  color: #65574d;
+  background: var(--admin-paper);
+  font-family: inherit;
+  font-size: .875rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .quick-workflow-primary-actions {
@@ -730,6 +745,37 @@
   margin-top: 15px;
   padding-top: 15px;
   border-top: 1px solid rgba(90, 72, 57, .16);
+}
+
+.quick-workflow-auto-note {
+  display: block;
+  margin-top: 9px;
+  color: var(--admin-muted);
+  font-size: .875rem;
+  line-height: 1.55;
+}
+
+.quick-custom-follow-up {
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(90, 72, 57, .14);
+}
+
+.quick-other-workflow-actions {
+  margin-top: 13px;
+  border-top: 1px solid rgba(90, 72, 57, .14);
+}
+
+.quick-other-workflow-actions > summary {
+  padding: 13px 0 8px;
+  color: #66594f;
+  font-size: .875rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.quick-other-workflow-actions .workflow-action-options {
+  margin-top: 3px;
 }
 
 .legacy-workflow-action {

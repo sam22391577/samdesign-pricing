@@ -1727,7 +1727,9 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   assert.match(dashboard, /quickWorkflowOpen/);
   assert.match(dashboard, /套用安排/);
   assert.match(dashboard, /name="nextAction" value=\{action\.value\}/);
-  assert.match(dashboard, /name="followUpPreset" value="5"|followUpPresets\.map/);
+  assert.doesNotMatch(dashboard, /followUpPresets\.map|追蹤時間設為3 天後|追蹤時間設為5 天後/);
+  assert.match(dashboard, /調整日期/);
+  assert.match(dashboard, />其他處理</);
   assert.doesNotMatch(dashboard, /name="nextAction" maxLength/);
   assert.match(dashboard, /這位客戶另有 \{relatedInquiries\.length\} 筆需求/);
   assert.doesNotMatch(dashboard, /這位客戶的歷史需求|寄送 Email|<h3>聯絡與負責<\/h3>/);
@@ -1747,9 +1749,10 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   for (const label of ["新需求", "報價洽談", "合作確認", "製作中", "交付中", "已完成", "確認客戶需求", "製作正式報價", "等待訂金", "等待客戶提供素材", "寄送初稿", "寄送修改稿", "等待尾款", "交付成品", "完成並結案", "暫緩追蹤", "未合作", "封存案件"]) {
     assert.match(workflow, new RegExp(label));
   }
-  assert.match(dashboard, /className="workflow-stage-picker"/);
+  assert.doesNotMatch(dashboard, /className="workflow-stage-picker"|quickCaseStage/);
   assert.match(record, /className="workflow-stage-picker"/);
-  assert.match(dashboard, /getWorkflowActionsForStage\(quickCaseStage\)/);
+  assert.match(dashboard, /getQuickWorkflowActionsForStage\(detailInquiry\.status, detailInquiry\.nextAction\)/);
+  assert.match(dashboard, /getOtherWorkflowActionsForStage\(detailInquiry\.status, quickWorkflowActions\)/);
   assert.match(record, /getWorkflowActionsForStage\(selectedCaseStage\)/);
   assert.match(dashboard, /status: workflowAction\.caseStage/);
   assert.match(record, /status: workflowAction\.caseStage/);
@@ -1760,6 +1763,9 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   assert.match(workflow, /寄送初稿: "等待客戶回覆"/);
   assert.match(workflow, /寄送修改稿: "等待定稿確認"/);
   assert.match(workflow, /交付成品: "等待交付確認"/);
+  assert.match(workflow, /等待客戶確認合作: "等待訂金"/);
+  assert.match(workflow, /等待定稿確認: "等待尾款"/);
+  assert.match(workflow, /等待交付確認: "完成並結案"/);
   assert.match(workflow, /followUpDays: 14/);
   assert.match(workflow, /followUpDays: null/);
   assert.match(workflow, /\{ value: "5", label: "5 天後", days: 5 \}/);
@@ -1770,6 +1776,8 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   assert.match(css, /\.reply-needs_reply \{/);
   assert.match(css, /\.workflow-action-options \{/);
   assert.match(css, /\.workflow-stage-picker \{/);
+  assert.match(css, /\.quick-other-workflow-actions \{/);
+  assert.match(css, /\.quick-workflow-auto-note \{/);
   assert.match(css, /\.follow-up-preset-options \{/);
 });
 

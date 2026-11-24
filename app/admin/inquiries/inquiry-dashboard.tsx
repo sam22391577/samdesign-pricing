@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { compactInquirySummary } from "./compact-summary";
-import { caseStageLabels, defaultWorkflowAction, editableCaseStages, followUpAfterDays, followUpPresets, getActionAfterResponse, getSuggestedFollowUpAt, getWorkflowAction, getWorkflowActionsForStage, normalizeCaseStage, type CaseStage } from "./workflow-options";
+import { caseStageLabels, defaultWorkflowAction, editableCaseStages, getActionAfterResponse, getOtherWorkflowActionsForStage, getQuickWorkflowActionsForStage, getSuggestedFollowUpAt, getWorkflowAction, normalizeCaseStage, type CaseStage } from "./workflow-options";
 
 type InquiryStatus = CaseStage;
 type ReplyStatus = "needs_reply" | "waiting_client" | "client_replied" | "scheduled" | "paused" | "completed";
@@ -234,8 +234,8 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   const [batchBusy, setBatchBusy] = useState(false);
   const [batchDeleteArmed, setBatchDeleteArmed] = useState(false);
   const [detailInquiryId, setDetailInquiryId] = useState<string | null>(null);
-  const [quickCaseStage, setQuickCaseStage] = useState<CaseStage>("new");
   const [quickWorkflowOpen, setQuickWorkflowOpen] = useState(false);
+  const [quickDateOpen, setQuickDateOpen] = useState(false);
   const [copiedContactId, setCopiedContactId] = useState<string | null>(null);
   const [dashboardNow] = useState(() => new Date().getTime());
   const defaultFollowUpAt = new Date(dashboardNow + 5 * 24 * 60 * 60 * 1000).toISOString();
@@ -317,6 +317,8 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   const filteredIds = filteredInquiries.map((inquiry) => inquiry.id);
   const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
   const detailInquiry = inquiries.find((inquiry) => inquiry.id === detailInquiryId) ?? null;
+  const quickWorkflowActions = detailInquiry ? getQuickWorkflowActionsForStage(detailInquiry.status, detailInquiry.nextAction) : [];
+  const otherWorkflowActions = detailInquiry ? getOtherWorkflowActionsForStage(detailInquiry.status, quickWorkflowActions) : [];
   const relatedInquiries = detailInquiry ? inquiries.filter((inquiry) => {
     const sameContact = detailInquiry.contact !== "未填寫" && inquiry.contact === detailInquiry.contact;
     return inquiry.id !== detailInquiry.id && (sameContact || (inquiry.client === detailInquiry.client && inquiry.company === detailInquiry.company));
@@ -362,8 +364,8 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   }
 
   function openInquiryDetail(inquiry: Inquiry) {
-    setQuickCaseStage(inquiry.status);
     setQuickWorkflowOpen(false);
+    setQuickDateOpen(false);
     setDetailInquiryId(inquiry.id);
   }
 
@@ -446,9 +448,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
     const actionChanged = nextAction !== inquiry.nextAction;
     const nextFollowUpAt = followUpPreset === "current"
       ? actionChanged ? getSuggestedFollowUpAt(workflowAction) : inquiry.nextFollowUpAt || getSuggestedFollowUpAt(workflowAction)
-      : followUpPreset === "custom"
-        ? customFollowUp ? new Date(customFollowUp).toISOString() : inquiry.nextFollowUpAt || getSuggestedFollowUpAt(workflowAction)
-        : followUpAfterDays(Number(followUpPreset));
+      : customFollowUp ? new Date(customFollowUp).toISOString() : inquiry.nextFollowUpAt || getSuggestedFollowUpAt(workflowAction);
     await updateInquiryFields(inquiry, {
       status: workflowAction.caseStage,
       replyStatus: workflowAction.replyStatus,
@@ -456,11 +456,11 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
       nextAction,
     });
     setQuickWorkflowOpen(false);
+    setQuickDateOpen(false);
   }
 
   async function markResponded(inquiry: Inquiry) {
     const responseAction = getActionAfterResponse(inquiry.nextAction);
-    setQuickCaseStage(responseAction.availableIn);
     await updateInquiryFields(inquiry, {
       status: responseAction.caseStage,
       replyStatus: responseAction.replyStatus,
@@ -758,11 +758,11 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
               </div>
               <div className="quick-detail-status">
                 <span>案件進度</span>
-                <StatusEditor inquiry={detailInquiry} updating={updatingStatuses.has(detailInquiry.id)} onChange={(status) => { setQuickCaseStage(status); void updateInquiryStatus(detailInquiry, status); }} />
+                <strong className={`quick-stage-label status-${detailInquiry.status}`}>{statusLabels[detailInquiry.status]}</strong>
               </div>
               <form key={`${detailInquiry.id}-${detailInquiry.replyStatus}-${detailInquiry.nextFollowUpAt}-${detailInquiry.nextAction}`} className={`quick-workflow-form${quickWorkflowOpen ? " is-open" : ""}`} onSubmit={(event) => { void saveFollowUp(event, detailInquiry); }}>
                 <div className="quick-workflow-heading"><div><span>下一步安排</span><strong>{getWorkflowAction(detailInquiry.nextAction)?.label || detailInquiry.nextAction || defaultWorkflowAction.label}</strong></div></div>
-                <div className="quick-workflow-summary"><span>下次追蹤</span><strong>{formatTaipeiDateTime(detailInquiry.nextFollowUpAt || defaultFollowUpAt)}</strong></div>
+                <div className="quick-workflow-summary"><span>下次追蹤</span><strong>{formatTaipeiDateTime(detailInquiry.nextFollowUpAt || defaultFollowUpAt)}</strong>{quickWorkflowOpen && <button type="button" onClick={() => setQuickDateOpen((current) => !current)}>{quickDateOpen ? "使用自動日期" : "調整日期"}</button>}</div>
                 <div className="quick-workflow-primary-actions">
                   <button type="button" disabled={updatingStatuses.has(detailInquiry.id)} onClick={() => { void markResponded(detailInquiry); }}>已回覆客戶</button>
                   <button type="button" aria-expanded={quickWorkflowOpen} aria-controls={`quick-workflow-editor-${detailInquiry.id}`} onClick={() => setQuickWorkflowOpen((current) => !current)}>{quickWorkflowOpen ? "收合安排" : "變更安排"}</button>
@@ -772,17 +772,9 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
                     {detailInquiry.nextAction && !getWorkflowAction(detailInquiry.nextAction) && <p className="legacy-workflow-action">原本事項：{detailInquiry.nextAction}</p>}
                     <fieldset className="workflow-action-picker">
                       <legend>選擇下一步</legend>
-                      <label className="workflow-stage-picker">
-                        <span>處理階段</span>
-                        <select value={quickCaseStage} onChange={(event) => setQuickCaseStage(event.target.value as CaseStage)}>
-                          {editableStatuses.map((stage) => <option key={stage} value={stage}>{statusLabels[stage]}</option>)}
-                        </select>
-                        <small>只顯示這個階段可用的下一步</small>
-                      </label>
-                      <div className="workflow-action-group" key={quickCaseStage}>
-                        <span className="workflow-action-group-title">{statusLabels[quickCaseStage]}的下一步</span>
+                      <div className="workflow-action-group">
                         <div className="workflow-action-options">
-                          {getWorkflowActionsForStage(quickCaseStage).map((action, index, actions) => (
+                          {quickWorkflowActions.map((action, index, actions) => (
                             <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
                               <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={actions.some((item) => item.value === detailInquiry.nextAction) ? detailInquiry.nextAction === action.value : index === 0} />
                               <span><strong>{action.label}</strong><small>{action.helper}</small></span>
@@ -790,18 +782,27 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
                           ))}
                         </div>
                       </div>
+                      <small className="quick-workflow-auto-note">選擇後會自動更新案件進度與追蹤日期。</small>
                     </fieldset>
-                    <fieldset className="follow-up-preset-picker">
-                      <legend>下次追蹤</legend>
-                      <div className="follow-up-preset-options">
-                        <label className="follow-up-preset-option" htmlFor={`follow-up-${detailInquiry.id}-current`} aria-label="保留目前追蹤安排"><input id={`follow-up-${detailInquiry.id}-current`} type="radio" name="followUpPreset" value="current" defaultChecked /><span><strong>目前安排</strong><small>{formatTaipeiDateTime(detailInquiry.nextFollowUpAt || defaultFollowUpAt)}</small></span></label>
-                        {followUpPresets.map((preset) => <label className="follow-up-preset-option" htmlFor={`follow-up-${detailInquiry.id}-${preset.value}`} aria-label={`追蹤時間設為${preset.label}`} key={preset.value}><input id={`follow-up-${detailInquiry.id}-${preset.value}`} type="radio" name="followUpPreset" value={preset.value} /><span><strong>{preset.label}</strong><small>快速設定</small></span></label>)}
-                        <label className="follow-up-preset-option" htmlFor={`follow-up-${detailInquiry.id}-custom`} aria-label="使用自訂追蹤時間"><input id={`follow-up-${detailInquiry.id}-custom`} type="radio" name="followUpPreset" value="custom" /><span><strong>自訂日期</strong><small>選擇時間</small></span></label>
+                    {quickDateOpen && (
+                      <div className="quick-custom-follow-up">
+                        <input type="hidden" name="followUpPreset" value="custom" />
+                        <label className="custom-follow-up-date"><span>自訂追蹤時間</span><input name="customFollowUpAt" type="datetime-local" defaultValue={toDateTimeLocalValue(detailInquiry.nextFollowUpAt || defaultFollowUpAt)} /></label>
                       </div>
-                      <label className="custom-follow-up-date"><span>自訂追蹤時間</span><input name="customFollowUpAt" type="datetime-local" defaultValue={toDateTimeLocalValue(detailInquiry.nextFollowUpAt || defaultFollowUpAt)} /></label>
-                    </fieldset>
+                    )}
+                    <details className="quick-other-workflow-actions">
+                      <summary>其他處理</summary>
+                      <div className="workflow-action-options">
+                        {otherWorkflowActions.map((action) => (
+                          <label className="workflow-action-option" htmlFor={`workflow-other-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
+                            <input id={`workflow-other-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} />
+                            <span><strong>{action.label}</strong><small>{action.helper}</small></span>
+                          </label>
+                        ))}
+                      </div>
+                    </details>
                     <div className="quick-workflow-actions">
-                      <button type="button" onClick={() => setQuickWorkflowOpen(false)}>取消</button>
+                      <button type="button" onClick={() => { setQuickWorkflowOpen(false); setQuickDateOpen(false); }}>取消</button>
                       <button type="submit" disabled={updatingStatuses.has(detailInquiry.id)}>{updatingStatuses.has(detailInquiry.id) ? "儲存中…" : "套用安排"}</button>
                     </div>
                   </div>

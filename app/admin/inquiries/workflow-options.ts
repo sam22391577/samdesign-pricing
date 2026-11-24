@@ -48,7 +48,7 @@ export const workflowActions: WorkflowAction[] = [
 
   { value: "等待訂金", label: "等待訂金", helper: "等待客戶・5 天", replyStatus: "waiting_client", availableIn: "confirmed", caseStage: "confirmed", followUpDays: 5 },
   { value: "等待客戶提供素材", label: "等待客戶提供素材", helper: "等待客戶・5 天", replyStatus: "waiting_client", availableIn: "confirmed", caseStage: "confirmed", followUpDays: 5 },
-  { value: "安排製作檔期", label: "安排製作檔期", helper: "安排製作・3 天", replyStatus: "scheduled", availableIn: "confirmed", caseStage: "confirmed", followUpDays: 3 },
+  { value: "安排製作檔期", label: "安排製作檔期", helper: "進入製作・3 天", replyStatus: "scheduled", availableIn: "confirmed", caseStage: "production", followUpDays: 3 },
 
   { value: "開始製作", label: "開始製作", helper: "製作處理・3 天", replyStatus: "scheduled", availableIn: "production", caseStage: "production", followUpDays: 3 },
   { value: "寄送初稿", label: "寄送初稿", helper: "待我處理・3 天", replyStatus: "scheduled", availableIn: "production", caseStage: "production", followUpDays: 3 },
@@ -79,11 +79,32 @@ export const followUpPresets = [
 const responseFollowUpActionValues: Record<string, string> = {
   聯絡客戶確認需求: "等待需求回覆",
   請客戶補充資料: "等待需求回覆",
+  等待需求回覆: "製作正式報價",
   寄送正式報價: "等待客戶確認合作",
+  等待客戶確認合作: "等待訂金",
+  等待訂金: "等待客戶提供素材",
+  等待客戶提供素材: "安排製作檔期",
   寄送初稿: "等待客戶回覆",
+  等待客戶回覆: "安排修改",
   寄送修改稿: "等待定稿確認",
+  等待定稿確認: "等待尾款",
   交付成品: "等待交付確認",
+  等待交付確認: "完成並結案",
 };
+
+const quickWorkflowActionValues: Record<CaseStage, string[]> = {
+  new: ["聯絡客戶確認需求", "製作正式報價"],
+  negotiating: ["寄送正式報價", "等待客戶確認合作"],
+  confirmed: ["等待客戶提供素材", "安排製作檔期"],
+  production: ["寄送初稿", "安排修改", "等待定稿確認"],
+  delivery: ["等待尾款", "交付成品", "完成並結案"],
+  completed: ["完成並結案"],
+  paused: ["暫緩追蹤"],
+  lost: ["未合作"],
+  archived: ["封存案件"],
+};
+
+const exceptionalWorkflowActionValues = ["暫緩追蹤", "未合作", "封存案件"];
 
 const legacyStageMap: Record<string, CaseStage> = {
   contacted: "negotiating",
@@ -97,6 +118,28 @@ export function getWorkflowAction(value: string) {
 
 export function getWorkflowActionsForStage(stage: CaseStage) {
   return workflowActions.filter((action) => action.availableIn === stage);
+}
+
+export function getQuickWorkflowActionsForStage(stage: CaseStage, currentValue = "") {
+  const recommended = quickWorkflowActionValues[stage]
+    .map((value) => getWorkflowAction(value))
+    .filter((action): action is WorkflowAction => Boolean(action));
+  const currentAction = getWorkflowAction(currentValue);
+  if (!currentAction || recommended.some((action) => action.value === currentAction.value)) return recommended;
+  if (currentAction.availableIn !== stage && currentAction.caseStage !== stage) return recommended;
+  return [currentAction, ...recommended].slice(0, 3);
+}
+
+export function getOtherWorkflowActionsForStage(stage: CaseStage, visibleActions: WorkflowAction[]) {
+  const visibleValues = new Set(visibleActions.map((action) => action.value));
+  const values = [
+    ...getWorkflowActionsForStage(stage).map((action) => action.value),
+    ...exceptionalWorkflowActionValues,
+  ];
+  return [...new Set(values)]
+    .filter((value) => !visibleValues.has(value))
+    .map((value) => getWorkflowAction(value))
+    .filter((action): action is WorkflowAction => Boolean(action));
 }
 
 export function normalizeCaseStage(value: string, nextAction = ""): CaseStage {
