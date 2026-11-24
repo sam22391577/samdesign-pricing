@@ -3,9 +3,9 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { compactInquirySummary } from "./compact-summary";
-import { closingWorkflowActions, defaultWorkflowAction, followUpAfterDays, followUpPresets, getActionAfterResponse, getWorkflowAction, getWorkflowPhaseForAction, productionWorkflowPhases, quoteWorkflowActions, type WorkflowPhaseKey } from "./workflow-options";
+import { caseStageLabels, defaultWorkflowAction, editableCaseStages, followUpAfterDays, followUpPresets, getActionAfterResponse, getSuggestedFollowUpAt, getWorkflowAction, getWorkflowActionsForStage, normalizeCaseStage, type CaseStage } from "./workflow-options";
 
-type InquiryStatus = "new" | "contacted" | "quoted" | "won" | "archived";
+type InquiryStatus = CaseStage;
 type ReplyStatus = "needs_reply" | "waiting_client" | "client_replied" | "scheduled" | "paused" | "completed";
 type Priority = "high" | "normal" | "low";
 type StatusView = "todo" | "active" | "done" | "all";
@@ -50,7 +50,7 @@ type ApiInquiry = {
   estimateHigh: number;
   budget: number | null;
   summaryJson: string;
-  status: InquiryStatus;
+  status: string;
   replyStatus: ReplyStatus;
   priority: Priority;
   assignee: string;
@@ -64,13 +64,7 @@ type ApiInquiry = {
 // contact details, which should not be published in a public source repository.
 const sampleInquiries: Inquiry[] = [];
 
-const statusLabels: Record<InquiryStatus, string> = {
-  new: "待處理",
-  contacted: "已聯絡",
-  quoted: "已報價",
-  won: "已成交",
-  archived: "已封存",
-};
+const statusLabels = caseStageLabels;
 
 const replyStatusLabels: Record<ReplyStatus, string> = {
   needs_reply: "待我回覆",
@@ -101,7 +95,7 @@ const dateFilterLabels: Record<DateFilter, string> = {
   month: "最近 30 天",
 };
 
-const editableStatuses: InquiryStatus[] = ["new", "contacted", "quoted", "won", "archived"];
+const editableStatuses = editableCaseStages;
 
 const currency = new Intl.NumberFormat("zh-TW", { style: "currency", currency: "TWD", maximumFractionDigits: 0 });
 
@@ -180,7 +174,7 @@ function toInquiry(row: ApiInquiry): Inquiry {
     submittedAt: dateTime,
     submittedTime: submittedDate.getTime(),
     relativeTime,
-    status: row.status,
+    status: normalizeCaseStage(row.status, row.nextAction),
     replyStatus: row.replyStatus || "needs_reply",
     priority: row.priority,
     assignee: row.assignee,
@@ -236,11 +230,11 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   const [loadError, setLoadError] = useState("");
   const [updatingStatuses, setUpdatingStatuses] = useState<Set<string>>(() => new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
-  const [batchStatus, setBatchStatus] = useState<InquiryStatus>("contacted");
+  const [batchStatus, setBatchStatus] = useState<InquiryStatus>("negotiating");
   const [batchBusy, setBatchBusy] = useState(false);
   const [batchDeleteArmed, setBatchDeleteArmed] = useState(false);
   const [detailInquiryId, setDetailInquiryId] = useState<string | null>(null);
-  const [quickWorkflowPhase, setQuickWorkflowPhase] = useState<WorkflowPhaseKey>("cooperation");
+  const [quickCaseStage, setQuickCaseStage] = useState<CaseStage>("new");
   const [quickWorkflowOpen, setQuickWorkflowOpen] = useState(false);
   const [copiedContactId, setCopiedContactId] = useState<string | null>(null);
   const [dashboardNow] = useState(() => new Date().getTime());
@@ -296,7 +290,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
       const matchesStatus = activeFilter === "all"
         || (activeFilter === "todo" && (["needs_reply", "client_replied"].includes(inquiry.replyStatus) || isOverdue))
         || (activeFilter === "active" && ["waiting_client", "scheduled", "paused"].includes(inquiry.replyStatus))
-        || (activeFilter === "done" && (inquiry.replyStatus === "completed" || ["won", "archived"].includes(inquiry.status)));
+        || (activeFilter === "done" && (inquiry.replyStatus === "completed" || ["completed", "lost", "archived"].includes(inquiry.status)));
       const matchesProject = projectFilter === "all" || inquiry.projectType === projectFilter;
       const matchesPriority = priorityFilter === "all" || inquiry.priority === priorityFilter;
       const matchesDate = dateFilter === "all"
@@ -333,7 +327,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   const clientRepliedCount = inquiries.filter((inquiry) => inquiry.replyStatus === "client_replied").length;
   const needsReplyCount = newCount + clientRepliedCount;
   const activeCount = inquiries.filter((inquiry) => ["waiting_client", "scheduled", "paused"].includes(inquiry.replyStatus)).length;
-  const completedCount = inquiries.filter((inquiry) => inquiry.replyStatus === "completed" || ["won", "archived"].includes(inquiry.status)).length;
+  const completedCount = inquiries.filter((inquiry) => inquiry.replyStatus === "completed" || ["completed", "lost", "archived"].includes(inquiry.status)).length;
   const todayDateKey = taipeiDateKey(dashboardNow);
   const todayFollowUpCount = inquiries.filter((inquiry) => inquiry.nextFollowUpAt && taipeiDateKey(inquiry.nextFollowUpAt) === todayDateKey && inquiry.replyStatus !== "completed").length;
   const overdueCount = inquiries.filter((inquiry) => inquiry.nextFollowUpTime !== null && inquiry.nextFollowUpTime < dashboardNow && inquiry.replyStatus !== "completed").length;
@@ -368,7 +362,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   }
 
   function openInquiryDetail(inquiry: Inquiry) {
-    setQuickWorkflowPhase(getWorkflowPhaseForAction(inquiry.nextAction)?.key ?? "cooperation");
+    setQuickCaseStage(inquiry.status);
     setQuickWorkflowOpen(false);
     setDetailInquiryId(inquiry.id);
   }
@@ -449,14 +443,16 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
     const workflowAction = getWorkflowAction(nextAction) ?? defaultWorkflowAction;
     const followUpPreset = String(formData.get("followUpPreset") ?? "current");
     const customFollowUp = String(formData.get("customFollowUpAt") ?? "");
+    const actionChanged = nextAction !== inquiry.nextAction;
     const nextFollowUpAt = followUpPreset === "current"
-      ? inquiry.nextFollowUpAt || defaultFollowUpAt
+      ? actionChanged ? getSuggestedFollowUpAt(workflowAction) : inquiry.nextFollowUpAt || getSuggestedFollowUpAt(workflowAction)
       : followUpPreset === "custom"
-        ? customFollowUp ? new Date(customFollowUp).toISOString() : inquiry.nextFollowUpAt || defaultFollowUpAt
+        ? customFollowUp ? new Date(customFollowUp).toISOString() : inquiry.nextFollowUpAt || getSuggestedFollowUpAt(workflowAction)
         : followUpAfterDays(Number(followUpPreset));
     await updateInquiryFields(inquiry, {
+      status: workflowAction.caseStage,
       replyStatus: workflowAction.replyStatus,
-      nextFollowUpAt: workflowAction.replyStatus === "completed" ? "" : nextFollowUpAt,
+      nextFollowUpAt: workflowAction.followUpDays === null ? "" : nextFollowUpAt,
       nextAction,
     });
     setQuickWorkflowOpen(false);
@@ -464,12 +460,13 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
 
   async function markResponded(inquiry: Inquiry) {
     const responseAction = getActionAfterResponse(inquiry.nextAction);
-    setQuickWorkflowPhase(getWorkflowPhaseForAction(responseAction.value)?.key ?? quickWorkflowPhase);
+    setQuickCaseStage(responseAction.availableIn);
     await updateInquiryFields(inquiry, {
+      status: responseAction.caseStage,
       replyStatus: responseAction.replyStatus,
       lastContactAt: new Date().toISOString(),
       nextAction: responseAction.value,
-      nextFollowUpAt: responseAction.replyStatus === "completed" ? "" : followUpAfterDays(5),
+      nextFollowUpAt: getSuggestedFollowUpAt(responseAction),
     });
   }
 
@@ -761,7 +758,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
               </div>
               <div className="quick-detail-status">
                 <span>案件進度</span>
-                <StatusEditor inquiry={detailInquiry} updating={updatingStatuses.has(detailInquiry.id)} onChange={(status) => updateInquiryStatus(detailInquiry, status)} />
+                <StatusEditor inquiry={detailInquiry} updating={updatingStatuses.has(detailInquiry.id)} onChange={(status) => { setQuickCaseStage(status); void updateInquiryStatus(detailInquiry, status); }} />
               </div>
               <form key={`${detailInquiry.id}-${detailInquiry.replyStatus}-${detailInquiry.nextFollowUpAt}-${detailInquiry.nextAction}`} className={`quick-workflow-form${quickWorkflowOpen ? " is-open" : ""}`} onSubmit={(event) => { void saveFollowUp(event, detailInquiry); }}>
                 <div className="quick-workflow-heading"><div><span>下一步安排</span><strong>{getWorkflowAction(detailInquiry.nextAction)?.label || detailInquiry.nextAction || defaultWorkflowAction.label}</strong></div></div>
@@ -775,39 +772,19 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
                     {detailInquiry.nextAction && !getWorkflowAction(detailInquiry.nextAction) && <p className="legacy-workflow-action">原本事項：{detailInquiry.nextAction}</p>}
                     <fieldset className="workflow-action-picker">
                       <legend>選擇下一步</legend>
-                      <div className="workflow-action-group">
-                        <span className="workflow-action-group-title">需求與報價</span>
+                      <label className="workflow-stage-picker">
+                        <span>處理階段</span>
+                        <select value={quickCaseStage} onChange={(event) => setQuickCaseStage(event.target.value as CaseStage)}>
+                          {editableStatuses.map((stage) => <option key={stage} value={stage}>{statusLabels[stage]}</option>)}
+                        </select>
+                        <small>只顯示這個階段可用的下一步</small>
+                      </label>
+                      <div className="workflow-action-group" key={quickCaseStage}>
+                        <span className="workflow-action-group-title">{statusLabels[quickCaseStage]}的下一步</span>
                         <div className="workflow-action-options">
-                          {quoteWorkflowActions.map((action) => (
+                          {getWorkflowActionsForStage(quickCaseStage).map((action, index, actions) => (
                             <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
-                              <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={(getWorkflowAction(detailInquiry.nextAction)?.value ?? defaultWorkflowAction.value) === action.value} />
-                              <span><strong>{action.label}</strong><small>{action.helper}</small></span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="workflow-action-group production-workflow-group">
-                        <span className="workflow-action-group-title">合作與製作</span>
-                        <div className="workflow-phase-tabs" role="tablist" aria-label="合作與製作階段">
-                          {productionWorkflowPhases.map((phase) => <button className={quickWorkflowPhase === phase.key ? "is-active" : ""} type="button" role="tab" aria-selected={quickWorkflowPhase === phase.key} key={phase.key} onClick={() => setQuickWorkflowPhase(phase.key)}>{phase.label}</button>)}
-                        </div>
-                        <div className="workflow-phase-panel" role="tabpanel">
-                          <div className="workflow-action-options">
-                            {productionWorkflowPhases.find((phase) => phase.key === quickWorkflowPhase)?.actions.map((action) => (
-                              <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
-                                <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={getWorkflowAction(detailInquiry.nextAction)?.value === action.value} />
-                                <span><strong>{action.label}</strong><small>{action.helper}</small></span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="workflow-action-group">
-                        <span className="workflow-action-group-title">完成或暫停</span>
-                        <div className="workflow-action-options">
-                          {closingWorkflowActions.map((action) => (
-                            <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
-                              <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={getWorkflowAction(detailInquiry.nextAction)?.value === action.value} />
+                              <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={actions.some((item) => item.value === detailInquiry.nextAction) ? detailInquiry.nextAction === action.value : index === 0} />
                               <span><strong>{action.label}</strong><small>{action.helper}</small></span>
                             </label>
                           ))}

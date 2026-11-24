@@ -1,7 +1,21 @@
 import { ensureInquirySchema, getD1 } from "../../../../db";
 import { canManageInquiries, unauthorizedResponse } from "../access";
 
-const allowedStatuses = new Set(["new", "contacted", "quoted", "won", "archived"]);
+const allowedStatuses = new Set([
+  "new",
+  "negotiating",
+  "confirmed",
+  "production",
+  "delivery",
+  "completed",
+  "paused",
+  "lost",
+  "archived",
+  // Keep accepting legacy values while older records are being opened and normalized.
+  "contacted",
+  "quoted",
+  "won",
+]);
 const allowedReplyStatuses = new Set(["needs_reply", "waiting_client", "client_replied", "scheduled", "paused", "completed"]);
 const allowedPriorities = new Set(["high", "normal", "low"]);
 

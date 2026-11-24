@@ -4,9 +4,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { compactInquirySummary } from "../compact-summary";
-import { closingWorkflowActions, defaultWorkflowAction, followUpAfterDays, followUpPresets, getActionAfterResponse, getWorkflowAction, getWorkflowPhaseForAction, productionWorkflowPhases, quoteWorkflowActions, type WorkflowPhaseKey } from "../workflow-options";
+import { caseStageLabels, defaultWorkflowAction, editableCaseStages, followUpAfterDays, followUpPresets, getActionAfterResponse, getSuggestedFollowUpAt, getWorkflowAction, getWorkflowActionsForStage, normalizeCaseStage, type CaseStage } from "../workflow-options";
 
-type InquiryStatus = "new" | "contacted" | "quoted" | "won" | "archived";
+type InquiryStatus = CaseStage;
 type ReplyStatus = "needs_reply" | "waiting_client" | "client_replied" | "scheduled" | "paused" | "completed";
 type Priority = "high" | "normal" | "low";
 
@@ -35,13 +35,7 @@ type InquiryRecordData = {
   note: string;
 };
 
-const statusLabels: Record<InquiryStatus, string> = {
-  new: "待處理",
-  contacted: "已聯絡",
-  quoted: "已報價",
-  won: "已成交",
-  archived: "已封存",
-};
+const statusLabels = caseStageLabels;
 
 const replyStatusLabels: Record<ReplyStatus, string> = {
   needs_reply: "待我回覆",
@@ -123,7 +117,7 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
   const [deleting, setDeleting] = useState(false);
   const [contactCopied, setContactCopied] = useState(false);
   const [selectedFollowUpPreset, setSelectedFollowUpPreset] = useState("current");
-  const [selectedWorkflowPhase, setSelectedWorkflowPhase] = useState<WorkflowPhaseKey>("cooperation");
+  const [selectedCaseStage, setSelectedCaseStage] = useState<CaseStage>("new");
   const [defaultFollowUpAt] = useState(() => new Date(new Date().getTime() + 5 * 24 * 60 * 60 * 1000).toISOString());
 
   useEffect(() => {
@@ -136,9 +130,12 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
       })
       .then((record) => {
         if (cancelled) return;
-        const normalizedRecord = record.nextAction ? record : { ...record, nextAction: defaultWorkflowAction.value, replyStatus: defaultWorkflowAction.replyStatus };
+        const normalizedStatus = normalizeCaseStage(record.status, record.nextAction);
+        const normalizedRecord = record.nextAction
+          ? { ...record, status: normalizedStatus }
+          : { ...record, status: normalizedStatus, nextAction: defaultWorkflowAction.value, replyStatus: defaultWorkflowAction.replyStatus };
         setInquiry(normalizedRecord);
-        setSelectedWorkflowPhase(getWorkflowPhaseForAction(normalizedRecord.nextAction)?.key ?? "cooperation");
+        setSelectedCaseStage(getWorkflowAction(normalizedRecord.nextAction)?.availableIn ?? normalizedStatus);
       })
       .catch((error) => { if (!cancelled) setMessage(error instanceof Error ? error.message : "無法讀取這筆需求。"); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -174,13 +171,14 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
   async function markResponded() {
     if (!inquiry) return;
     const responseAction = getActionAfterResponse(inquiry.nextAction);
-    setSelectedFollowUpPreset("5");
-    setSelectedWorkflowPhase(getWorkflowPhaseForAction(responseAction.value)?.key ?? selectedWorkflowPhase);
+    setSelectedFollowUpPreset(String(responseAction.followUpDays ?? "current"));
+    setSelectedCaseStage(responseAction.availableIn);
     await savePatch({
+      status: responseAction.caseStage,
       replyStatus: responseAction.replyStatus,
       lastContactAt: new Date().toISOString(),
       nextAction: responseAction.value,
-      nextFollowUpAt: responseAction.replyStatus === "completed" ? null : followUpAfterDays(5),
+      nextFollowUpAt: getSuggestedFollowUpAt(responseAction) || null,
     });
   }
 
@@ -188,9 +186,15 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
     if (!inquiry) return;
     const action = getWorkflowAction(value);
     if (!action) return;
-    const phase = getWorkflowPhaseForAction(action.value);
-    if (phase) setSelectedWorkflowPhase(phase.key);
-    setInquiry({ ...inquiry, nextAction: action.value, replyStatus: action.replyStatus });
+    setSelectedFollowUpPreset(String(action.followUpDays ?? "current"));
+    setInquiry({ ...inquiry, nextAction: action.value, replyStatus: action.replyStatus, nextFollowUpAt: getSuggestedFollowUpAt(action) || null });
+  }
+
+  function selectCaseStage(stage: CaseStage) {
+    if (!inquiry) return;
+    const firstAction = getWorkflowActionsForStage(stage)[0];
+    setSelectedCaseStage(stage);
+    if (firstAction) selectWorkflowAction(firstAction.value);
   }
 
   function selectFollowUpPreset(days: number, value: string) {
@@ -201,10 +205,12 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
 
   async function saveWorkflow() {
     if (!inquiry) return;
+    const workflowAction = getWorkflowAction(inquiry.nextAction) ?? defaultWorkflowAction;
     await savePatch({
+      status: workflowAction.caseStage,
       replyStatus: inquiry.replyStatus,
       nextAction: inquiry.nextAction,
-      nextFollowUpAt: inquiry.replyStatus === "completed" ? null : inquiry.nextFollowUpAt || defaultFollowUpAt,
+      nextFollowUpAt: workflowAction.followUpDays === null ? null : inquiry.nextFollowUpAt || getSuggestedFollowUpAt(workflowAction) || defaultFollowUpAt,
     });
   }
 
@@ -299,37 +305,17 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
               {inquiry.nextAction && !getWorkflowAction(inquiry.nextAction) && <p className="legacy-workflow-action">原本事項：{inquiry.nextAction}</p>}
               <fieldset className="workflow-action-picker record-workflow-action-picker">
                 <legend>下一步事項</legend>
+                <label className="workflow-stage-picker">
+                  <span>處理階段</span>
+                  <select value={selectedCaseStage} onChange={(event) => selectCaseStage(event.target.value as CaseStage)}>
+                    {editableCaseStages.map((stage) => <option key={stage} value={stage}>{statusLabels[stage]}</option>)}
+                  </select>
+                  <small>只顯示這個階段可用的下一步</small>
+                </label>
                 <div className="workflow-action-group">
-                  <span className="workflow-action-group-title">需求與報價</span>
+                  <span className="workflow-action-group-title">{statusLabels[selectedCaseStage]}的下一步</span>
                   <div className="workflow-action-options">
-                    {quoteWorkflowActions.map((action) => (
-                      <label className="workflow-action-option" htmlFor={`record-workflow-${inquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
-                        <input id={`record-workflow-${inquiry.id}-${action.value}`} type="radio" name="recordNextAction" value={action.value} checked={inquiry.nextAction === action.value} onChange={() => selectWorkflowAction(action.value)} />
-                        <span><strong>{action.label}</strong><small>{action.helper}</small></span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="workflow-action-group production-workflow-group">
-                  <span className="workflow-action-group-title">合作與製作</span>
-                  <div className="workflow-phase-tabs" role="tablist" aria-label="合作與製作階段">
-                    {productionWorkflowPhases.map((phase) => <button className={selectedWorkflowPhase === phase.key ? "is-active" : ""} type="button" role="tab" aria-selected={selectedWorkflowPhase === phase.key} key={phase.key} onClick={() => setSelectedWorkflowPhase(phase.key)}>{phase.label}</button>)}
-                  </div>
-                  <div className="workflow-phase-panel" role="tabpanel">
-                    <div className="workflow-action-options">
-                      {productionWorkflowPhases.find((phase) => phase.key === selectedWorkflowPhase)?.actions.map((action) => (
-                        <label className="workflow-action-option" htmlFor={`record-workflow-${inquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
-                          <input id={`record-workflow-${inquiry.id}-${action.value}`} type="radio" name="recordNextAction" value={action.value} checked={inquiry.nextAction === action.value} onChange={() => selectWorkflowAction(action.value)} />
-                          <span><strong>{action.label}</strong><small>{action.helper}</small></span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="workflow-action-group">
-                  <span className="workflow-action-group-title">完成或暫停</span>
-                  <div className="workflow-action-options">
-                    {closingWorkflowActions.map((action) => (
+                    {getWorkflowActionsForStage(selectedCaseStage).map((action) => (
                       <label className="workflow-action-option" htmlFor={`record-workflow-${inquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
                         <input id={`record-workflow-${inquiry.id}-${action.value}`} type="radio" name="recordNextAction" value={action.value} checked={inquiry.nextAction === action.value} onChange={() => selectWorkflowAction(action.value)} />
                         <span><strong>{action.label}</strong><small>{action.helper}</small></span>
@@ -360,7 +346,7 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
           <aside className="record-sidebar">
             <section className="record-card record-management">
               <div className="record-card-heading"><div><h2>管理設定</h2></div></div>
-              <label><span>處理狀態</span><select value={inquiry.status} onChange={(event) => savePatch({ status: event.target.value as InquiryStatus })}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+              <label><span>處理狀態</span><select value={inquiry.status} onChange={(event) => { const status = event.target.value as InquiryStatus; setSelectedCaseStage(status); void savePatch({ status }); }}>{editableCaseStages.map((value) => <option key={value} value={value}>{statusLabels[value]}</option>)}</select></label>
               <label><span>優先順序</span><select value={inquiry.priority} onChange={(event) => savePatch({ priority: event.target.value as Priority })}>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
               <label><span>負責人</span><select value={inquiry.assignee} onChange={(event) => savePatch({ assignee: event.target.value })}><option>{displayName}</option><option>Sam</option><option>尚未指派</option></select></label>
             </section>

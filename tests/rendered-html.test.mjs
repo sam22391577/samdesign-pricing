@@ -1744,14 +1744,24 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   assert.match(record, /recordNextAction/);
   assert.doesNotMatch(record, /record-next-action[^\n]*<span>下一步事項<\/span><input/);
   assert.match(record, />返回全部需求<\/a>/);
-  for (const label of ["確認客戶需求", "製作正式報價", "合作確認", "排程製作", "初稿回覆", "修改定稿", "成品交付", "等待訂金", "等待客戶提供素材", "寄送初稿", "寄送修改稿", "等待尾款", "交付成品", "完成並結案", "暫緩追蹤"]) {
+  for (const label of ["新需求", "報價洽談", "合作確認", "製作中", "交付中", "已完成", "確認客戶需求", "製作正式報價", "等待訂金", "等待客戶提供素材", "寄送初稿", "寄送修改稿", "等待尾款", "交付成品", "完成並結案", "暫緩追蹤", "未合作", "封存案件"]) {
     assert.match(workflow, new RegExp(label));
   }
-  assert.match(dashboard, /role="tablist" aria-label="合作與製作階段"/);
-  assert.match(record, /role="tablist" aria-label="合作與製作階段"/);
+  assert.match(dashboard, /className="workflow-stage-picker"/);
+  assert.match(record, /className="workflow-stage-picker"/);
+  assert.match(dashboard, /getWorkflowActionsForStage\(quickCaseStage\)/);
+  assert.match(record, /getWorkflowActionsForStage\(selectedCaseStage\)/);
+  assert.match(dashboard, /status: workflowAction\.caseStage/);
+  assert.match(record, /status: workflowAction\.caseStage/);
+  assert.match(workflow, /normalizeCaseStage/);
+  assert.match(workflow, /contacted: "negotiating"/);
+  assert.match(workflow, /quoted: "negotiating"/);
+  assert.match(workflow, /won: "confirmed"/);
   assert.match(workflow, /寄送初稿: "等待客戶回覆"/);
   assert.match(workflow, /寄送修改稿: "等待定稿確認"/);
-  assert.match(workflow, /交付成品: "完成並結案"/);
+  assert.match(workflow, /交付成品: "等待交付確認"/);
+  assert.match(workflow, /followUpDays: 14/);
+  assert.match(workflow, /followUpDays: null/);
   assert.match(workflow, /\{ value: "5", label: "5 天後", days: 5 \}/);
   assert.match(workflow, /replyStatus: "waiting_client"/);
   assert.match(css, /\.response-table \{[^}]*font-size: \.875rem/);
@@ -1759,8 +1769,7 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   assert.match(css, /\.follow-up-board \{/);
   assert.match(css, /\.reply-needs_reply \{/);
   assert.match(css, /\.workflow-action-options \{/);
-  assert.match(css, /\.workflow-phase-tabs \{/);
-  assert.match(css, /\.workflow-phase-panel \{/);
+  assert.match(css, /\.workflow-stage-picker \{/);
   assert.match(css, /\.follow-up-preset-options \{/);
 });
 

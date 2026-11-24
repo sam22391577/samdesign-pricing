@@ -261,9 +261,13 @@
 .status-editor select:disabled { cursor: wait; }
 .status-editor.is-updating { opacity: .72; cursor: wait; }
 .status-new { color: #9c564c; background: #f9ebe8; }
-.status-contacted { color: #7b663f; background: #f6f0df; }
-.status-quoted { color: #516d78; background: #e8f0f2; }
-.status-won { color: #4f7359; background: #e8f1e9; }
+.status-negotiating { color: #7b663f; background: #f6f0df; }
+.status-confirmed { color: #516d78; background: #e8f0f2; }
+.status-production { color: #665787; background: #eeeaf6; }
+.status-delivery { color: #39706b; background: #e4f1ef; }
+.status-completed { color: #4f7359; background: #e8f1e9; }
+.status-paused { color: #926a45; background: #f7ede3; }
+.status-lost { color: #895b58; background: #f5e9e7; }
 .status-archived { color: #777d77; background: #eef0ee; }
 .row-menu { border: 0; color: #9aa099; background: transparent; cursor: pointer; }
 .row-view { min-width: 86px; padding: 8px 10px; border: 0; border-radius: 7px; color: #6f5b49; background: #eee7de; font-size: .8125rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
@@ -755,6 +759,48 @@
 }
 
 .workflow-action-group + .workflow-action-group { margin-top: 13px; }
+
+.workflow-stage-picker {
+  display: grid;
+  margin-bottom: 13px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.workflow-stage-picker > span {
+  color: #7a6d63;
+  font-size: .8125rem;
+  font-weight: 750;
+}
+
+.workflow-stage-picker > select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 34px 0 11px;
+  border: 1px solid rgba(90, 72, 57, .18);
+  border-radius: 8px;
+  outline: 0;
+  color: #4f463f;
+  background: var(--admin-paper);
+  font-family: inherit;
+  font-size: .875rem;
+  font-weight: 700;
+}
+
+.workflow-stage-picker > select:focus {
+  border-color: #7f9184;
+  box-shadow: 0 0 0 3px rgba(82, 106, 88, .11);
+}
+
+.workflow-stage-picker > small {
+  color: var(--admin-muted);
+  font-size: .75rem;
+  line-height: 1.5;
+}
+
+.record-workflow-action-picker .workflow-stage-picker {
+  width: min(100%, 360px);
+}
 
 .workflow-action-group-title {
   display: block;
