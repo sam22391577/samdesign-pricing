@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { compactInquirySummary } from "../compact-summary";
-import { canAdvanceWorkflow, caseStageLabels, defaultWorkflowAction, editableCaseStages, followUpAfterDays, followUpPresets, getActionAfterResponse, getCompletionActionLabel, getSuggestedFollowUpAt, getWorkflowAction, getWorkflowActionsForStage, normalizeCaseStage, type CaseStage } from "../workflow-options";
+import { caseStageLabels, defaultWorkflowAction, editableCaseStages, followUpAfterDays, followUpPresets, getActionAfterResponse, getSuggestedFollowUpAt, getWorkflowAction, getWorkflowActionsForStage, normalizeCaseStage, type CaseStage } from "../workflow-options";
 
 type InquiryStatus = CaseStage;
 type ReplyStatus = "needs_reply" | "waiting_client" | "client_replied" | "scheduled" | "paused" | "completed";
@@ -168,7 +168,7 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
     }
   }
 
-  async function completeCurrentStep() {
+  async function markResponded() {
     if (!inquiry) return;
     const responseAction = getActionAfterResponse(inquiry.nextAction);
     setSelectedFollowUpPreset(String(responseAction.followUpDays ?? "current"));
@@ -333,7 +333,7 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
                 <label className="custom-follow-up-date"><span>自訂追蹤時間</span><input type="datetime-local" value={toDateTimeLocalValue(inquiry.nextFollowUpAt || defaultFollowUpAt)} onChange={(event) => { setSelectedFollowUpPreset("custom"); setInquiry({ ...inquiry, nextFollowUpAt: event.target.value ? new Date(event.target.value).toISOString() : null }); }} /></label>
               </fieldset>
               <div className="workflow-selection-summary"><span>套用後狀態</span><strong>{replyStatusLabels[inquiry.replyStatus]}</strong></div>
-              <div className="record-workflow-actions">{canAdvanceWorkflow(inquiry.nextAction) && <button type="button" disabled={saving} onClick={completeCurrentStep}>{saving ? "更新中…" : getCompletionActionLabel(inquiry.nextAction)}</button>}<button type="button" disabled={saving} onClick={saveWorkflow}>{saving ? "儲存中…" : "套用安排"}</button></div>
+              <div className="record-workflow-actions"><button type="button" disabled={saving} onClick={markResponded}>標記已回覆客戶</button><button type="button" disabled={saving} onClick={saveWorkflow}>{saving ? "儲存中…" : "套用安排"}</button></div>
             </section>
 
             <section className="record-card">

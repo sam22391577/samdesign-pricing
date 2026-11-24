@@ -80,42 +80,16 @@ const responseFollowUpActionValues: Record<string, string> = {
   聯絡客戶確認需求: "等待需求回覆",
   請客戶補充資料: "等待需求回覆",
   等待需求回覆: "製作正式報價",
-  製作正式報價: "寄送正式報價",
   寄送正式報價: "等待客戶確認合作",
   等待客戶確認合作: "等待訂金",
   等待訂金: "等待客戶提供素材",
   等待客戶提供素材: "安排製作檔期",
-  安排製作檔期: "開始製作",
-  開始製作: "寄送初稿",
   寄送初稿: "等待客戶回覆",
   等待客戶回覆: "安排修改",
-  安排修改: "寄送修改稿",
   寄送修改稿: "等待定稿確認",
   等待定稿確認: "等待尾款",
-  等待尾款: "交付成品",
   交付成品: "等待交付確認",
   等待交付確認: "完成並結案",
-};
-
-const completionActionLabels: Record<string, string> = {
-  聯絡客戶確認需求: "已確認需求",
-  請客戶補充資料: "已請客戶補資料",
-  等待需求回覆: "已收到需求回覆",
-  製作正式報價: "報價已完成",
-  寄送正式報價: "報價已寄出",
-  等待客戶確認合作: "客戶已確認",
-  等待訂金: "訂金已收到",
-  等待客戶提供素材: "素材已收到",
-  安排製作檔期: "檔期已安排",
-  開始製作: "製作已開始",
-  寄送初稿: "初稿已寄出",
-  等待客戶回覆: "已收到初稿回覆",
-  安排修改: "修改已完成",
-  寄送修改稿: "修改稿已寄出",
-  等待定稿確認: "定稿已確認",
-  等待尾款: "尾款已收到",
-  交付成品: "成品已交付",
-  等待交付確認: "客戶已確認收件",
 };
 
 const quickWorkflowActionValues: Record<CaseStage, string[]> = {
@@ -177,14 +151,6 @@ export function normalizeCaseStage(value: string, nextAction = ""): CaseStage {
 export function getActionAfterResponse(value: string) {
   const currentAction = getWorkflowAction(value) ?? defaultWorkflowAction;
   return getWorkflowAction(responseFollowUpActionValues[value]) ?? currentAction;
-}
-
-export function canAdvanceWorkflow(value: string) {
-  return Boolean(responseFollowUpActionValues[value]);
-}
-
-export function getCompletionActionLabel(value: string) {
-  return completionActionLabels[value] ?? "完成這一步";
 }
 
 export function getSuggestedFollowUpAt(action: WorkflowAction, now = new Date()) {
