@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { compactInquirySummary } from "../compact-summary";
+import { defaultWorkflowAction, followUpAfterDays, followUpPresets, getWorkflowAction, workflowActionGroups } from "../workflow-options";
 
 type InquiryStatus = "new" | "contacted" | "quoted" | "won" | "archived";
 type ReplyStatus = "needs_reply" | "waiting_client" | "client_replied" | "scheduled" | "paused" | "completed";
@@ -98,6 +99,20 @@ function toDateTimeLocalValue(value: string | null) {
   return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
 }
 
+function formatReadableFollowUp(value: string | null) {
+  if (!value) return "尚未安排";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "尚未安排";
+  return new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
 export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: string; displayName: string }) {
   const router = useRouter();
   const [inquiry, setInquiry] = useState<InquiryRecordData | null>(null);
@@ -107,6 +122,7 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [contactCopied, setContactCopied] = useState(false);
+  const [selectedFollowUpPreset, setSelectedFollowUpPreset] = useState("current");
   const [defaultFollowUpAt] = useState(() => new Date(new Date().getTime() + 5 * 24 * 60 * 60 * 1000).toISOString());
 
   useEffect(() => {
@@ -117,7 +133,9 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
         if (!response.ok || !payload.inquiry) throw new Error(payload.error || "無法讀取這筆需求。");
         return payload.inquiry;
       })
-      .then((record) => { if (!cancelled) setInquiry(record); })
+      .then((record) => {
+        if (!cancelled) setInquiry(record.nextAction ? record : { ...record, nextAction: defaultWorkflowAction.value, replyStatus: defaultWorkflowAction.replyStatus });
+      })
       .catch((error) => { if (!cancelled) setMessage(error instanceof Error ? error.message : "無法讀取這筆需求。"); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -150,7 +168,35 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
   }
 
   async function markResponded() {
-    await savePatch({ replyStatus: "waiting_client", lastContactAt: new Date().toISOString() });
+    setSelectedFollowUpPreset("5");
+    await savePatch({
+      replyStatus: "waiting_client",
+      lastContactAt: new Date().toISOString(),
+      nextAction: "等待客戶確認",
+      nextFollowUpAt: followUpAfterDays(5),
+    });
+  }
+
+  function selectWorkflowAction(value: string) {
+    if (!inquiry) return;
+    const action = getWorkflowAction(value);
+    if (!action) return;
+    setInquiry({ ...inquiry, nextAction: action.value, replyStatus: action.replyStatus });
+  }
+
+  function selectFollowUpPreset(days: number, value: string) {
+    if (!inquiry) return;
+    setSelectedFollowUpPreset(value);
+    setInquiry({ ...inquiry, nextFollowUpAt: followUpAfterDays(days) });
+  }
+
+  async function saveWorkflow() {
+    if (!inquiry) return;
+    await savePatch({
+      replyStatus: inquiry.replyStatus,
+      nextAction: inquiry.nextAction,
+      nextFollowUpAt: inquiry.replyStatus === "completed" ? null : inquiry.nextFollowUpAt || defaultFollowUpAt,
+    });
   }
 
   async function deleteInquiry() {
@@ -241,12 +287,33 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
 
             <section className="record-card">
               <div className="record-card-heading"><div><span>03</span><h2>聯絡與排程</h2></div><small>掌握下一步</small></div>
-              <div className="record-workflow-grid">
-                <label><span>回覆狀況</span><select value={inquiry.replyStatus} onChange={(event) => savePatch({ replyStatus: event.target.value as ReplyStatus })}>{Object.entries(replyStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-                <label><span>下次追蹤時間</span><input type="datetime-local" value={toDateTimeLocalValue(inquiry.nextFollowUpAt || defaultFollowUpAt)} onChange={(event) => savePatch({ nextFollowUpAt: event.target.value ? new Date(event.target.value).toISOString() : null })} /></label>
-                <label className="record-next-action"><span>下一步事項</span><input value={inquiry.nextAction} maxLength={180} onChange={(event) => setInquiry({ ...inquiry, nextAction: event.target.value })} placeholder="例如：確認需求、寄送報價、安排交稿" /></label>
-              </div>
-              <div className="record-workflow-actions"><button type="button" disabled={saving} onClick={markResponded}>標記已回覆客戶</button><button type="button" disabled={saving} onClick={() => savePatch({ nextAction: inquiry.nextAction })}>儲存下一步</button></div>
+              {inquiry.nextAction && !getWorkflowAction(inquiry.nextAction) && <p className="legacy-workflow-action">原本事項：{inquiry.nextAction}</p>}
+              <fieldset className="workflow-action-picker record-workflow-action-picker">
+                <legend>下一步事項</legend>
+                {workflowActionGroups.map((group) => (
+                  <div className="workflow-action-group" key={group.label}>
+                    <span className="workflow-action-group-title">{group.label}</span>
+                    <div className="workflow-action-options">
+                      {group.actions.map((action) => (
+                        <label className="workflow-action-option" htmlFor={`record-workflow-${inquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
+                          <input id={`record-workflow-${inquiry.id}-${action.value}`} type="radio" name="recordNextAction" value={action.value} checked={inquiry.nextAction === action.value} onChange={() => selectWorkflowAction(action.value)} />
+                          <span><strong>{action.label}</strong><small>{action.helper}</small></span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </fieldset>
+              <fieldset className="follow-up-preset-picker record-follow-up-picker">
+                <legend>下次追蹤</legend>
+                <div className="follow-up-preset-options">
+                  <button className={selectedFollowUpPreset === "current" ? "is-selected" : ""} type="button" onClick={() => setSelectedFollowUpPreset("current")}><strong>目前安排</strong><small>{formatReadableFollowUp(inquiry.nextFollowUpAt || defaultFollowUpAt)}</small></button>
+                  {followUpPresets.map((preset) => <button className={selectedFollowUpPreset === preset.value ? "is-selected" : ""} type="button" key={preset.value} onClick={() => selectFollowUpPreset(preset.days, preset.value)}><strong>{preset.label}</strong><small>快速設定</small></button>)}
+                </div>
+                <label className="custom-follow-up-date"><span>自訂追蹤時間</span><input type="datetime-local" value={toDateTimeLocalValue(inquiry.nextFollowUpAt || defaultFollowUpAt)} onChange={(event) => { setSelectedFollowUpPreset("custom"); setInquiry({ ...inquiry, nextFollowUpAt: event.target.value ? new Date(event.target.value).toISOString() : null }); }} /></label>
+              </fieldset>
+              <div className="workflow-selection-summary"><span>套用後狀態</span><strong>{replyStatusLabels[inquiry.replyStatus]}</strong></div>
+              <div className="record-workflow-actions"><button type="button" disabled={saving} onClick={markResponded}>標記已回覆客戶</button><button type="button" disabled={saving} onClick={saveWorkflow}>{saving ? "儲存中…" : "套用安排"}</button></div>
             </section>
 
             <section className="record-card">

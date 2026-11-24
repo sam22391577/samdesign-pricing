@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { compactInquirySummary } from "./compact-summary";
+import { defaultWorkflowAction, followUpAfterDays, followUpPresets, getWorkflowAction, workflowActionGroups } from "./workflow-options";
 
 type InquiryStatus = "new" | "contacted" | "quoted" | "won" | "archived";
 type ReplyStatus = "needs_reply" | "waiting_client" | "client_replied" | "scheduled" | "paused" | "completed";
@@ -79,8 +80,6 @@ const replyStatusLabels: Record<ReplyStatus, string> = {
   paused: "暫緩",
   completed: "已完成",
 };
-
-const editableReplyStatuses: ReplyStatus[] = ["needs_reply", "client_replied", "waiting_client", "scheduled", "paused", "completed"];
 
 const priorityLabels: Record<Priority, string> = {
   high: "優先",
@@ -438,12 +437,19 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   async function saveFollowUp(event: FormEvent<HTMLFormElement>, inquiry: Inquiry) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const localFollowUp = String(formData.get("nextFollowUpAt") ?? "");
-    const replyStatus = String(formData.get("replyStatus") ?? inquiry.replyStatus) as ReplyStatus;
+    const nextAction = String(formData.get("nextAction") ?? defaultWorkflowAction.value);
+    const workflowAction = getWorkflowAction(nextAction) ?? defaultWorkflowAction;
+    const followUpPreset = String(formData.get("followUpPreset") ?? "current");
+    const customFollowUp = String(formData.get("customFollowUpAt") ?? "");
+    const nextFollowUpAt = followUpPreset === "current"
+      ? inquiry.nextFollowUpAt || defaultFollowUpAt
+      : followUpPreset === "custom"
+        ? customFollowUp ? new Date(customFollowUp).toISOString() : inquiry.nextFollowUpAt || defaultFollowUpAt
+        : followUpAfterDays(Number(followUpPreset));
     await updateInquiryFields(inquiry, {
-      replyStatus,
-      nextFollowUpAt: localFollowUp ? new Date(localFollowUp).toISOString() : "",
-      nextAction: String(formData.get("nextAction") ?? ""),
+      replyStatus: workflowAction.replyStatus,
+      nextFollowUpAt: workflowAction.replyStatus === "completed" ? "" : nextFollowUpAt,
+      nextAction,
     });
   }
 
@@ -451,6 +457,8 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
     await updateInquiryFields(inquiry, {
       replyStatus: "waiting_client",
       lastContactAt: new Date().toISOString(),
+      nextAction: "等待客戶確認",
+      nextFollowUpAt: followUpAfterDays(5),
     });
   }
 
@@ -745,12 +753,35 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
               </div>
               <form key={`${detailInquiry.id}-${detailInquiry.replyStatus}-${detailInquiry.nextFollowUpAt}-${detailInquiry.nextAction}`} className="quick-workflow-form" onSubmit={(event) => { void saveFollowUp(event, detailInquiry); }}>
                 <div className="quick-workflow-heading"><div><span>回覆與排程</span><strong>下一步要做什麼？</strong></div><ReplyStatusBadge status={detailInquiry.replyStatus} /></div>
-                <label><span>回覆狀況</span><select name="replyStatus" defaultValue={detailInquiry.replyStatus}>{editableReplyStatuses.map((status) => <option key={status} value={status}>{replyStatusLabels[status]}</option>)}</select></label>
-                <label><span>下次追蹤時間</span><input name="nextFollowUpAt" type="datetime-local" defaultValue={toDateTimeLocalValue(detailInquiry.nextFollowUpAt || defaultFollowUpAt)} /></label>
-                <label><span>下一步事項</span><input name="nextAction" maxLength={180} defaultValue={detailInquiry.nextAction} placeholder="例如：確認需求、寄送報價、安排交稿" /></label>
+                {detailInquiry.nextAction && !getWorkflowAction(detailInquiry.nextAction) && <p className="legacy-workflow-action">原本事項：{detailInquiry.nextAction}</p>}
+                <fieldset className="workflow-action-picker">
+                  <legend>下一步事項</legend>
+                  {workflowActionGroups.map((group) => (
+                    <div className="workflow-action-group" key={group.label}>
+                      <span className="workflow-action-group-title">{group.label}</span>
+                      <div className="workflow-action-options">
+                        {group.actions.map((action) => (
+                          <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
+                            <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={(getWorkflowAction(detailInquiry.nextAction)?.value ?? defaultWorkflowAction.value) === action.value} />
+                            <span><strong>{action.label}</strong><small>{action.helper}</small></span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </fieldset>
+                <fieldset className="follow-up-preset-picker">
+                  <legend>下次追蹤</legend>
+                  <div className="follow-up-preset-options">
+                    <label className="follow-up-preset-option" htmlFor={`follow-up-${detailInquiry.id}-current`} aria-label="保留目前追蹤安排"><input id={`follow-up-${detailInquiry.id}-current`} type="radio" name="followUpPreset" value="current" defaultChecked /><span><strong>目前安排</strong><small>{formatTaipeiDateTime(detailInquiry.nextFollowUpAt || defaultFollowUpAt)}</small></span></label>
+                    {followUpPresets.map((preset) => <label className="follow-up-preset-option" htmlFor={`follow-up-${detailInquiry.id}-${preset.value}`} aria-label={`追蹤時間設為${preset.label}`} key={preset.value}><input id={`follow-up-${detailInquiry.id}-${preset.value}`} type="radio" name="followUpPreset" value={preset.value} /><span><strong>{preset.label}</strong><small>快速設定</small></span></label>)}
+                    <label className="follow-up-preset-option" htmlFor={`follow-up-${detailInquiry.id}-custom`} aria-label="使用自訂追蹤時間"><input id={`follow-up-${detailInquiry.id}-custom`} type="radio" name="followUpPreset" value="custom" /><span><strong>自訂日期</strong><small>選擇時間</small></span></label>
+                  </div>
+                  <label className="custom-follow-up-date"><span>自訂追蹤時間</span><input name="customFollowUpAt" type="datetime-local" defaultValue={toDateTimeLocalValue(detailInquiry.nextFollowUpAt || defaultFollowUpAt)} /></label>
+                </fieldset>
                 <div className="quick-workflow-actions">
                   <button type="button" disabled={updatingStatuses.has(detailInquiry.id)} onClick={() => { void markResponded(detailInquiry); }}>已回覆客戶</button>
-                  <button type="submit" disabled={updatingStatuses.has(detailInquiry.id)}>{updatingStatuses.has(detailInquiry.id) ? "儲存中…" : "儲存跟進安排"}</button>
+                  <button type="submit" disabled={updatingStatuses.has(detailInquiry.id)}>{updatingStatuses.has(detailInquiry.id) ? "儲存中…" : "套用安排"}</button>
                 </div>
               </form>
               <section className="quick-detail-section">

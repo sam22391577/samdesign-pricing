@@ -1702,9 +1702,10 @@ test("inquiry capture uses one required contact method and a three-day reply win
 });
 
 test("inquiry dashboard uses task-focused groups and plain-language controls", async () => {
-  const [dashboard, record, css] = await Promise.all([
+  const [dashboard, record, workflow, css] = await Promise.all([
     readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/inquiries/[id]/inquiry-record.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/inquiries/workflow-options.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/inquiries/inquiries.css", import.meta.url), "utf8"),
   ]);
 
@@ -1721,7 +1722,10 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   assert.match(dashboard, /等待客戶/);
   assert.match(dashboard, /今日追蹤/);
   assert.match(dashboard, /已逾期/);
-  assert.match(dashboard, /儲存跟進安排/);
+  assert.match(dashboard, /套用安排/);
+  assert.match(dashboard, /name="nextAction" value=\{action\.value\}/);
+  assert.match(dashboard, /name="followUpPreset" value="5"|followUpPresets\.map/);
+  assert.doesNotMatch(dashboard, /name="nextAction" maxLength/);
   assert.match(dashboard, /這位客戶的歷史需求/);
   assert.match(dashboard, />查看需求<\/button>/);
   assert.match(dashboard, />查看完整內容<\/a>/);
@@ -1731,11 +1735,20 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   assert.match(record, /<span>優先順序<\/span>/);
   assert.match(record, /<h2>聯絡與排程<\/h2>/);
   assert.match(record, /標記已回覆客戶/);
+  assert.match(record, /recordNextAction/);
+  assert.doesNotMatch(record, /record-next-action[^\n]*<span>下一步事項<\/span><input/);
   assert.match(record, />返回全部需求<\/a>/);
+  for (const label of ["確認客戶需求", "製作正式報價", "等待客戶確認", "安排製作檔期", "完成並結案", "暫緩追蹤"]) {
+    assert.match(workflow, new RegExp(label));
+  }
+  assert.match(workflow, /\{ value: "5", label: "5 天後", days: 5 \}/);
+  assert.match(workflow, /replyStatus: "waiting_client"/);
   assert.match(css, /\.response-table \{[^}]*font-size: \.875rem/);
   assert.match(css, /\.quick-detail-summary li \{[^}]*font-size: \.875rem/);
   assert.match(css, /\.follow-up-board \{/);
   assert.match(css, /\.reply-needs_reply \{/);
+  assert.match(css, /\.workflow-action-options \{/);
+  assert.match(css, /\.follow-up-preset-options \{/);
 });
 
 test("inquiry backend stores reply tracking and follow-up schedule fields", async () => {
