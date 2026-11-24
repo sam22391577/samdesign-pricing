@@ -82,10 +82,10 @@ const priorityLabels: Record<Priority, string> = {
 };
 
 const filters: Array<{ key: StatusView; label: string }> = [
+  { key: "all", label: "全部" },
   { key: "todo", label: "待我處理" },
   { key: "active", label: "追蹤中" },
   { key: "done", label: "已完成" },
-  { key: "all", label: "全部" },
 ];
 
 const dateFilterLabels: Record<DateFilter, string> = {
