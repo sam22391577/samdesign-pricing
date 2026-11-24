@@ -241,6 +241,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   const [batchDeleteArmed, setBatchDeleteArmed] = useState(false);
   const [detailInquiryId, setDetailInquiryId] = useState<string | null>(null);
   const [quickWorkflowPhase, setQuickWorkflowPhase] = useState<WorkflowPhaseKey>("cooperation");
+  const [quickWorkflowOpen, setQuickWorkflowOpen] = useState(false);
   const [copiedContactId, setCopiedContactId] = useState<string | null>(null);
   const [dashboardNow] = useState(() => new Date().getTime());
   const defaultFollowUpAt = new Date(dashboardNow + 5 * 24 * 60 * 60 * 1000).toISOString();
@@ -368,6 +369,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
 
   function openInquiryDetail(inquiry: Inquiry) {
     setQuickWorkflowPhase(getWorkflowPhaseForAction(inquiry.nextAction)?.key ?? "cooperation");
+    setQuickWorkflowOpen(false);
     setDetailInquiryId(inquiry.id);
   }
 
@@ -457,6 +459,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
       nextFollowUpAt: workflowAction.replyStatus === "completed" ? "" : nextFollowUpAt,
       nextAction,
     });
+    setQuickWorkflowOpen(false);
   }
 
   async function markResponded(inquiry: Inquiry) {
@@ -747,110 +750,101 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
           <button className="quick-detail-backdrop" type="button" onClick={() => setDetailInquiryId(null)} aria-label="關閉需求內容" />
           <aside className="quick-detail-panel" role="dialog" aria-modal="true" aria-labelledby="quick-detail-title">
             <header className="quick-detail-header">
-              <div><span>查看需求</span><strong>{detailInquiry.id}</strong></div>
+              <div><span>快速處理</span><strong>{detailInquiry.projectType}</strong></div>
               <button type="button" onClick={() => setDetailInquiryId(null)} aria-label="關閉需求內容">×</button>
             </header>
             <div className="quick-detail-scroll">
               <div className="quick-detail-identity">
                 <span className="detail-avatar">{detailInquiry.client.slice(0, 1)}</span>
-                <div><h2 id="quick-detail-title">{detailInquiry.client}</h2><p>{detailInquiry.company}・{detailInquiry.projectType}</p></div>
+                <div><h2 id="quick-detail-title">{detailInquiry.client}</h2><p>{detailInquiry.company}</p></div>
+                <ReplyStatusBadge status={detailInquiry.replyStatus} />
               </div>
               <div className="quick-detail-status">
                 <span>案件進度</span>
                 <StatusEditor inquiry={detailInquiry} updating={updatingStatuses.has(detailInquiry.id)} onChange={(status) => updateInquiryStatus(detailInquiry, status)} />
               </div>
-              <form key={`${detailInquiry.id}-${detailInquiry.replyStatus}-${detailInquiry.nextFollowUpAt}-${detailInquiry.nextAction}`} className="quick-workflow-form" onSubmit={(event) => { void saveFollowUp(event, detailInquiry); }}>
-                <div className="quick-workflow-heading"><div><span>回覆與排程</span><strong>下一步要做什麼？</strong></div><ReplyStatusBadge status={detailInquiry.replyStatus} /></div>
-                {detailInquiry.nextAction && !getWorkflowAction(detailInquiry.nextAction) && <p className="legacy-workflow-action">原本事項：{detailInquiry.nextAction}</p>}
-                <fieldset className="workflow-action-picker">
-                  <legend>下一步事項</legend>
-                  <div className="workflow-action-group">
-                    <span className="workflow-action-group-title">需求與報價</span>
-                    <div className="workflow-action-options">
-                      {quoteWorkflowActions.map((action) => (
-                        <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
-                          <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={(getWorkflowAction(detailInquiry.nextAction)?.value ?? defaultWorkflowAction.value) === action.value} />
-                          <span><strong>{action.label}</strong><small>{action.helper}</small></span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="workflow-action-group production-workflow-group">
-                    <span className="workflow-action-group-title">合作與製作</span>
-                    <div className="workflow-phase-tabs" role="tablist" aria-label="合作與製作階段">
-                      {productionWorkflowPhases.map((phase) => <button className={quickWorkflowPhase === phase.key ? "is-active" : ""} type="button" role="tab" aria-selected={quickWorkflowPhase === phase.key} key={phase.key} onClick={() => setQuickWorkflowPhase(phase.key)}>{phase.label}</button>)}
-                    </div>
-                    <div className="workflow-phase-panel" role="tabpanel">
-                      <div className="workflow-action-options">
-                        {productionWorkflowPhases.find((phase) => phase.key === quickWorkflowPhase)?.actions.map((action) => (
-                          <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
-                            <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={getWorkflowAction(detailInquiry.nextAction)?.value === action.value} />
-                            <span><strong>{action.label}</strong><small>{action.helper}</small></span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="workflow-action-group">
-                    <span className="workflow-action-group-title">完成或暫停</span>
-                    <div className="workflow-action-options">
-                      {closingWorkflowActions.map((action) => (
-                        <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
-                          <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={getWorkflowAction(detailInquiry.nextAction)?.value === action.value} />
-                          <span><strong>{action.label}</strong><small>{action.helper}</small></span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </fieldset>
-                <fieldset className="follow-up-preset-picker">
-                  <legend>下次追蹤</legend>
-                  <div className="follow-up-preset-options">
-                    <label className="follow-up-preset-option" htmlFor={`follow-up-${detailInquiry.id}-current`} aria-label="保留目前追蹤安排"><input id={`follow-up-${detailInquiry.id}-current`} type="radio" name="followUpPreset" value="current" defaultChecked /><span><strong>目前安排</strong><small>{formatTaipeiDateTime(detailInquiry.nextFollowUpAt || defaultFollowUpAt)}</small></span></label>
-                    {followUpPresets.map((preset) => <label className="follow-up-preset-option" htmlFor={`follow-up-${detailInquiry.id}-${preset.value}`} aria-label={`追蹤時間設為${preset.label}`} key={preset.value}><input id={`follow-up-${detailInquiry.id}-${preset.value}`} type="radio" name="followUpPreset" value={preset.value} /><span><strong>{preset.label}</strong><small>快速設定</small></span></label>)}
-                    <label className="follow-up-preset-option" htmlFor={`follow-up-${detailInquiry.id}-custom`} aria-label="使用自訂追蹤時間"><input id={`follow-up-${detailInquiry.id}-custom`} type="radio" name="followUpPreset" value="custom" /><span><strong>自訂日期</strong><small>選擇時間</small></span></label>
-                  </div>
-                  <label className="custom-follow-up-date"><span>自訂追蹤時間</span><input name="customFollowUpAt" type="datetime-local" defaultValue={toDateTimeLocalValue(detailInquiry.nextFollowUpAt || defaultFollowUpAt)} /></label>
-                </fieldset>
-                <div className="quick-workflow-actions">
+              <form key={`${detailInquiry.id}-${detailInquiry.replyStatus}-${detailInquiry.nextFollowUpAt}-${detailInquiry.nextAction}`} className={`quick-workflow-form${quickWorkflowOpen ? " is-open" : ""}`} onSubmit={(event) => { void saveFollowUp(event, detailInquiry); }}>
+                <div className="quick-workflow-heading"><div><span>下一步安排</span><strong>{getWorkflowAction(detailInquiry.nextAction)?.label || detailInquiry.nextAction || defaultWorkflowAction.label}</strong></div></div>
+                <div className="quick-workflow-summary"><span>下次追蹤</span><strong>{formatTaipeiDateTime(detailInquiry.nextFollowUpAt || defaultFollowUpAt)}</strong></div>
+                <div className="quick-workflow-primary-actions">
                   <button type="button" disabled={updatingStatuses.has(detailInquiry.id)} onClick={() => { void markResponded(detailInquiry); }}>已回覆客戶</button>
-                  <button type="submit" disabled={updatingStatuses.has(detailInquiry.id)}>{updatingStatuses.has(detailInquiry.id) ? "儲存中…" : "套用安排"}</button>
+                  <button type="button" aria-expanded={quickWorkflowOpen} aria-controls={`quick-workflow-editor-${detailInquiry.id}`} onClick={() => setQuickWorkflowOpen((current) => !current)}>{quickWorkflowOpen ? "收合安排" : "變更安排"}</button>
                 </div>
-              </form>
-              <section className="quick-detail-section">
-                <h3>聯絡與負責</h3>
-                <dl className="quick-detail-meta">
-                  <div><dt>Email</dt><dd><a href={`mailto:${detailInquiry.email}`}>{detailInquiry.email}</a></dd></div>
-                  <div><dt>您的聯絡方式</dt><dd><button className={`quick-contact-copy${copiedContactId === detailInquiry.id ? " is-copied" : ""}`} type="button" onClick={() => copyContact(detailInquiry)} title="點擊複製聯絡方式"><span>{detailInquiry.contact}</span><small aria-live="polite">{copiedContactId === detailInquiry.id ? "已複製" : "點擊複製"}</small></button></dd></div>
-                  <div><dt>負責人</dt><dd>{detailInquiry.assignee || "尚未指派"}</dd></div>
-                  <div><dt>收到時間</dt><dd>{detailInquiry.submittedAt}</dd></div>
-                  <div><dt>最後聯絡</dt><dd>{formatTaipeiDateTime(detailInquiry.lastContactAt)}</dd></div>
-                  <div><dt>客戶需求數</dt><dd>{relatedInquiries.length + 1} 筆</dd></div>
-                </dl>
-              </section>
-              <section className="quick-detail-section">
-                <h3>需求摘要</h3>
-                <div className="quick-detail-tags">{detailInquiry.services.map((service) => <span key={service}>{service}</span>)}</div>
-                <ul className="quick-detail-summary">{detailInquiry.summary.map((item, index) => <li key={`${item}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span>{item}</li>)}</ul>
-                <div className="quick-detail-estimate"><span><small>網站初估</small><strong>{detailInquiry.estimate}</strong></span><span><small>客戶預算</small><strong>{detailInquiry.budget}</strong></span></div>
-              </section>
-              {relatedInquiries.length > 0 && (
-                <section className="quick-detail-section">
-                  <h3>這位客戶的歷史需求</h3>
-                  <div className="client-history-list">
-                    {relatedInquiries.slice(0, 5).map((inquiry) => (
-                      <button key={inquiry.id} type="button" onClick={() => openInquiryDetail(inquiry)}>
-                        <span><strong>{inquiry.services.slice(0, 2).join("、") || inquiry.projectType}</strong><small>{inquiry.submittedAt}</small></span>
-                        <ReplyStatusBadge status={inquiry.replyStatus} />
-                      </button>
-                    ))}
+                {quickWorkflowOpen && (
+                  <div className="quick-workflow-editor" id={`quick-workflow-editor-${detailInquiry.id}`}>
+                    {detailInquiry.nextAction && !getWorkflowAction(detailInquiry.nextAction) && <p className="legacy-workflow-action">原本事項：{detailInquiry.nextAction}</p>}
+                    <fieldset className="workflow-action-picker">
+                      <legend>選擇下一步</legend>
+                      <div className="workflow-action-group">
+                        <span className="workflow-action-group-title">需求與報價</span>
+                        <div className="workflow-action-options">
+                          {quoteWorkflowActions.map((action) => (
+                            <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
+                              <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={(getWorkflowAction(detailInquiry.nextAction)?.value ?? defaultWorkflowAction.value) === action.value} />
+                              <span><strong>{action.label}</strong><small>{action.helper}</small></span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="workflow-action-group production-workflow-group">
+                        <span className="workflow-action-group-title">合作與製作</span>
+                        <div className="workflow-phase-tabs" role="tablist" aria-label="合作與製作階段">
+                          {productionWorkflowPhases.map((phase) => <button className={quickWorkflowPhase === phase.key ? "is-active" : ""} type="button" role="tab" aria-selected={quickWorkflowPhase === phase.key} key={phase.key} onClick={() => setQuickWorkflowPhase(phase.key)}>{phase.label}</button>)}
+                        </div>
+                        <div className="workflow-phase-panel" role="tabpanel">
+                          <div className="workflow-action-options">
+                            {productionWorkflowPhases.find((phase) => phase.key === quickWorkflowPhase)?.actions.map((action) => (
+                              <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
+                                <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={getWorkflowAction(detailInquiry.nextAction)?.value === action.value} />
+                                <span><strong>{action.label}</strong><small>{action.helper}</small></span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="workflow-action-group">
+                        <span className="workflow-action-group-title">完成或暫停</span>
+                        <div className="workflow-action-options">
+                          {closingWorkflowActions.map((action) => (
+                            <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
+                              <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={getWorkflowAction(detailInquiry.nextAction)?.value === action.value} />
+                              <span><strong>{action.label}</strong><small>{action.helper}</small></span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </fieldset>
+                    <fieldset className="follow-up-preset-picker">
+                      <legend>下次追蹤</legend>
+                      <div className="follow-up-preset-options">
+                        <label className="follow-up-preset-option" htmlFor={`follow-up-${detailInquiry.id}-current`} aria-label="保留目前追蹤安排"><input id={`follow-up-${detailInquiry.id}-current`} type="radio" name="followUpPreset" value="current" defaultChecked /><span><strong>目前安排</strong><small>{formatTaipeiDateTime(detailInquiry.nextFollowUpAt || defaultFollowUpAt)}</small></span></label>
+                        {followUpPresets.map((preset) => <label className="follow-up-preset-option" htmlFor={`follow-up-${detailInquiry.id}-${preset.value}`} aria-label={`追蹤時間設為${preset.label}`} key={preset.value}><input id={`follow-up-${detailInquiry.id}-${preset.value}`} type="radio" name="followUpPreset" value={preset.value} /><span><strong>{preset.label}</strong><small>快速設定</small></span></label>)}
+                        <label className="follow-up-preset-option" htmlFor={`follow-up-${detailInquiry.id}-custom`} aria-label="使用自訂追蹤時間"><input id={`follow-up-${detailInquiry.id}-custom`} type="radio" name="followUpPreset" value="custom" /><span><strong>自訂日期</strong><small>選擇時間</small></span></label>
+                      </div>
+                      <label className="custom-follow-up-date"><span>自訂追蹤時間</span><input name="customFollowUpAt" type="datetime-local" defaultValue={toDateTimeLocalValue(detailInquiry.nextFollowUpAt || defaultFollowUpAt)} /></label>
+                    </fieldset>
+                    <div className="quick-workflow-actions">
+                      <button type="button" onClick={() => setQuickWorkflowOpen(false)}>取消</button>
+                      <button type="submit" disabled={updatingStatuses.has(detailInquiry.id)}>{updatingStatuses.has(detailInquiry.id) ? "儲存中…" : "套用安排"}</button>
+                    </div>
                   </div>
-                </section>
-              )}
-              {detailInquiry.note && <section className="quick-detail-section"><h3>內部備註</h3><p className="quick-detail-note">{detailInquiry.note}</p></section>}
+                )}
+              </form>
+              <section className="quick-detail-section quick-contact-section">
+                <h3>聯絡方式</h3>
+                <button className={`quick-contact-copy${copiedContactId === detailInquiry.id ? " is-copied" : ""}`} type="button" onClick={() => copyContact(detailInquiry)} title="點擊複製聯絡方式"><span>{detailInquiry.contact}</span><small aria-live="polite">{copiedContactId === detailInquiry.id ? "已複製" : "點擊複製"}</small></button>
+              </section>
+              <section className="quick-detail-section">
+                <h3>需求重點</h3>
+                <div className="quick-detail-tags">{detailInquiry.services.slice(0, 2).map((service) => <span key={service}>{service}</span>)}{detailInquiry.services.length > 2 && <span>+{detailInquiry.services.length - 2}</span>}</div>
+                <ul className="quick-detail-summary">{detailInquiry.summary.slice(0, 3).map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>
+                <div className={`quick-detail-estimate${detailInquiry.budget && detailInquiry.budget !== "未設定" ? " has-budget" : ""}`}><span><small>網站初估</small><strong>{detailInquiry.estimate}</strong></span>{detailInquiry.budget && detailInquiry.budget !== "未設定" && <span><small>客戶預算</small><strong>{detailInquiry.budget}</strong></span>}</div>
+                {relatedInquiries.length > 0 && <p className="quick-detail-related">這位客戶另有 {relatedInquiries.length} 筆需求，可在完整內容查看。</p>}
+                {detailInquiry.note && <p className="quick-detail-note-indicator"><strong>有內部備註</strong><span>請至完整內容查看</span></p>}
+              </section>
             </div>
             <footer className="quick-detail-footer">
-              <a href={`mailto:${detailInquiry.email}`}>寄送 Email</a>
+              <button type="button" disabled={detailInquiry.contact === "未填寫"} onClick={() => copyContact(detailInquiry)}>{copiedContactId === detailInquiry.id ? "已複製" : "複製聯絡方式"}</button>
               <a className="quick-detail-primary" href={`/admin/inquiries/${encodeURIComponent(detailInquiry.id)}`}>查看完整內容</a>
             </footer>
           </aside>

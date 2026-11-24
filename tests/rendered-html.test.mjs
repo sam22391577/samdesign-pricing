@@ -1722,11 +1722,17 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   assert.match(dashboard, /等待客戶/);
   assert.match(dashboard, /今日追蹤/);
   assert.match(dashboard, /已逾期/);
+  assert.match(dashboard, /<span>快速處理<\/span>/);
+  assert.match(dashboard, /變更安排/);
+  assert.match(dashboard, /quickWorkflowOpen/);
   assert.match(dashboard, /套用安排/);
   assert.match(dashboard, /name="nextAction" value=\{action\.value\}/);
   assert.match(dashboard, /name="followUpPreset" value="5"|followUpPresets\.map/);
   assert.doesNotMatch(dashboard, /name="nextAction" maxLength/);
-  assert.match(dashboard, /這位客戶的歷史需求/);
+  assert.match(dashboard, /這位客戶另有 \{relatedInquiries\.length\} 筆需求/);
+  assert.doesNotMatch(dashboard, /這位客戶的歷史需求|寄送 Email|<h3>聯絡與負責<\/h3>/);
+  assert.match(dashboard, /detailInquiry\.services\.slice\(0, 2\)/);
+  assert.match(dashboard, /detailInquiry\.summary\.slice\(0, 3\)/);
   assert.match(dashboard, />查看需求<\/button>/);
   assert.match(dashboard, />查看完整內容<\/a>/);
   assert.match(dashboard, />下載資料<\/button>/);
