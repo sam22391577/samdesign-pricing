@@ -390,6 +390,21 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
     const form = event.currentTarget;
     const formData = new FormData(form);
     const initialNeed = String(formData.get("initialNeed") ?? "").trim();
+    const optionalAmount = (name: string) => {
+      const rawValue = String(formData.get(name) ?? "").trim();
+      if (!rawValue) return undefined;
+      const amount = Number(rawValue);
+      return Number.isFinite(amount) ? Math.max(0, Math.round(amount)) : undefined;
+    };
+    const enteredEstimateLow = optionalAmount("estimateLow");
+    const enteredEstimateHigh = optionalAmount("estimateHigh");
+    const estimateLow = enteredEstimateLow ?? enteredEstimateHigh ?? 0;
+    const estimateHigh = enteredEstimateHigh ?? enteredEstimateLow ?? 0;
+    const budget = optionalAmount("budget");
+    if (estimateHigh < estimateLow) {
+      setCreateCustomerError("初估最高金額不可低於最低金額。");
+      return;
+    }
     setCreatingCustomer(true);
     setCreateCustomerError("");
     try {
@@ -402,6 +417,9 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
           company: String(formData.get("company") ?? ""),
           contact: String(formData.get("contact") ?? ""),
           projectType: String(formData.get("projectType") ?? "尚未確認"),
+          estimateLow,
+          estimateHigh,
+          budget,
           services: ["需求待確認"],
           summary: initialNeed ? [`初步需求：${initialNeed}`] : [],
         }),
@@ -801,6 +819,11 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
               <label><span>聯絡方式 *</span><input name="contact" required maxLength={180} placeholder="LINE、電話或 Email" /></label>
               <label><span>品牌／公司</span><input name="company" maxLength={120} placeholder="可留空" /></label>
               <label><span>合作方式</span><select name="projectType" defaultValue="尚未確認"><option value="尚未確認">尚未確認</option><option value="單次設計">單次設計</option><option value="月方案">月方案</option></select></label>
+              <div className="create-customer-money-fields">
+                <label><span>初估最低</span><input name="estimateLow" type="number" inputMode="numeric" min="0" step="100" placeholder="可留空" /></label>
+                <label><span>初估最高</span><input name="estimateHigh" type="number" inputMode="numeric" min="0" step="100" placeholder="可留空" /></label>
+              </div>
+              <label><span>客戶預算</span><input name="budget" type="number" inputMode="numeric" min="0" step="100" placeholder="可留空" /></label>
               <label><span>初步需求</span><textarea name="initialNeed" rows={4} maxLength={500} placeholder="簡單記錄客戶想製作的項目，可留空" /></label>
               {createCustomerError && <div className="create-customer-error" role="status">{createCustomerError}</div>}
               <div className="create-customer-actions"><button type="button" disabled={creatingCustomer} onClick={() => setCreateCustomerOpen(false)}>取消</button><button type="submit" disabled={creatingCustomer}>{creatingCustomer ? "新增中…" : "建立客戶"}</button></div>

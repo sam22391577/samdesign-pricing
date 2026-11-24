@@ -354,6 +354,7 @@
 .create-customer-dialog input,
 .create-customer-dialog select { min-height: 43px; }
 .create-customer-dialog textarea { resize: vertical; line-height: 1.6; }
+.create-customer-money-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .create-customer-dialog input:focus,
 .create-customer-dialog select:focus,
 .create-customer-dialog textarea:focus { border-color: #7f9184; box-shadow: 0 0 0 3px rgba(82, 106, 88, .11); }
@@ -1227,6 +1228,7 @@
   .create-customer-dialog { max-height: calc(100vh - 24px); border-radius: 13px; }
   .create-customer-dialog > header { padding: 0 17px; }
   .create-customer-dialog > form { padding: 17px; }
+  .create-customer-money-fields { grid-template-columns: 1fr; }
   .admin-header { display: block; }
   .header-actions { margin-top: 18px; }
   .admin-search { width: 100%; }

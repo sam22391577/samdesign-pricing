@@ -1812,6 +1812,13 @@ test("admin can manually add a customer without sending a public quote notificat
   assert.match(dashboard, /source: "admin"/);
   assert.match(dashboard, /clientName: String\(formData\.get\("clientName"\)/);
   assert.match(dashboard, /contact: String\(formData\.get\("contact"\)/);
+  assert.match(dashboard, /name="estimateLow" type="number"/);
+  assert.match(dashboard, /name="estimateHigh" type="number"/);
+  assert.match(dashboard, /name="budget" type="number"/);
+  assert.match(dashboard, /estimateLow,/);
+  assert.match(dashboard, /estimateHigh,/);
+  assert.match(dashboard, /budget,/);
+  assert.match(dashboard, /初估最高金額不可低於最低金額/);
   assert.match(dashboard, /setInquiries\(\(current\) => \[createdInquiry, \.\.\.current\]\)/);
   assert.match(dashboard, /setDetailInquiryId\(createdInquiry\.id\)/);
   assert.match(dashboard, /尚未估價/);
@@ -1821,6 +1828,7 @@ test("admin can manually add a customer without sending a public quote notificat
   assert.match(api, /replyStatus: "needs_reply"/);
   assert.match(css, /\.create-customer-layer \{/);
   assert.match(css, /\.create-customer-dialog \{/);
+  assert.match(css, /\.create-customer-money-fields \{/);
 });
 
 test("manual customer creation receives the signed-in admin identity", async () => {
