@@ -1823,6 +1823,18 @@ test("admin can manually add a customer without sending a public quote notificat
   assert.match(css, /\.create-customer-dialog \{/);
 });
 
+test("manual customer creation receives the signed-in admin identity", async () => {
+  const [worker, api] = await Promise.all([
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(worker, /url\.pathname === "\/api\/inquiries" && request\.method === "POST"/);
+  assert.match(worker, /const authenticatedRequest = requestWithAdminIdentity\(request, env\);[\s\S]*?if \(authenticatedRequest\) request = authenticatedRequest;/);
+  assert.match(worker, /return !\(pathname === "\/api\/inquiries" && \["POST", "OPTIONS"\]\.includes\(request\.method\)\)/);
+  assert.match(api, /isManualEntry && !\(await canManageInquiries\(\)\)/);
+});
+
 test("new inquiries default the next follow-up date to five days later", async () => {
   const [listApi, dashboard, record] = await Promise.all([
     readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),

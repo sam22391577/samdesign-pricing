@@ -83,6 +83,12 @@ const worker = {
       const authenticatedRequest = requestWithAdminIdentity(request, env);
       if (!authenticatedRequest) return privateWorkspaceResponse();
       request = authenticatedRequest;
+    } else if (url.pathname === "/api/inquiries" && request.method === "POST") {
+      // Public quote submissions and authenticated manual entries share this
+      // endpoint. Preserve public access, but pass through an already verified
+      // Basic Auth identity so the route can authorize source: "admin".
+      const authenticatedRequest = requestWithAdminIdentity(request, env);
+      if (authenticatedRequest) request = authenticatedRequest;
     }
 
     if (
