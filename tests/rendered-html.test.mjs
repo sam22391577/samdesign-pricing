@@ -1,2059 +1,54 @@
-import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import test from "node:test";
-
-test("admin console only exposes customer inquiries", async () => {
-  const [dashboard, formerQuestionnairePage, inquiryPage, inquiryRecordPage] = await Promise.all([
-    readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/forms/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/[id]/page.tsx", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(dashboard, /href="\/admin\/inquiries"/);
-  assert.match(dashboard, /> å®¢æˆ¶éœ€æ±‚ <b>/);
-  assert.doesNotMatch(dashboard, /href="\/admin\/forms"|å•å·ç®¡ç†/);
-  assert.match(formerQuestionnairePage, /redirect\("\/admin\/inquiries"\)/);
-  assert.doesNotMatch(formerQuestionnairePage, /QuestionnaireDashboard/);
-  assert.match(inquiryPage, /title: "å®¢æˆ¶éœ€æ±‚ç®¡ç†ï½œSam Design Studio"/);
-  assert.match(inquiryRecordPage, /title: "éœ€æ±‚å…§å®¹ï½œå®¢æˆ¶éœ€æ±‚ç®¡ç†"/);
-});
-
-test("price site keeps print guidance inside one notes section", async () => {
-  const source = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
-  const notesSection = source.match(/<div class="category-note reveal" data-category="ecommerce print other"[\s\S]*?<\/ul>\s*<\/div>/)?.[0] ?? "";
-
-  assert.match(notesSection, />æ³¨æ„äº‹é …<\/h3>/);
-  assert.match(notesSection, /ä»¥ä¸Šå ±åƒ¹åƒ…ç‚ºåˆä¼°ï¼Œå¯¦éš›æ”¶è²»ä»¥äº†è§£éœ€æ±‚å¾Œä¹‹æ­£å¼å ±åƒ¹å–®ç‚ºæº–/);
-  assert.match(notesSection, /å–®æ¬¡è¨­è¨ˆæ¯æ¡ˆåŒ…å« 3 æ¬¡ç´°ç¯€ä¿®æ”¹/);
-  assert.match(notesSection, /å¦‚éœ€å”åŠ©æ•´ç†æ–‡æ¡ˆã€è™•ç†åœ–ç‰‡æˆ–æº–å‚™ç´ æï¼Œç›¸é—œè²»ç”¨å°‡æ–¼æ­£å¼å ±åƒ¹å‰ç¢ºèª/);
-  assert.match(notesSection, /ä¾åŸºæœ¬è¨­è¨ˆè²»çš„ 50% è¨ˆè²»ï¼Œç¶²ç«™ä¸»è¦–è¦ºå»¶ä¼¸ä¸è¨ˆå…¥åŸå§‹æª”è²»ç”¨/);
-  assert.match(notesSection, /ç”¢å“åœ–æ¡†çš„åŸå§‹æª”åƒ¹æ ¼åƒ…å«ç¬¬ä¸€ç‰ˆï¼ˆä¸å«è¿½åŠ ç”¢å“ï¼‰/);
-  assert.match(notesSection, /å¦‚éœ€ä»£è¾¦å°åˆ·ï¼Œä»£è¾¦æœå‹™è²»ç‚ºè©²é …è¨­è¨ˆè²» 15%/);
-  assert.match(notesSection, /å°åˆ·å“åŠé‹é€ç”¢ç”Ÿçš„è²»ç”¨æ¡å¯¦å ±å¯¦éŠ·/);
-  assert.doesNotMatch(source, /å…±åŒæ³¨æ„äº‹é …|>å°åˆ·ç›¸é—œ<\/h3>/);
-  assert.match(source, /è©¦ç®—æ™‚å…ˆé¸æ“‡äº¤ä»˜ç¯€å¥ï¼Œå¯¦éš›äº¤ä»˜æ—¥æœŸæ–¼åˆä½œæ™‚ç¢ºèª/);
-  assert.match(source, /å–®æ¬¡æœå‹™ä¾é …ç›®ç´„ 2ï½10 å€‹å·¥ä½œå¤©ï¼Œä»¥è©¦ç®—é é¡¯ç¤ºçš„æ™‚é–“ç‚ºæº–/);
-  assert.match(source, /å–®æ¬¡æœå‹™æ¯æ¡ˆã€æœˆæ–¹æ¡ˆæ¯çµ„çš†åŒ…å« 3 æ¬¡ç´°ç¯€ä¿®æ”¹/);
-  assert.doesNotMatch(source, /ä¸‹ä¸€æ¬¡å¦è¡Œå§”è¨—çš„å»¶ä¼¸è¨­è¨ˆå¯è¨è«–ä»¥ 8 æŠ˜å ±åƒ¹/);
-  assert.equal((source.match(/class="category-note reveal"/g) ?? []).length, 1);
-});
-
-async function render() {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
-  const { default: worker } = await import(workerUrl.href);
-
-  return worker.fetch(
-    new Request("http://localhost/calculator", {
-      headers: { accept: "text/html" },
-    }),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
-  );
-}
-
-test("service names and specification prompts use plain progressive language", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  for (const label of [
-    "ç¶²ç«™æ©«å¹…ï¼æ´»å‹•ä¸»è¦–è¦º",
-    "IGï¼FB ç¤¾ç¾¤åœ–æ–‡",
-    "å½±ç‰‡å°é¢ï¼YouTube ç¸®åœ–",
-    "å•†å“ä¸»åœ–å¥—ç‰ˆ",
-    "Resize",
-    "æ´»å‹•ï¼ä¿ƒéŠ·æµ·å ±",
-    "å‚³å–®ï¼å®£å‚³å–®",
-    "èœå–®è¨­è¨ˆ",
-    "ä¿®åœ–ï¼å»èƒŒ",
-    "ç°¡å ±ï¼ç‰ˆå‹æ¨¡æ¿",
-  ]) {
-    assert.match(source, new RegExp(label));
-  }
-
-  assert.match(source, /<legend>å…ˆç¢ºèªé€™äº›<\/legend>/);
-  assert.doesNotMatch(source, /æœƒå½±éŸ¿ä¼°åƒ¹/);
-  assert.match(source, /å…¶ä»–ç´°ç¯€å¯ç¨å¾Œç¢ºèª/);
-  assert.match(source, /ä¸ç¢ºå®šï¼Œè«‹å”åŠ©å»ºè­°/);
-  assert.doesNotMatch(source, /å¯ä»¥ä¹‹å¾Œå†èªª|ä¹‹å¾Œå†èªª/);
-  assert.doesNotMatch(source, /è¨­è¨ˆå¸«/);
-  assert.match(source, /é€™å¼µåœ–è¦æ”¾åœ¨å“ªè£¡ï¼Ÿ/);
-  assert.match(source, /æ–‡å­—å…§å®¹æº–å‚™å¥½äº†å—ï¼Ÿ/);
-  assert.match(source, /Logo å’Œåœ–ç‰‡æº–å‚™å¥½äº†å—ï¼Ÿ/);
-  assert.match(css, /\.optional-details\[open\] \.optional-details-body/);
-  assert.match(css, /@keyframes optional-details-reveal/);
-});
-
-test("specification cards use the same Noto Serif TC title font", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.ok((source.match(/specification-card/g)?.length ?? 0) >= 4);
-  assert.match(css, /--title-serif: "Noto Serif TC", "Songti TC", serif/);
-  assert.match(css, /\.specification-card,[\s\S]*?\.specification-card select,[\s\S]*?font-family: var\(--title-serif\)/);
-  assert.match(source, /className="multi-select-wrap print-production-selector"/);
-  assert.match(css, /\.print-production-selector,[\s\S]*?\.print-production-details select,[\s\S]*?font-family: var\(--title-serif\)/);
-});
-
-test("service-item supporting text loads Noto Sans TC at one consistent size", async () => {
-  const [layout, css] = await Promise.all([
-    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(layout, /family=Noto\+Sans\+TC:wght@400;500;600;700&family=Noto\+Serif\+TC/);
-  assert.match(css, /--service-small-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif/);
-  assert.match(css, /\.service-category-copy small,[\s\S]*?\.service-choices \.choice \.choice-schedule,[\s\S]*?\.monthly-service-choice \.choice-price,[\s\S]*?font-family: var\(--service-small-sans\);[\s\S]*?font-size: 0\.68rem/);
-});
-
-test("specification supporting text matches the service-item font and size", async () => {
-  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
-
-  assert.match(css, /div\.specification-card small,[\s\S]*?\.specification-card \.compact-field > span,[\s\S]*?\.specification-card \.optional-details-intro,[\s\S]*?font-family: var\(--service-small-sans\);[\s\S]*?font-size: 0\.68rem/);
-});
-
-test("specification fields use one cross-platform PingFang-like font with softer empty values", async () => {
-  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
-
-  assert.match(css, /--specification-ui-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif/);
-  assert.match(css, /--specification-placeholder-ink: rgba\(48, 40, 33, 0\.52\)/);
-  assert.match(css, /\.specification-card input,[\s\S]*?\.specification-card select,[\s\S]*?\.specification-card textarea,[\s\S]*?\.specification-card option \{[\s\S]*?font-family: var\(--specification-ui-sans\);[\s\S]*?font-weight: 500/);
-  assert.match(css, /\.specification-card \.optional-details > summary small \{[\s\S]*?font-family: var\(--specification-ui-sans\);[\s\S]*?font-weight: 400/);
-  assert.match(css, /\.specification-card select:has\(option:checked\[value=""\]\),[\s\S]*?\.specification-card textarea::placeholder \{[\s\S]*?color: var\(--specification-placeholder-ink\)/);
-});
-
-test("server-renders the conversational quote calculator page", async () => {
-  const response = await render();
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
-
-  const html = await response.text();
-  assert.match(html, /<title>è¨­è¨ˆå ±åƒ¹è©¦ç®—ï½œSam Design Studio<\/title>/);
-  assert.match(html, /æ‰¾åˆ°é©åˆä½ çš„è¨­è¨ˆé ç®—/);
-  assert.match(html, /Sam è¨­è¨ˆé¡§å•/);
-  assert.match(html, /class="avatar">S<\/span>/);
-  assert.match(html, /class="mini-avatar">S<\/span>/);
-  assert.match(html, /è¿”å›è¨­è¨ˆæœå‹™åƒ¹ç›®/);
-  assert.doesNotMatch(html, /Bono|BONO|å„ªå…ˆæ’ç¨‹|è¿‘æœŸä½œå“/);
-  assert.doesNotMatch(html, /codex-preview|Building your site|react-loading-skeleton/i);
-});
-
-test("original pricing homepage links to the calculator page", async () => {
-  const [html, portfolioPage] = await Promise.all([
-    readFile(new URL("../public/index.html", import.meta.url), "utf8"),
-    readFile(new URL("../public/ä½œå“æ¡ˆä¾‹.html", import.meta.url), "utf8"),
-  ]);
-  const monthlySection = html.match(/<section id="monthly"[\s\S]*?<!-- Process -->/)?.[0] ?? "";
-  assert.match(html, /è¨­è¨ˆæœå‹™åƒ¹ç›® Â· Design Studio/);
-  assert.match(html, /href="\/calculator" class="btn btn-primary">ç«‹å³è©¦ç®—<\/a>/);
-  assert.match(html, /id="pricing"/);
-  assert.match(html, /id="monthly"/);
-  assert.match(html, /id="faq"/);
-  assert.match(html, /ç´ æèˆ‡æˆæ¬Šéœ€è¦æ³¨æ„ä»€éº¼ï¼Ÿ[\s\S]*?å¯ä»¥æ¥æ€¥ä»¶å—ï¼Ÿ[\s\S]*?ç›®å‰ä¸æ¥å—æ€¥ä»¶ã€‚å–®æ¬¡æœå‹™ä¾é …ç›®ç´„ 2ï½10 å€‹å·¥ä½œå¤©/);
-  assert.match(html, /å¯ä»¥æ¥æ€¥ä»¶å—ï¼Ÿ[\s\S]*?æœˆæ–¹æ¡ˆä¾é¸æ“‡çš„äº¤ä»˜ç¯€å¥å®‰æ’ï¼Œå¯¦éš›æ—¥æœŸæ–¼åˆä½œæ™‚ç¢ºèª/);
-  assert.match(monthlySection, /<div class="section-header reveal">/);
-  assert.match(monthlySection, /<div class="monthly-cooperation-note reveal"/);
-  assert.doesNotMatch(html, /#monthly \.container > \.reveal\[style\]/);
-  assert.match(monthlySection, /é©åˆéœ€è¦æŒçºŒç”¢å‡ºçš„å“ç‰Œèˆ‡å‰µä½œè€…ï¼Œä¾éœ€æ±‚è¨‚è£½æ‚¨çš„å°ˆå±¬æ–¹æ¡ˆ/);
-  assert.match(monthlySection, /æœˆæ–¹æ¡ˆæä¾›é›»å•†ï¼å¹³é¢è¨­è¨ˆæœå‹™ï¼Œæ¯æœˆè‡³å°‘ 3 çµ„ã€æœ€å¤š 10 çµ„ï¼Œä¾å–®æ¬¡è¨­è¨ˆè²»åˆè¨ˆèˆ‡çµ„æ•¸å¥—ç”¨ 9\.5 æŠ˜è‡³ 8\.8 æŠ˜ã€‚æ¯é …æœå‹™æ•¸é‡è¨ˆ 1 çµ„ï¼ŒIGï¼FB ç¤¾ç¾¤åœ–æ–‡ä»¥æ¯ç¯‡è¨ˆ 1 çµ„ï¼›å¹³é¢è¨­è¨ˆæ¯æœˆåˆè¨ˆé™ 2 çµ„ï¼Œæœªä½¿ç”¨çµ„æ•¸ä¸ç´¯ç©/);
-  assert.doesNotMatch(monthlySection, /æœˆæ–¹æ¡ˆçµ„æ•¸ä»¥ç•¶æœˆä½¿ç”¨ç‚ºä¸»|Resizeã€ç…§ç‰‡å¾Œè£½èˆ‡æ¨¡æ¿è¨­è¨ˆè«‹ä½¿ç”¨å–®æ¬¡ä¼°åƒ¹/);
-  assert.match(monthlySection, /ç¶²ç«™ä¸»è¦–è¦ºå»¶ä¼¸èˆ‡å®£å‚³å–®ï¼èœå–®å¤šé ä¾åŠ åƒ¹è¨ˆç®—ä¸¦å¥—ç”¨æœˆæ–¹æ¡ˆå„ªæƒ ï¼›å•†å“ä¸»åœ–å¥—ç‰ˆè¿½åŠ ç”¢å“æŒ‰å–®æ¬¡åƒ¹æ ¼å¦è¨ˆä¸”ä¸å¥—ç”¨æœˆæ–¹æ¡ˆæŠ˜æ‰£ï¼›IGï¼FB ç¤¾ç¾¤åœ–æ–‡ç¸½åœ–æ»¿ 10 å¼µçš„ 5% å„ªæƒ åƒ…é©ç”¨å–®æ¬¡æœå‹™ï¼Œæœˆæ–¹æ¡ˆä¸é©ç”¨/);
-  assert.doesNotMatch(monthlySection, /æœˆæ–¹æ¡ˆä¾æ‰€é¸æœå‹™çš„å–®æ¬¡è¨­è¨ˆè²»åˆè¨ˆå¥—ç”¨ 8\.8ï½9\.5 æŠ˜/);
-  assert.doesNotMatch(monthlySection, /Resize 2 å¼µå  1 çµ„|æœˆæ–¹æ¡ˆæä¾›[^ã€‚]*Resize æœå‹™/);
-  assert.doesNotMatch(html, /æ¯å¼µï¼ç‰ˆå |æ¯å¼µï¼é …å /);
-  assert.match(monthlySection, /class="feature-label">çµ„æ•¸ï½œ<\/strong>2ï½3 çµ„è¨­è¨ˆ[\s\S]*?class="feature-label">çµ„æ•¸ï½œ<\/strong>8ï½10 çµ„è¨­è¨ˆ/);
-  assert.doesNotMatch(monthlySection, /class="feature-label">æœå‹™ï½œ<\/strong>/);
-  assert.match(monthlySection, /class="feature-label">ä¿®æ”¹ï½œ<\/strong>æ¯çµ„å« 3 æ¬¡ç´°ç¯€ä¿®æ”¹/);
-  assert.match(html, /\.monthly-grid \{ grid-template-columns: repeat\(4, minmax\(0, 1fr\)\); \}/);
-  assert.doesNotMatch(monthlySection, /monthly-plan-picker|data-monthly-plan|monthly-price-breakdown|monthly-card-cta/);
-  assert.doesNotMatch(html, /monthlyPriceByGroup|monthlyPlanNames|data-monthly-groups/);
-  assert.match(html, /id="recent-work-title">è¿‘æœŸä½œå“/);
-  assert.match(html, /href="ä½œå“æ¡ˆä¾‹\.html" class="btn btn-outline">ä½œå“æ¡ˆä¾‹/);
-  assert.match(portfolioPage, /href="index\.html">â† è¿”å›æœå‹™åƒ¹ç›®/);
-  assert.match(portfolioPage, /assets\/instagram\/elbowdao-bono-profile\.jpg/);
-  assert.match(html, /class="marquee-track"/);
-  assert.match(html, /assets\/portfolio\/fashion-sale-luxe\.webp/);
-  assert.match(html, /requestAnimationFrame\(animateMarquee\)/);
-  assert.match(html, /class="hero-secondary-links"/);
-  assert.match(html, /class="hero-secondary-links"[\s\S]*?href="#pricing" class="btn btn-outline">æŸ¥çœ‹æœå‹™[\s\S]*?href="#monthly"/);
-  assert.match(html, /class="hero-secondary-links"[\s\S]*?href="#contact" class="btn btn-outline">èˆ‡æˆ‘è¯çµ¡<\/a>[\s\S]*?href="\/calculator" class="btn btn-primary">ç«‹å³è©¦ç®—<\/a>[\s\S]*?<\/nav>/);
-  assert.doesNotMatch(html, /class="cta-buttons hero-primary-actions"/);
-  assert.match(html, /\.hero-secondary-links \{[\s\S]*?margin-top: 0;[\s\S]*?gap: 0\.8rem;/);
-  assert.doesNotMatch(html, /\.hero-secondary-links \.btn \{[^}]*border: 0;/);
-  assert.match(html, /class="cta-buttons contact-buttons">[\s\S]*?href="\/calculator" class="btn btn-primary">ç«‹å³è©¦ç®—/);
-  assert.doesNotMatch(html, /docs\.google\.com\/forms|>å¡«å¯«è¡¨å–®</);
-  assert.doesNotMatch(html, /åŒ…æœˆå¼µæ•¸/);
-  assert.match(html, /<h3>å½±ç‰‡ï¼Reel å°é¢<\/h3>/);
-  assert.match(html, /data-category="other">[\s\S]*?<h3>Resize å°ºå¯¸å»¶ä¼¸<\/h3>/);
-  assert.doesNotMatch(html, /data-category="ecommerce">[\s\S]{0,180}<h3>Resize å°ºå¯¸å»¶ä¼¸<\/h3>/);
-  assert.match(html, /ç¶²ç«™ä¸»è¦–è¦ºå»¶ä¼¸èˆ‡å®£å‚³å–®ï¼èœå–®å¤šé ä¾åŠ åƒ¹è¨ˆç®—ä¸¦å¥—ç”¨æœˆæ–¹æ¡ˆå„ªæƒ ï¼›å•†å“ä¸»åœ–å¥—ç‰ˆè¿½åŠ ç”¢å“æŒ‰å–®æ¬¡åƒ¹æ ¼å¦è¨ˆä¸”ä¸å¥—ç”¨æœˆæ–¹æ¡ˆæŠ˜æ‰£ï¼Œæœªä½¿ç”¨çµ„æ•¸ä¸ç´¯ç©/);
-  assert.match(html, /å–®æ¬¡æœå‹™ä¾é …ç›®ç´„ 2ï½10 å€‹å·¥ä½œå¤©ï¼Œä»¥è©¦ç®—é é¡¯ç¤ºçš„æ™‚é–“ç‚ºæº–/);
-  assert.doesNotMatch(html, /å„ªå…ˆç´„ 3ï½5 å€‹å·¥ä½œå¤©|è¨­è¨ˆè²» \+20%/);
-  assert.match(html, /å¯¦éš›æ™‚é–“ä»æœƒå—åˆ°ç•¶æ™‚æ’ç¨‹ã€ç´ æå®Œæ•´åº¦èˆ‡è¨­è¨ˆè¤‡é›œåº¦å½±éŸ¿/);
-  assert.doesNotMatch(html, /å›è¦†é€Ÿåº¦/);
-  assert.match(html, /è‹¥å¿…è¦ç´ æå»¶é²æä¾›ï¼Œäº¤æœŸå°‡é †å»¶/);
-  assert.doesNotMatch(html, /è‹¥å»¶é²æä¾›ç´ ææˆ–å›è¦†ï¼Œäº¤æœŸå°‡é †å»¶/);
-  assert.match(html, /æœˆæ–¹æ¡ˆåŸå§‹æª”å¯ä¾æœå‹™èˆ‡æ•¸é‡å½ˆæ€§åŠ è³¼ï¼Œè²»ç”¨å¦è¡Œç¢ºèªï¼Œæš«ä¸è¨ˆå…¥ç¶²ç«™åˆä¼°/);
-  assert.match(html, /20% è¨‚é‡‘ä½œç‚ºå·²æ’å®šå·¥æ™‚è²»ç”¨ä¸é€€/);
-  assert.match(html, /20% è¨‚é‡‘ã€80% å°¾æ¬¾/);
-  assert.doesNotMatch(html, /40% è¨‚é‡‘|60% å°¾æ¬¾/);
-  assert.doesNotMatch(html, /data-category="ecommerce print other"/);
-  assert.match(html, /@media \(min-width: 769px\)[\s\S]*?\.hero \.container \{ text-align: center; \}/);
-  assert.match(html, /\.hero h1 \{ display: block; width: fit-content; margin-left: auto; margin-right: auto; \}/);
-  assert.match(html, /\.hero \.cta-buttons \{ justify-content: center; \}/);
-  assert.match(html, /ç…§ç‰‡å¾Œè£½[\s\S]*?\$<\/span>150ï½750[\s\S]*?\/ å¼µ/);
-  assert.match(html, /åŸºç¤èª¿è‰²ã€å»èƒŒèˆ‡ç´°ç¯€ä¿®æ•´/);
-  assert.match(html, /class="feature-label">ä¼°åƒ¹ï½œ<\/strong>ä¾ç…§ç‰‡ç‹€æ³èˆ‡åˆæˆé›£åº¦/);
-  assert.doesNotMatch(monthlySection, /2 çµ„ \$1,500ï½2,100|3 çµ„ \$2,100ï½2,700|6 çµ„ \$4,200ï½5,200|8 çµ„ \$5,600ï½7,000/);
-  assert.match(monthlySection, /9\.5 æŠ˜[\s\S]*?9\.2ï½9\.5 æŠ˜[\s\S]*?9 æŠ˜[\s\S]*?8\.8 æŠ˜/);
-  assert.match(html, /é›»å•†å•†å“åœ–æ¡†èˆ‡ä¿ƒéŠ·è³‡è¨Šå¥—ç‰ˆ/);
-  assert.match(html, /class="feature-label">è¿½åŠ ï½œ<\/strong>æ¯å¢åŠ  1 é …ç”¢å“ \+\$70/);
-  assert.match(html, /class="feature-label">å°ºå¯¸ï½œ<\/strong>9 Ã— 5\.4 cmï¼ˆæ¨™æº–ï¼‰/);
-  assert.match(html, /<h3>æ¨¡æ¿è¨­è¨ˆ<\/h3>[\s\S]*?æ¥­å‹™ç°¡å ±ã€è¬›åº§æ•™æèˆ‡æœƒè­°ç‰ˆå‹[\s\S]*?\$<\/span>1,000ï½3,000[\s\S]*?\/ ç‰ˆ/);
-  assert.match(html, /<h3>å¤§å‹æµ·å ±<\/h3>[\s\S]*?\$<\/span>1,800ï½3,000[\s\S]*?\/ æ¬¾[\s\S]*?class="feature-label">å°ºå¯¸ï½œ<\/strong>A3 ä»¥ä¸Š/);
-  assert.doesNotMatch(html, /A3 æµ·å ±|A3 å°ºå¯¸\(297x420mm\)/);
-  assert.match(html, /<h3>ç¤¾ç¾¤åœ–<\/h3>[\s\S]*?<p class="subtitle">FBï¼IG è²¼æ–‡ã€æ´»å‹•èˆ‡å“ç‰Œå®£å‚³è¦–è¦º<\/p>/);
-  assert.match(html, /<h3>ç¶²é  Banner<\/h3>[\s\S]*?\$<\/span>1,000ï½2,500[\s\S]*?\/ ç‰ˆ[\s\S]*?åŠ è³¼ï½œ<\/strong>ä¸»è¦–è¦ºå»¶ä¼¸ \$800ï½1,200 \/ å¼µ/);
-  assert.doesNotMatch(html, /<h3>ä¸»è¦–è¦ºå»¶ä¼¸è¨­è¨ˆ<\/h3>|service=key-visual-extension/);
-  assert.match(html, /<h3>å½±ç‰‡ï¼Reel å°é¢<\/h3>[\s\S]*?éœ€æä¾›æ¨™é¡Œæˆ–ä¸»è¦–è¦ºç´ æ/);
-  assert.match(html, /éœ€æä¾›å®šç¨¿æ–‡æ¡ˆæˆ–åœ–ç‰‡/);
-  assert.doesNotMatch(html, /éœ€æä¾›å®šç¨¿æ–‡æ¡ˆèˆ‡åœ–ç‰‡|éœ€æä¾›æ¨™é¡Œèˆ‡ä¸»è¦–è¦ºç´ æ/);
-  assert.match(html, /<h3>ç¤¾ç¾¤åœ–<\/h3>[\s\S]*?class="feature-label">å»¶ä¼¸ï½œ<\/strong>åŒç¯‡ç¬¬ 2 å¼µèµ·ï¼Œæ¯å¼µ \+\$250ï½\$500/);
-  assert.match(html, /<h3>ç¤¾ç¾¤åœ–<\/h3>[\s\S]*?class="feature-label">é™åˆ¶ï½œ<\/strong>æ¯ç¯‡è²¼æ–‡æœ€å¤š 10 å¼µåœ–/);
-  assert.match(html, /å–®æ¬¡å§”è¨—ç´¯è¨ˆ 10 å¼µä»¥ä¸Šäº« 9\.5 æŠ˜å„ªæƒ ï¼Œå¯åŒ…å«å¤šç¯‡è²¼æ–‡/);
-  assert.doesNotMatch(html, /åŒç¯‡è²¼æ–‡åŒé¢¨æ ¼å»¶ä¼¸[\s\S]*?\+\$150ï½\$300/);
-  assert.doesNotMatch(html, /FB\s*[ï¼/]\s*IG ç¤¾ç¾¤åœ–/);
-  assert.match(html, /<h3>å‚³å–®ï¼DM<\/h3>[\s\S]*?1,200ï½3,000[\s\S]*?åŸºæœ¬è¨­è¨ˆï¼ˆç¬¬ 1 é¢ï¼é ï¼‰/);
-  assert.doesNotMatch(html, /<h3>å‚³å–®<\/h3>|<h3>DM<\/h3>/);
-  assert.match(html, /<h3>åç‰‡ï¼æœƒå“¡å¡<\/h3>[\s\S]*?å€‹äººåç‰‡ã€å“ç‰Œåç‰‡èˆ‡æœƒå“¡å¡/);
-  assert.match(html, /ä¾ç¾æœ‰è¨­è¨ˆå»¶ä¼¸ä¸åŒä½¿ç”¨å°ºå¯¸/);
-  assert.equal(html.match(/å¯ç·¨è¼¯åŸå§‹æª”ç‚ºæœ‰åƒ¹ç”¢å“/g)?.length, 2);
-  assert.equal(html.match(/ä¾è©²é …è¨­è¨ˆè²»å°è¨ˆ 50% è¨ˆè²»ï¼›ç”¢å“åœ–æ¡†ä¸å«è¿½åŠ ç”¢å“è²»/g)?.length, 2);
-  assert.doesNotMatch(html, /åŸå§‹ç·¨è¼¯æª”/);
-  assert.match(html, /<h3>å‚³å–®ï¼DM<\/h3>[\s\S]*?ç¬¬ 2 é èµ·[\s\S]*?600ï½800[\s\S]*?\/ é /);
-  assert.match(html, /<h3>èœå–®<\/h3>[\s\S]*?ç¬¬ 2 é èµ·[\s\S]*?600ï½800[\s\S]*?\/ é /);
-  assert.equal(html.match(/é¦–ç‰ˆï¼ˆç¬¬ 1 é ï¼‰/g)?.length, 1);
-  assert.equal(html.match(/åŸºæœ¬è¨­è¨ˆï¼ˆç¬¬ 1 é¢ï¼é ï¼‰/g)?.length, 1);
-  assert.equal(html.match(/ç¬¬ 2 é èµ·/g)?.length, 2);
-  assert.doesNotMatch(html, /å‚³å–®\/DM\/èœå–®|åŒç³»åˆ—ç¬¬äºŒå¼µèµ·/);
-  assert.doesNotMatch(html, /æ€¥ä»¶[^ã€‚]*åŠ åƒ¹|2 å€‹å·¥ä½œå¤©å…§/);
-  assert.doesNotMatch(html, /20-50%/);
-  assert.match(html, /æœ¬æ¬¡å–®æ¬¡æœå‹™å®Œæˆå¾Œï¼Œä¸‹ä¸€æ¬¡å¦è¡Œå§”è¨—çš„å»¶ä¼¸è¨­è¨ˆå¯è¨è«–ä»¥ 8 æŠ˜å ±åƒ¹ï¼›æœˆæ–¹æ¡ˆä¸é©ç”¨/);
-  assert.doesNotMatch(html, /æ¯çµ„è¨­è¨ˆè´ˆé€ Resize 1 å¼µ|è¼•é‡èˆ‡æ¨™æº–æ–¹æ¡ˆæ¯çµ„è¨­è¨ˆè´ˆé€ Resize 1 å¼µ/);
-  const calculatorServiceIds = [
-    "banner",
-    "social",
-    "reel",
-    "product-frame",
-    "poster",
-    "dm",
-    "menu",
-    "card",
-    "resize",
-    "photo",
-    "slides",
-  ];
-  calculatorServiceIds.forEach((serviceId) => {
-    assert.match(html, new RegExp(`class="service-card-cta" href="/calculator\\?service=${serviceId}"`));
-  });
-  assert.equal(html.match(/class="service-card-cta"/g)?.length, calculatorServiceIds.length + 4);
-  assert.equal(monthlySection.match(/class="service-card-cta" href="\/calculator\?mode=monthly">å‰å¾€è©¦ç®—/g)?.length, 4);
-  assert.match(html, /\.service-card-cta \{[^}]*align-self: flex-end;[^}]*justify-content: flex-start;[^}]*gap: 0\.45rem;[^}]*width: fit-content;[^}]*border: 0;[^}]*background: transparent;/);
-  assert.doesNotMatch(html, /\.service-card-cta \{[^}]*justify-content: space-between;/);
-  assert.doesNotMatch(html, /\.service-card-cta \{[^}]*justify-content: center;/);
-});
-
-test("monthly calculator mirrors the homepage cooperation notes", async () => {
-  const [html, source] = await Promise.all([
-    readFile(new URL("../public/index.html", import.meta.url), "utf8"),
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-  ]);
-  const cooperationNotes = [
-    "æœˆæ–¹æ¡ˆæä¾›é›»å•†ï¼å¹³é¢è¨­è¨ˆæœå‹™ï¼Œæ¯æœˆè‡³å°‘ 3 çµ„ã€æœ€å¤š 10 çµ„ï¼Œä¾å–®æ¬¡è¨­è¨ˆè²»åˆè¨ˆèˆ‡çµ„æ•¸å¥—ç”¨ 9.5 æŠ˜è‡³ 8.8 æŠ˜ã€‚æ¯é …æœå‹™æ•¸é‡è¨ˆ 1 çµ„ï¼ŒIGï¼FB ç¤¾ç¾¤åœ–æ–‡ä»¥æ¯ç¯‡è¨ˆ 1 çµ„ï¼›å¹³é¢è¨­è¨ˆæ¯æœˆåˆè¨ˆé™ 2 çµ„ï¼Œæœªä½¿ç”¨çµ„æ•¸ä¸ç´¯ç©",
-    "ç¶²ç«™ä¸»è¦–è¦ºå»¶ä¼¸èˆ‡å®£å‚³å–®ï¼èœå–®å¤šé ä¾åŠ åƒ¹è¨ˆç®—ä¸¦å¥—ç”¨æœˆæ–¹æ¡ˆå„ªæƒ ï¼›å•†å“ä¸»åœ–å¥—ç‰ˆè¿½åŠ ç”¢å“æŒ‰å–®æ¬¡åƒ¹æ ¼å¦è¨ˆä¸”ä¸å¥—ç”¨æœˆæ–¹æ¡ˆæŠ˜æ‰£ï¼›IGï¼FB ç¤¾ç¾¤åœ–æ–‡ç¸½åœ–æ»¿ 10 å¼µçš„ 5% å„ªæƒ åƒ…é©ç”¨å–®æ¬¡æœå‹™ï¼Œæœˆæ–¹æ¡ˆä¸é©ç”¨",
-    "æ­£å¼é‡‘é¡ä¾è¨­è¨ˆé …ç›®ã€å…§å®¹è¤‡é›œåº¦èˆ‡ç´ æç‹€æ³ç¢ºèªï¼›è©¦ç®—æ™‚å…ˆé¸æ“‡äº¤ä»˜ç¯€å¥ï¼Œå¯¦éš›äº¤ä»˜æ—¥æœŸæ–¼åˆä½œæ™‚ç¢ºèª",
-    "æœˆæ–¹æ¡ˆå¦‚éœ€å–æ¶ˆæˆ–èª¿æ•´ï¼Œæœ€æ™šæ–¼è£½ä½œå‰ 2 æ—¥å‘ŠçŸ¥ã€‚å·²é–‹å§‹è£½ä½œçš„éƒ¨åˆ†ä¸äºˆé€€æ¬¾ï¼›åƒ…å°šæœªé–‹å§‹è£½ä½œçš„éƒ¨åˆ†å¯ä¾å¯¦éš›é€²åº¦è©•ä¼°é€€æ¬¾ã€‚20% è¨‚é‡‘ä½œç‚ºå·²æ’å®šå·¥æ™‚è²»ç”¨ä¸é€€ï¼Œ80% å°¾æ¬¾æ–¼äº¤ä»˜å‰ä»˜æ¸…",
-    "æœˆæ–¹æ¡ˆåŸå§‹æª”å¯ä¾æœå‹™èˆ‡æ•¸é‡å½ˆæ€§åŠ è³¼ï¼Œè²»ç”¨å¦è¡Œç¢ºèªï¼Œæš«ä¸è¨ˆå…¥ç¶²ç«™åˆä¼°ã€‚è‹¥éœ€ä»£è¾¦å°åˆ·ï¼Œå°‡æ–¼åˆä½œç¢ºèªæ™‚å¦è¡Œä¼°åƒ¹ï¼Œæš«ä¸è¨ˆå…¥ç¶²ç«™åˆä¼°",
-  ];
-
-  cooperationNotes.forEach((note) => {
-    assert.ok(html.includes(note));
-    assert.ok(source.includes(note));
-  });
-  assert.match(source, /æ–¹æ¡ˆè¦å‰‡ï¼š\$\{monthlyCooperationNotes\[0\]\}/);
-});
-
-test("calculator service links preselect one service and open its specification step", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(source, /const searchParams = new URLSearchParams\(window\.location\.search\)/);
-  assert.match(source, /const serviceId = searchParams\.get\("service"\)/);
-  assert.match(source, /const requestedMode = searchParams\.get\("mode"\)/);
-  assert.match(source, /serviceIds: \[service\.id\]/);
-  assert.match(source, /specificationStep = "ecommerceDetails"/);
-  assert.match(source, /specificationStep = "printDetails"/);
-  assert.match(source, /specificationStep = "serviceDetails"/);
-  assert.match(source, /setJourneyTimeline\(\[cooperationEntry, serviceEntry, specificationEntry\]\)/);
-  assert.match(source, /setExpandedServiceCategory\(service\.category\)/);
-  assert.match(source, /if \(requestedMode === "monthly"\)[\s\S]*?setStep\("monthlyServices"\)/);
-  assert.match(source, /setJourneyTimeline\(\[cooperationEntry, monthlyEntry\]\)/);
-  assert.match(source, /const question = currentQuestionRef\.current;[\s\S]*?if \(isVisible\) return;[\s\S]*?question\.scrollIntoView\(\{[\s\S]*?block: "center"/);
-  assert.match(source, /prefers-reduced-motion: reduce/);
-});
-
-test("homepage interaction polish stays compact and motion-aware", async () => {
-  const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
-  assert.match(html, /class="marquee-wrapper" aria-label="è¿‘æœŸä½œå“è¼ªæ’­ï¼Œå¯å·¦å³æ‹–æ›³"/);
-  assert.match(html, /<nav class="hero-secondary-links"[\s\S]*?<\/nav>\s*<div class="hero-scroll-cue" aria-hidden="true"><span><\/span>Scroll<\/div>/);
-  assert.match(html, /\.hero-scroll-cue \{[\s\S]*?position: relative;[\s\S]*?width: fit-content;[\s\S]*?margin: 1\.4rem auto 0;/);
-  assert.match(html, /const normalSpeed = -32/);
-  assert.match(html, /prefers-reduced-motion: reduce/);
-  assert.match(html, /pointerdown|pointermove|pointerup/);
-  assert.match(html, /\.pricing-grid \{[\s\S]*?overflow: visible/);
-  assert.match(html, /\.pricing-grid\.is-filtering,[\s\S]*?\.pricing-grid\.is-settling \{ overflow: clip; \}/);
-  assert.match(html, /\.pricing-card:hover,[\s\S]*?\.pricing-card:focus-within \{[\s\S]*?transform: none;[\s\S]*?box-shadow: var\(--shadow-sm\)/);
-  assert.match(html, /\.pricing-card:hover \.pricing-card-header,[\s\S]*?\.pricing-card:focus-within \.service-card-cta \{ transform: none; \}/);
-  assert.doesNotMatch(html, /setProperty\('--tilt-[xy]'/);
-  assert.match(html, /--motion-standard: 460ms/);
-  assert.match(html, /transition-delay: var\(--reveal-delay, 0ms\)/);
-  assert.match(html, /Math\.min\(index, 5\) \* 55/);
-  assert.match(html, /pricingGrid\.classList\.add\('is-filtering'\)/);
-  assert.match(html, /height var\(--motion-standard\) var\(--motion-ease\)/);
-  assert.match(html, /const previousHeight = pricingGrid\.getBoundingClientRect\(\)\.height/);
-  assert.match(html, /const nextHeight = pricingGrid\.getBoundingClientRect\(\)\.height/);
-  assert.match(html, /pricingGrid\.classList\.add\('is-settling'\)/);
-  assert.match(html, /@keyframes pricing-card-settle/);
-  assert.match(html, /filterPricingCards\(tab\.dataset\.category, true\)/);
-  assert.match(html, /marqueeWrapper\.classList\.add\('is-running'\)/);
-  assert.match(html, /document\.addEventListener\('visibilitychange'/);
-  assert.match(html, /const marqueeObserver = new IntersectionObserver/);
-  assert.match(html, /\.hero \.container\.reveal > \* \{[\s\S]*?var\(--motion-standard\)/);
-  assert.match(html, /\.faq-answer \{ display: grid; grid-template-rows: 0fr;/);
-  assert.match(html, /\.hero \{ min-height: auto; padding: 3\.75rem 0 3\.5rem;/);
-  assert.match(html, /font-size: clamp\(2\.85rem, 13vw, 3\.8rem\)/);
-});
-
-test("service tabs only filter one-time pricing cards", async () => {
-  const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
-  assert.match(html, /class="category-note reveal" data-category="ecommerce other"/);
-  assert.match(html, /éœ€è«‹æ‚¨æä¾›æ–‡å­—æª”ã€åœ–ç‰‡ï¼ˆå•†å“ç…§ã€æƒ…å¢ƒåœ–ç­‰ï¼‰åŠå…¶ä»–å¿…è¦å“ç‰Œç´ æ/);
-  assert.match(html, /ä»£è¾¦æœå‹™è²»ç‚ºè©²é …è¨­è¨ˆè²» 15%/);
-  assert.doesNotMatch(html, /éœ€è«‹æ‚¨æä¾›æ–‡å­—ã€åœ–ç‰‡ã€å¯ç·¨è¼¯åŸå§‹æª”ç­‰è©²é …æœå‹™æ‰€éœ€ç´ æ|é…Œæ”¶å ±åƒ¹ 15% ä»£è¾¦è²»ç”¨/);
-  assert.match(html, /document\.querySelectorAll\('#pricing \.pricing-card'\)/);
-  assert.match(html, /document\.querySelectorAll\('#pricing \.tab'\)/);
-  assert.match(html, /document\.querySelector\('#pricing \.tab\.active'\)/);
-  assert.doesNotMatch(html, /document\.querySelectorAll\('\.pricing-card'\)/);
-});
-
-test("calculator uses service-specific draft schedules with a 5â€“10 day default", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(source, /type Timeline = "regular"/);
-  assert.match(source, /regular: "5ï½10 å€‹å·¥ä½œå¤©ï¼ˆå¯¦éš›æ™‚é–“è¦–ç•¶æ™‚æ’ç¨‹è€Œå®šï¼‰"/);
-  assert.match(source, /regular: "5ï½10 å€‹å·¥ä½œå¤©"/);
-  assert.match(source, /serviceTimelineSummaryLabels[\s\S]*?banner: "5ï½7 å€‹å·¥ä½œå¤©"[\s\S]*?card: "3ï½5 å€‹å·¥ä½œå¤©"/);
-  assert.equal(source.match(/\{renderSharedScheduleNote\(active(?:EcommerceService|DetailedService|ServiceDetailService)\.id\)\}/g)?.length, 3);
-  assert.match(source, /function renderSharedScheduleNote\(serviceId: string\)[\s\S]*?æ­¤é …æœå‹™åˆç¨¿æ’ç¨‹[\s\S]*?getServiceTimelineSummary\(serviceId\)[\s\S]*?å¯¦éš›æ™‚é–“è¦–ç•¶æ™‚æ’ç¨‹è€Œå®š/);
-  assert.doesNotMatch(source, /className="compact-field schedule-readonly"/);
-  assert.match(source, /OptionButton label=\{getServiceTimelineSummary\(timelineServiceId\)\} detail="å¯¦éš›æ™‚é–“è¦–ç•¶æ™‚æ’ç¨‹è€Œå®š"/);
-  assert.doesNotMatch(source, /"priority"|å„ªå…ˆæ’ç¨‹|3ï½5 å€‹å·¥ä½œå¤©ãƒ»è¨­è¨ˆè²»|è¨­è¨ˆè²» \+20%/);
-  assert.doesNotMatch(source, /rush|æ€¥ä»¶|2 å€‹å·¥ä½œå¤©å…§|è¿‘æœŸä½œå“|Bono|BONO/);
-  assert.doesNotMatch(source, /ç¬¬ä¸€ç‰ˆç‚ºä¸€èˆ¬æ’ç¨‹|ç¬¬ä¸€ç‰ˆå›ºå®šç‚ºä¸€èˆ¬æ’ç¨‹/);
-  assert.match(source, /function getSingleScheduleSummary\(answers: Answers\)[\s\S]*?getServiceTimelineSummary\(serviceId\)/);
-  assert.match(source, /getServiceTimelineLabel\(service\.id\)/);
-  assert.match(source, /name: "ç…§ç‰‡å¾Œè£½",[\s\S]*?low: 150,[\s\S]*?high: 750/);
-  assert.match(source, /name: "æ¨¡æ¿è¨­è¨ˆ",[\s\S]*?description: "æ¥­å‹™ç°¡å ±ã€è¬›åº§æ•™æã€æœƒè­°",[\s\S]*?low: 1000,[\s\S]*?high: 3000,[\s\S]*?unit: "ç‰ˆ"/);
-  assert.match(source, /name: "å¤§å‹æµ·å ±",[\s\S]*?description: "A3 ä»¥ä¸Šå°ºå¯¸çš„æ´»å‹•å®£å‚³ã€ä¿ƒéŠ·æµ·å ±"/);
-  assert.match(source, /specificationLabel: "å¤§å‹æµ·å ±å°ºå¯¸èˆ‡æ–¹å‘"/);
-  assert.doesNotMatch(source, /name: "A3 æµ·å ±"/);
-  assert.match(source, /id: "social",[\s\S]*?name: "ç¤¾ç¾¤åœ–",[\s\S]*?description: "FBï¼IG è²¼æ–‡ã€æ´»å‹•èˆ‡å“ç‰Œè¦–è¦º"/);
-  assert.doesNotMatch(source, /name: "FBï¼IG ç¤¾ç¾¤åœ–"/);
-});
-
-test("monthly plan asks client-focused recurring-work questions", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const monthlyServices = source.slice(source.indexOf("function renderControls()")).match(/case "monthlyServices":([\s\S]*?)case "sourceFile":/)?.[1] ?? "";
-  assert.match(source, /é€™æ˜¯ç¬¬ä¸€æ¬¡å’Œ Sam Design Studio åˆä½œå—/);
-  assert.match(source, /monthlyFirstTime/);
-  assert.match(source, /monthlyGroupCount/);
-  assert.match(source, /getMonthlyPlanForCount/);
-  assert.match(source, /ç³»çµ±æœƒä¾å–®æ¬¡è¨­è¨ˆè²»åˆè¨ˆè‡ªå‹•å¸¶å…¥æ–¹æ¡ˆèˆ‡å„ªæƒ /);
-  assert.match(source, /å¸Œæœ›æ¯æœˆçš„è¨­è¨ˆå¦‚ä½•å®‰æ’äº¤ä»˜/);
-  assert.match(source, /æ¯æœˆè¨­è¨ˆçš„å¹³å‡è¤‡é›œåº¦/);
-  assert.match(source, /æ¯æœˆæœƒä½¿ç”¨çš„æ–‡å­—/);
-  assert.match(source, /è«‹ç¢ºèªåˆä½œç´€éŒ„ï¼Œå†é¸æ“‡æœ¬æœˆéœ€è¦çš„æœå‹™èˆ‡æ•¸é‡/);
-  assert.doesNotMatch(source, /ä¸»è¦è¨­è¨ˆé¡å‹/);
-  assert.doesNotMatch(source, /ç¤¾ç¾¤åœ–ã€Reel å°é¢ã€ç”¢å“åœ–æ¡†å  1 çµ„|Bannerã€å¹³é¢è¨­è¨ˆå  2 çµ„/);
-  assert.match(source, /æ¯é€±å›ºå®šäº¤ä»˜/);
-  assert.match(source, /æ´»å‹•å‰é›†ä¸­è£½ä½œ/);
-  assert.match(monthlyServices, /className="monthly-first-time-inline"/);
-  assert.match(monthlyServices, /æ˜¯ï¼Œç¬¬ä¸€æ¬¡åˆä½œ/);
-  assert.match(monthlyServices, /ä¸æ˜¯ï¼Œä¹‹å‰åˆä½œé/);
-  assert.match(monthlyServices, /<details className="optional-details monthly-profile-optional">/);
-  assert.match(monthlyServices, /<summary>å…¶ä»–éœ€æ±‚ï¼ˆé¸å¡«ï¼‰<\/summary>/);
-  assert.doesNotMatch(monthlyServices, /ä¸‹ä¸€æ­¥é¸æ“‡æ¯æœˆéœ€è¦çš„æœå‹™èˆ‡æ•¸é‡å¾Œ/);
-  assert.match(source, /æ–¹æ¡ˆè¦å‰‡ï¼š\$\{monthlyCooperationNotes\[0\]\}/);
-  assert.match(source, /å¯åªåŠ è³¼éƒ¨åˆ†é …ç›®/);
-  assert.doesNotMatch(source, /monthlySourceFiles/);
-  assert.match(source, /monthlySourceFileQuantities/);
-  assert.match(source, /æ˜¯å¦éœ€è¦åŠ è³¼å¯ç·¨è¼¯åŸå§‹æª”ï¼Ÿä¸éœ€è¦å¯ç›´æ¥å®Œæˆè©¦ç®—/);
-  assert.match(source, /adjustMonthlySourceFileQuantity/);
-  assert.match(source, /function getMonthlySourceFileSelections/);
-  assert.match(source, /answers\.serviceIds\.includes\(service\.id\)/);
-  assert.match(source, /quantity: Math\.min\(/);
-  assert.match(source, /è«‹ç›´æ¥é¸æ“‡éœ€è¦åŸå§‹æª”çš„æœå‹™èˆ‡æ•¸é‡/);
-  assert.doesNotMatch(source, /æœªé¸ï¼ä¸éœ€è¦åŸå§‹æª”/);
-  assert.match(source, /hasAddOns \? "ç¢ºèªé¸æ“‡ â†’" : "å…¨éƒ¨ä¸éœ€è¦ â†’"/);
-  assert.match(source, /answers\.projectType === "monthly"[\s\S]*?æ˜¯å¦éœ€è¦åŠ è³¼åŸå§‹æª”æˆ–ä»£è¾¦å°åˆ·ï¼Ÿå¯ä¾é …ç›®é¸æ“‡/);
-  assert.match(source, /monthly-print-support[\s\S]*?<strong>ä»£è¾¦å°åˆ·<\/strong>/);
-  assert.match(source, /å°é‡ã€ç´™å¼µèˆ‡åŠ å·¥æ–¼æ­£å¼åˆä½œæ™‚ç¢ºèªï¼Œè²»ç”¨å¦è¡Œä¼°åƒ¹ï¼Œæš«ä¸è¨ˆå…¥ç¶²ç«™åˆä¼°/);
-  assert.match(source, /function confirmMonthlySourceFiles\(\)[\s\S]*?printSpecifications[\s\S]*?ä»£è¾¦å°åˆ·ï¼š\$\{printNames\.join\("ã€"\)\}/);
-  assert.match(source, /item\.pricing === "dm"[\s\S]*?`\$\{maximum\} é …`/);
-  assert.match(source, /æš«ä¸è¨ˆå…¥ç¶²ç«™åˆä¼°/);
-  assert.match(source, /æœˆæ–¹æ¡ˆåŸå§‹æª”åŠ è³¼ï¼ˆ\$\{sourceFileSelections\.map/);
-  assert.match(source, /ï¼‰ï¼šè²»ç”¨å¦è¡Œç¢ºèª/);
-  assert.match(source, /æœˆæ–¹æ¡ˆå„ªæƒ ï¼ˆ\$\{formatMonthlyDiscount\(discountRate\)\}ï¼‰/);
-  assert.match(source, /å–®æ¬¡åƒè€ƒï¼å„ªæƒ å¾Œ/);
-  assert.doesNotMatch(source, /ç›®å‰ä¾æ‰€é¸æœå‹™çš„å–®æ¬¡åƒ¹æ ¼åˆè¨ˆå¥—ç”¨æœˆæ–¹æ¡ˆå„ªæƒ ï¼›æ­£å¼é‡‘é¡ä¾å…§å®¹è¤‡é›œåº¦èˆ‡ç´ æç¢ºèª/);
-  assert.doesNotMatch(source, /function getMonthlySourceFilePricing|function getMonthlySourceFilePriceBasis|monthlySourceTarget/);
-  assert.doesNotMatch(source, /åŸå§‹æª”åŠ è³¼ï½œ\$\{monthlySourceFileLabel\}/);
-  assert.doesNotMatch(source, /æ•´å€‹æœˆæ–¹æ¡ˆéœ€è¦åŸå§‹æª”|æœˆæ–¹æ¡ˆåŸå§‹æª”ï¼ˆåŸºæœ¬è²» \+50%ï¼‰/);
-});
-
-test("completed estimate can be downloaded as a branded PDF", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(source, /const lineContactUrl = "https:\/\/line\.me\/ti\/p\/th3zPeeCre"/);
-  assert.match(source, /className="line-button" href=\{lineContactUrl\}/);
-  assert.doesNotMatch(source, /line\.me\/R\/share/);
-  assert.match(source, /ä¸‹è¼‰ä¼°åƒ¹å–®/);
-  assert.match(source, /downloadEstimate/);
-  assert.match(source, /createPdfFromJpegs/);
-  assert.match(source, /%PDF-1\.4/);
-  assert.match(source, /application\/pdf/);
-  assert.match(source, /\/ToUnicode 6 0 R/);
-  assert.match(source, /3 Tr/);
-  assert.match(source, /textLines: pageTextLayers\[pageIndex\]/);
-  assert.match(source, /Sam-Design-Studio-ä¼°åƒ¹å–®-\$\{estimateReference\}\.pdf/);
-  assert.match(source, /const referenceTime = new Intl\.DateTimeFormat/);
-  assert.match(source, /const estimateReference = `SAM-\$\{fileDate\.replaceAll\("-", ""\)\}-\$\{referenceTime\}`/);
-  assert.match(source, /const validUntilDate = new Date\(now\.getTime\(\) \+ 14 \* 24 \* 60 \* 60 \* 1000\)/);
-  assert.match(source, /label: "æœ‰æ•ˆæœŸé™", value: validUntil/);
-  assert.match(source, /function loadPdfContactQrCode/);
-  assert.match(source, /withPublicBasePath\("assets\/embedded\/87272102c4a651a7\.webp"\)/);
-  assert.match(source, /label: "è¯çµ¡æ–¹å¼", value: "æƒæ QR Code\\nç¢ºèªæ­£å¼å ±åƒ¹èˆ‡å¯å®‰æ’æª”æœŸ", qrCode: true/);
-  assert.doesNotMatch(source, /label: "è¯çµ¡æ–¹å¼"[^\n]*lineContactUrl/);
-  assert.match(source, /pageCanvases/);
-  assert.match(source, /function loadPdfLogoWatermark/);
-  assert.match(source, /withPublicBasePath\("assets\/brand\/sa-design-logo-square\.png"\)/);
-  assert.match(source, /function drawPdfLogoWatermark/);
-  assert.match(source, /const markWidth = 810/);
-  assert.match(source, /context\.globalAlpha = 0\.1/);
-  assert.match(source, /const rowFontSize = 19/);
-  assert.match(source, /const measureEstimateRow =/);
-  assert.match(source, /Math\.max\(labelLines\.length, valueLines\.length\)/);
-  assert.match(source, /const rowHeight = row\.qrCode \? Math\.max\(176, textRowHeight\) : textRowHeight/);
-  assert.match(source, /context\.drawImage\(contactQrCode, qrLeft, qrTop, qrSize, qrSize\)/);
-  assert.match(source, /const drawInlineGroupHeader =/);
-  assert.match(source, /const inlineHeaderHeight = 76/);
-  assert.match(source, /y \+ inlineHeaderHeight \+ firstRowHeight > bodyBottom/);
-  assert.match(source, /currentPage = createEstimatePage\(`\$\{group\.title\}ï¼ˆçºŒï¼‰`\)/);
-  assert.match(source, /ç¬¬ \$\{index \+ 1\}ï¼\$\{pageCanvases\.length\} é /);
-  assert.match(source, /const estimateNotice = "æ­¤ç‚ºåˆä¼°ï¼Œæ­£å¼è²»ç”¨ä»¥ç¢ºèªéœ€æ±‚å¾Œçš„å ±åƒ¹å–®ç‚ºæº–ã€‚"/);
-  assert.match(source, /const pdfSummaryLines = summaryLines[\s\S]*?\.slice\(1, -1\)/);
-  assert.match(source, /const detailRowGroups: Array<\{ title: string; rows: EstimateRow\[\] \}>/);
-  assert.match(source, /const rowGroups: Array<\{ title: string; rows: EstimateRow\[\] \}>/);
-  assert.match(source, /title: "åˆä½œèˆ‡è¯çµ¡"/);
-  assert.match(source, /const isOmittablePdfRow/);
-  assert.match(source, /const singleCompactRows/);
-  assert.match(source, /label: "æœå‹™é …ç›®"/);
-  assert.match(source, /äº¤æœŸï¼šç´„/);
-  assert.match(source, /const totalPanelTop = 210/);
-  assert.match(source, /if \(isFirstPage\)/);
-  assert.match(source, /let currentPage = createEstimatePage\(rowGroups\[0\]\?\.title, true\)/);
-  assert.match(source, /const isTotalRow = row\.label\.includes\("ç¸½é¡"\) \|\| row\.label\.includes\("æœ¬é …åˆä¼°"\)/);
-  assert.match(source, /const rowFill = isTotalRow \? "#e6d8cd"/);
-  assert.match(source, /label: "èªªæ˜", value: estimateNotice/);
-  assert.doesNotMatch(source, /previewPdf|document\.body\.replaceChildren/);
-  assert.match(source, /character === "\\n"/);
-});
-
-test("single-design services support multiple selections and per-item quantities", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(source, /é€™æ¬¡éœ€è¦å“ªäº›è¨­è¨ˆï¼Ÿå¯è¤‡é¸/);
-  assert.match(source, /toggleService/);
-  assert.match(source, /aria-pressed/);
-  assert.match(source, /single-selection-status/);
-  assert.match(source, /single-service-picker-quantity/);
-  assert.match(source, /function adjustSingleServiceQuantity/);
-  assert.match(source, /`å·²é¸ \$\{selectedServices\.length\} é …ï¼Œä¸‹ä¸€æ­¥åªç¢ºèªæœƒå½±éŸ¿åƒ¹æ ¼çš„å…§å®¹`/);
-  assert.match(source, /è«‹åˆ†åˆ¥å¡«å¯«æ¯å€‹è¨­è¨ˆé …ç›®çš„é è¨ˆæ•¸é‡/);
-  assert.match(source, /selectedServices\.forEach/);
-  assert.match(source, /è·¨é¡å‹è¨­è¨ˆçµ„åˆ/);
-  assert.match(source, /function getSelectedServiceCategory/);
-  assert.match(source, /if \(categories\.size > 1\) return "mixed"/);
-  assert.match(source, /é›»å•†ï¼ç¤¾ç¾¤è¨­è¨ˆ[\s\S]*?å¹³é¢å°åˆ·è¨­è¨ˆ[\s\S]*?å…¶ä»–è¨­è¨ˆæœå‹™/);
-  assert.match(source, /hasSelectedPrintService/);
-});
-
-test("resize service clearly states that the original design file is required", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  assert.match(source, /id: "resize",[\s\S]*?note: "éœ€æä¾›åŸå§‹è¨­è¨ˆæª”"/);
-  assert.match(source, /id: "resize",[\s\S]*?name: "Resize"/);
-  assert.doesNotMatch(source, /name: "åŒæ¬¾è¨­è¨ˆæ”¹å°ºå¯¸"/);
-  assert.match(source, /<small className="choice-requirement"><span>æª”æ¡ˆéœ€æ±‚<\/span>\{note\}<\/small>/);
-  assert.doesNotMatch(source, /className="choice-(?:note|requirement)"å‚™è¨»ï¼š/);
-  assert.match(source, /detail=\{item\.description\}[\s\S]*?note=\{item\.note\}/);
-  assert.match(css, /\.choice \.choice-requirement \{[\s\S]*?border-radius: 999px;/);
-});
-
-test("photo retouch quantity accepts a custom number in selection and specifications", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  assert.match(source, /const PHOTO_QUANTITY_LIMIT = 99/);
-  assert.match(source, /case "photo":[\s\S]*?maximum: PHOTO_QUANTITY_LIMIT, customInput: true/);
-  assert.match(source, /photo: \{[\s\S]*?quantityCustom: true/);
-  assert.match(source, /function setSingleServiceQuantity\(serviceId: string, rawValue: string\)/);
-  assert.match(source, /aria-label=\{`\$\{item\.name\}è‡ªè¨‚æ•¸é‡`\}[\s\S]*?placeholder="è¼¸å…¥å¼µæ•¸"/);
-  assert.match(source, /config\.quantityCustom \? <input[\s\S]*?placeholder="è¼¸å…¥æ•¸é‡"/);
-  assert.match(source, /activeServiceDetailService\.id === "photo" \? PHOTO_QUANTITY_LIMIT : 999/);
-  assert.match(css, /\.single-custom-quantity input \{[\s\S]*?width: 72px;[\s\S]*?min-height: 34px;/);
-});
-
-test("design categories reveal only the selected service list", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  const renderControls = source.slice(source.indexOf("function renderControls()"));
-  const categoryStep = renderControls.match(/case "category":([\s\S]*?)case "quantity":/)?.[1] ?? "";
-  assert.match(source, /const singleServiceCategoryGroups =/);
-  assert.match(source, /id: "resize",[\s\S]*?category: "other"/);
-  assert.match(source, /å…¶ä»–è¨­è¨ˆæœå‹™", detail: "Resizeã€ç…§ç‰‡å¾Œè£½ã€æ¨¡æ¿è¨­è¨ˆ"/);
-  assert.match(source, /const ecommerceDetailServiceIds = new Set\(\["banner", "social", "reel", "product-frame", "resize"\]\)/);
-  assert.match(categoryStep, /singleServiceCategoryGroups\.map/);
-  assert.match(categoryStep, /aria-expanded=\{isExpanded\}/);
-  assert.match(categoryStep, /onClick=\{\(\) => setExpandedServiceCategory\(isExpanded \? null : group\.category\)\}/);
-  assert.match(categoryStep, /service-category-reveal\$\{isExpanded \? " is-open" : ""\}/);
-  assert.match(categoryStep, /aria-hidden=\{!isExpanded\}/);
-  assert.match(categoryStep, /inert=\{!isExpanded\}/);
-  assert.match(categoryStep, /é–‹å§‹ç¢ºèªéœ€æ±‚ â†’/);
-  assert.doesNotMatch(source, /case "service":/);
-  assert.match(css, /\.service-category-panel\.is-open/);
-  assert.match(css, /\.service-category-trigger:focus-visible/);
-  assert.match(css, /\.service-category-reveal \{[\s\S]*?grid-template-rows: 0fr;/);
-  assert.match(css, /\.service-category-reveal\.is-open \{[\s\S]*?grid-template-rows: 1fr;/);
-});
-
-test("print page counts are collected inside specifications", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(source, /function requiresInitialQuantity/);
-  assert.match(source, /selectedServices\.filter\(requiresInitialQuantity\)/);
-  assert.match(source, /initialQuantityServices\.map/);
-  assert.match(source, /function requiresManualPrintPageCount/);
-  assert.match(source, /return structure === "multipage"/);
-  assert.doesNotMatch(source, /serviceId === "menu" \|\| \(serviceId === "dm" && structure === "multipage"\)/);
-  assert.match(source, /const acceptsPageCount = requiresManualPrintPageCount\(detail\.structure\)/);
-  assert.match(source, /\{acceptsPageCount && \([\s\S]*?<label className=\{fieldClassName\("pageCount"\)\} data-field="pageCount">[\s\S]*?ç¸½è¨­è¨ˆé æ•¸ <small>ï¼ˆå«å°é¢ã€å°åº•ï¼‰<\/small>/);
-  assert.match(source, /requiredPageCountOptions\.filter\(\(count\) => count >= minimumPageCount\)\.map/);
-  assert.match(source, /getMinimumPrintPageCount\(activeDetailedService\.id, detail\.structure\)/);
-  assert.match(source, /getMinimumPrintPageCount\(monthlyPrintServiceId, monthlyPrintDetail\.structure\)/);
-  assert.match(source, /customPageCount\?: boolean/);
-  assert.match(source, /<option value="custom">è‡ªè¨‚é æ•¸<\/option>/);
-  assert.match(source, /aria-label="è‡ªè¨‚ç¸½è¨­è¨ˆé æ•¸"/);
-  assert.match(source, /className="custom-page-count-input"/);
-  assert.doesNotMatch(source, /ä¸å«å°é¢ã€å°åº•/);
-  assert.match(source, /if \(!quantity\) return service\.name/);
-  assert.doesNotMatch(source, /serviceId === "flyer"[\s\S]*?value === "single" \|\| value === "double"/);
-  assert.match(source, /function getAutomaticPrintPageCount/);
-  assert.match(source, /function getMinimumPrintPageCount\(serviceId: string \| undefined, structure\?: PrintStructure\)/);
-  assert.match(source, /structure === "multipage"\) return serviceId === "menu" \? 3 : 2/);
-  assert.match(source, /if \(requiresManualPrintPageCount\(patch\.structure\)\)[\s\S]*?delete quantities\[serviceId\]/);
-  assert.match(source, /getAutomaticPrintPageCount\(patch\.structure\)/);
-  assert.match(source, /final: "å·²å®šç¨¿"/);
-  assert.doesNotMatch(source, /æ–‡å­—èˆ‡åƒ¹æ ¼å·²å®šç¨¿/);
-  assert.match(source, /å»¶ä¼¸ç‰ˆæœ¬ <small>ï¼ˆåŒç‰ˆæ›å…§å®¹ï¼Œä¸å«é‡æ’æˆ– Resizeï¼‰<\/small>/);
-  assert.doesNotMatch(source, /ç‰ˆæœ¬æ•¸|å»¶ä¼¸ç‰ˆæœ¬æ•¸/);
-});
-
-test("required estimate quantities use dropdowns except specialized ecommerce inputs", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  const ecommerceCard = source.match(/case "ecommerceDetails": \{([\s\S]*?)case "printDetails": \{/)?.[1] ?? "";
-  const printCard = source.match(/case "printDetails": \{([\s\S]*?)case "serviceDetails": \{/)?.[1] ?? "";
-  const serviceCard = source.match(/case "serviceDetails": \{([\s\S]*?)case "printPurpose": \{/)?.[1] ?? "";
-
-  assert.match(source, /const requiredQuantityOptions = Array\.from\(\{ length: 10 \}/);
-  assert.match(source, /const requiredPageCountOptions = Array\.from\(\{ length: 9 \}, \(_, index\) => index \+ 2\)/);
-  assert.match(ecommerceCard, /activeEcommerceService\.id === "reel" \? <input[\s\S]*?: <select/);
-  assert.match(ecommerceCard, /aria-label="è²¼æ–‡ç¯‡æ•¸"[\s\S]*?type="number"/);
-  assert.match(ecommerceCard, /aria-label="åœ–æ¡†ç‰ˆå‹æ•¸"[\s\S]*?type="number"/);
-  assert.match(printCard, /data-field="pageCount"[\s\S]*?<select/);
-  assert.match(serviceCard, /config\.quantityOptional \? <input[\s\S]*?: <select/);
-  assert.match(css, /\.quantity-input-wrap input,\s*\.quantity-input-wrap select/);
-});
-
-test("print specifications identify and focus missing required fields", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  assert.match(source, /type PrintDetailField/);
-  assert.match(source, /getMissingPrintDetailFields/);
-  assert.match(source, /const \[printDetailErrors, setPrintDetailErrors\]/);
-  assert.match(source, /data-field="purposes"/);
-  assert.match(source, /data-field="format"/);
-  assert.match(source, /data-field="structure"/);
-  assert.match(source, /data-field="contentStatus"/);
-  assert.match(source, /aria-invalid=\{hasError/);
-  assert.match(source, /scrollIntoView\(\{ behavior: "smooth", block: "center" \}\)/);
-  assert.match(source, /focus\(\{ preventScroll: true \}\)/);
-  assert.match(source, /è«‹å¡«å¯«æ­¤æ¬„ä½/);
-  assert.match(source, /è«‹è£œå¡«ï¼š/);
-  assert.doesNotMatch(source, /disabled=\{!isComplete\} onClick=\{confirmPrintDetails\}/);
-  assert.match(css, /\.compact-section\.has-error/);
-  assert.match(css, /\.compact-field\.has-error input/);
-  assert.match(css, /\.field-error/);
-});
-
-test("page and version counts stay blank while poster starts from one base design", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(source, /else if \(toggledService && \(requiresInitialQuantity\(toggledService\) \|\| toggledService\.id === "poster"\)\) \{\s*quantities\[serviceId\] = 1;/);
-  assert.match(source, /return !ecommerceDetailServiceIds\.has\(service\.id\) && !detailedPrintServiceIds\.has\(service\.id\)/);
-  assert.match(source, /function updateActivePrintPageCount\(rawValue: string\)/);
-  assert.match(source, /delete quantities\[activeDetailedService\.id\]/);
-  assert.match(source, /answers\.quantities\[activeDetailedService\.id\] \?\? ""/);
-  assert.match(source, /answers\.quantities\[activeDetailedService\.id\] \?\? 0/);
-  assert.match(source, /versionCount: parseOptionalPositiveInteger\(event\.target\.value\)/);
-  assert.doesNotMatch(source, /if \(!detail\.versionCount\) missing\.push\("versionCount"\)/);
-  assert.match(source, /versionCount: undefined/);
-  assert.doesNotMatch(source, /value=\{detail\.versionCount \?\? ""\} placeholder="1"/);
-  assert.match(source, /if \(!quantity\) return service\.name/);
-});
-
-test("summary and PDF use compact quantity wording", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(source, /function formatServiceQuantity/);
-  assert.match(source, /`\$\{service\.name\} Ã—\$\{quantity\} \$\{getServiceUnit\(service, answers\)\}`/);
-  assert.match(source, /IGï¼FB ç¤¾ç¾¤åœ–æ–‡ï¼š\$\{postBreakdown\}ï¼å…± \$\{socialPricing\.totalImages\} å¼µï¼ˆå»¶ä¼¸ \$\{socialPricing\.extensionCount\} å¼µï¼‰/);
-  assert.match(source, /å•†å“ä¸»åœ–å¥—ç‰ˆï¼š\$\{frameBreakdown\}ï¼å…± \$\{framePricing\.totalProducts\} é …ç”¢å“/);
-  assert.match(source, /æœˆé‡ï¼š\$\{answers\.monthlyGroupCount\} çµ„/);
-  assert.doesNotMatch(source, /lines\.push\(`æ•¸é‡ï¼š\$\{selectedServices/);
-  assert.doesNotMatch(source, /\{quote\.baseNote && <p>/);
-});
-
-test("the combined flyer and DM service uses the same finished-product structures as menu", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.doesNotMatch(source, /id: "flyer"[\s\S]*?name: "å‚³å–®"/);
-  assert.match(source, /id: "dm"[\s\S]*?name: "å‚³å–®ï¼DM"/);
-  assert.match(source, /id: "menu"[\s\S]*?name: "èœå–®"/);
-  assert.doesNotMatch(source, /id: "catalog"/);
-  assert.doesNotMatch(source, /name: "å‚³å–®ï¼DMï¼èœå–®"/);
-  assert.match(source, /multipage: "å¤šé "/);
-  assert.doesNotMatch(source, /if \(serviceId === "flyer"\) return options\.filter/);
-  assert.doesNotMatch(source, /if \(serviceId === "dm"\)/);
-  assert.doesNotMatch(source, /å‹éŒ„/);
-  assert.match(source, /`\$\{detailedName\}è¦åšæˆå–®é¢ã€é›™é¢ã€æŠ˜é ï¼Œé‚„æ˜¯å¤šé ï¼Ÿ`/);
-  assert.match(source, /: "å¤šé ç·¨æ’"/);
-});
-
-test("service choices show the website prices before selection", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  assert.match(source, /function getServiceDisplayPrice/);
-  assert.match(source, /service\.id === "banner"/);
-  assert.match(source, /ä¸»è¦–è¦ºå»¶ä¼¸åŠ è³¼ \+\$\{formatPriceRange\(bannerExtensionPrice\.low, bannerExtensionPrice\.high\)\}ï¼å¼µ/);
-  assert.match(source, /service\.id === "social"/);
-  assert.match(source, /const socialExtensionPrice = \{ low: 250, high: 500 \}/);
-  assert.match(source, /åŒç¯‡è²¼æ–‡ï¼Œç¬¬ 2 å¼µèµ· \+\$\{formatPriceRange\(socialExtensionPrice\.low, socialExtensionPrice\.high\)\}ï¼å¼µ/);
-  assert.match(source, /service\.id === "product-frame"/);
-  assert.match(source, /åœ–æ¡†å« 1 é …ç”¢å“ï¼Œæ¯è¿½åŠ  1 é …ç”¢å“ï¼\+\$70/);
-  assert.match(source, /service\.id === "dm" \|\| service\.id === "menu"/);
-  assert.match(source, /ç¬¬ 2 é èµ· \$\{formatPriceRange\(600, 800\)\}ï¼é /);
-  assert.match(source, /detail=\{item\.description\}/);
-  assert.match(source, /price=\{getServiceDisplayPrice\(item\)\}/);
-  assert.match(source, /<em className="choice-price">\{price\}<\/em>/);
-  assert.doesNotMatch(source, /ç¶²ç«™åƒ¹æ ¼ï½œ\{price\}|åŒç³»åˆ—ç¬¬ 2 é èµ·/);
-  assert.match(css, /\.choice \.choice-price/);
-});
-
-test("the combined flyer and DM service supports single, double, folded, and multipage pricing", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const combinedService = source.match(/\{\s*id: "dm",([\s\S]*?)\n\s*\},/)?.[1] ?? "";
-  assert.match(combinedService, /name: "å‚³å–®ï¼DM"/);
-  assert.match(combinedService, /unit: "é "/);
-  assert.match(combinedService, /pricing: "dm"/);
-  assert.match(source, /baseLow = service\.low \+ Math\.max\(0, quantity - 1\) \* 600/);
-  assert.doesNotMatch(source, /if \(serviceId === "flyer"\) return options\.filter/);
-  assert.match(source, /normalizedServiceId = serviceId === "flyer" \? "dm" : serviceId/);
-});
-
-test("card single- and double-sided pricing is one service selected in specifications", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  assert.match(source, /id: "card"[\s\S]*?name: "åç‰‡ï¼æœƒå“¡å¡"[\s\S]*?pricing: "card"/);
-  assert.match(source, /service\.id === "card"[\s\S]*?å–®é¢ \$\{formatPriceRange\(1000, 1500\)\}[\s\S]*?é›™é¢ \$\{formatPriceRange\(1200, 2200\)\}/);
-  assert.match(source, /specificationLabel: "å–®é¢ï¼é›™é¢"/);
-  assert.match(source, /value: "single"[\s\S]*?value: "double"/);
-  assert.match(source, /answers\.serviceDesignDetails\.card\?\.specification === "double"/);
-  assert.match(source, /activeServiceDetailService\.id === "card" \? " card-required-grid" : ""/);
-  assert.match(css, /\.card-required-grid > \.compact-field \{\s*align-content: end;\s*\}/);
-  assert.doesNotMatch(source, /card-single|card-double/);
-});
-
-test("the combined flyer and DM service and menu collect production details without asking for a delivery location", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const answersType = source.match(/type Answers = \{([\s\S]*?)\n\};/)?.[1] ?? "";
-  assert.match(source, /ä¸»è¦æœƒç”¨åœ¨å“ªè£¡/);
-  assert.match(source, /è«‹é¸æ“‡ä¸€å€‹æœ€ä¸»è¦çš„ç”¨é€”/);
-  assert.match(source, /purposes: \[value\]/);
-  assert.match(source, /type="radio" name=\{`purpose-/);
-  assert.doesNotMatch(source, /togglePrintPurpose|type="checkbox" checked=\{selectedPurposes/);
-  assert.match(source, /printPurposeOptionsByService/);
-  assert.match(source, /dm:[\s\S]*?printPurposeLabels\.distribution[\s\S]*?printPurposeLabels\["direct-mail"\]/);
-  assert.match(source, /menu:[\s\S]*?printPurposeLabels\["dine-in"\]/);
-  assert.match(source, /ä»‹ç´¹ç”¢å“ã€å“ç‰Œæˆ–æœå‹™å…§å®¹/);
-  assert.match(source, /è¡—é ­ï¼å•†åœˆæ´¾ç™¼|éƒµå¯„ï¼åå–®æŠ•é|åº—å…§ç”¨é¤/);
-  assert.doesNotMatch(source, /"delivery"|å¤–é€ï¼ç·šä¸Šèœå–®|å¤–é€å¹³å°ã€QR Code æˆ–ç·šä¸Šç€è¦½/);
-  assert.match(source, /getPrintPurposeOptions\(activeDetailedService\?\.id\)/);
-  assert.match(source, /æˆå“å°ºå¯¸èˆ‡æ–¹å‘/);
-  assert.match(source, /å–®é¢ã€é›™é¢ã€æŠ˜é ï¼Œé‚„æ˜¯å¤šé /);
-  assert.doesNotMatch(source, /serviceId === "catalog"|å‹éŒ„æœƒæ¡å¤šé ç·¨æ’|è¼ƒå®Œæ•´åœ°ä»‹ç´¹å“ç‰Œ/);
-  assert.match(source, /é è¨ˆä½¿ç”¨å“ªä¸€ç¨®æŠ˜é æ–¹å¼/);
-  assert.match(source, /æ–‡å­—ã€å“é …èˆ‡åƒ¹æ ¼æ˜¯å¦å·²ç¶“å®šç¨¿/);
-  assert.match(source, /ç…§ç‰‡æˆ–åœ–ç‰‡æº–å‚™å¾—å¦‚ä½•/);
-  assert.match(source, /ä¸åŒèªè¨€ã€åˆ†åº—ã€åƒ¹æ ¼æˆ–æ´»å‹•å…§å®¹/);
-  assert.match(source, /æœ€æ™šå¸Œæœ›ä½•æ™‚æ”¶åˆ°å¯é€å°çš„å®Œç¨¿æª”/);
-  assert.match(source, /æˆå“åˆ°è²¨æ—¥æœƒå¦è¡Œç¢ºèª/);
-  assert.match(source, /é è¨ˆå°é‡/);
-  assert.match(source, /ç´™å¼µ/);
-  assert.match(source, /åŠ å·¥/);
-  assert.match(source, /printSpecifications/);
-  assert.doesNotMatch(source, /printSpecificationIndex|activePrintService/);
-  assert.match(source, /å“ªäº›å¹³é¢å°åˆ·é …ç›®éœ€è¦å”åŠ©ç¢ºèªè¦æ ¼èˆ‡ä»£è¾¦é€å°ï¼Ÿå¯ä¸€æ¬¡è¤‡é¸/);
-  assert.match(source, /function togglePrintProduction\(serviceId: string\)/);
-  assert.match(source, /selectedPrintServices\.map\(\(service\) =>/);
-  assert.match(source, /onClick=\{\(\) => togglePrintProduction\(service\.id\)\}/);
-  assert.match(source, /supportedPrintServices\.map\(\(service\) =>/);
-  assert.match(source, /function updatePrintProduction\(serviceId: string, patch: Partial<PrintSpecification>\)/);
-  assert.match(source, /function confirmPrintProduction\(\)[\s\S]*?move\("result"/);
-  assert.match(source, /\$\{service\.name\}å°åˆ·/);
-  assert.doesNotMatch(source, /hasNextPrintService \? "printSupport"|case "printSupport"|case "printQuantity"/);
-  assert.doesNotMatch(source, /printQuantity\?: number|printPaper\?: PrintPaper|printFinish\?: PrintFinish/);
-  assert.match(source, /printDesignDetails/);
-  assert.match(source, /printDetailIndex/);
-  assert.match(source, /activeDetailedService/);
-  assert.match(source, /purposes\?: PrintPurpose\[\]/);
-  assert.match(source, /selectPrintPurpose/);
-  assert.match(source, /confirmPrintPurposes/);
-  assert.match(source, /å·²é¸æ“‡ä¸»è¦ç”¨é€”/);
-  assert.match(source, /ç¢ºèªç”¨é€”/);
-  assert.match(source, /detail\.purposes\.map/);
-  assert.doesNotMatch(source, /purpose\?: PrintPurpose/);
-  assert.match(source, /format\?: PrintFormat/);
-  assert.match(source, /structure\?: PrintStructure/);
-  assert.match(source, /contentStatus\?: ContentStatus/);
-  assert.match(source, /imageStatus\?: ImageStatus/);
-  assert.match(source, /versionCount\?: number/);
-  assert.match(source, /complexity\?: Complexity/);
-  assert.match(source, /timeline\?: Timeline/);
-  assert.match(source, /deadline\?: string/);
-  assert.match(source, /hasNextService \? "printPurpose" : "sourceFile"/);
-  assert.match(source, /const destination = getNextIncompleteSpecificationDestination\(nextAnswers, activeDetailedService\.id\)/);
-  assert.match(source, /\$\{service\.name\}ç”¨é€”ï¼š/);
-  assert.match(source, /\$\{service\.name\}è¦æ ¼ï¼š/);
-  assert.doesNotMatch(source, /\$\{service\.name\}ç”¨é€”ï¼è¦æ ¼/);
-  assert.match(source, /\$\{service\.name\}å…§å®¹/);
-  assert.match(source, /detail\.imageStatus \? `ç´ æç‹€æ³ \$\{imageStatusLabels\[detail\.imageStatus\]\}`/);
-  assert.doesNotMatch(source, /ï¼ç”¨åœ– \$\{detail\.imageStatus/);
-  assert.match(source, /\$\{service\.name\}è¦–è¦ºï¼æ’ç¨‹/);
-  assert.match(source, /\$\{service\.name\}åŸå§‹æª”/);
-  assert.doesNotMatch(answersType, /printFormat\?: PrintFormat|imageStatus\?: ImageStatus/);
-  assert.doesNotMatch(source, /äº¤è²¨åœ°é»|é€è²¨åœ°é»|é…é€åœ°å€/);
-});
-
-test("folded print specifications show clear visual fold choices", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(source, /const printFoldDescriptions: Record<PrintFold, string>/);
-  assert.match(source, /ç´™å¼µå·¦å³å°æŠ˜ï¼Œå½¢æˆ 4 å€‹ç‰ˆé¢/);
-  assert.match(source, /å…©å´ä¾åºå‘å…§æ”¶æŠ˜ï¼Œå½¢æˆ 6 å€‹ç‰ˆé¢/);
-  assert.match(source, /æ²¿æŠ˜ç·šå‰å¾Œäº¤éŒ¯ï¼Œåƒé¢¨ç´èˆ¬å±•é–‹/);
-  assert.match(source, /function FoldDiagram\(\{ fold \}: \{ fold: PrintFold \}\)/);
-  assert.match(source, /function FoldChoice\(/);
-  assert.match(source, /return <span className="fold-diagram fold-diagram-custom" aria-hidden="true"><b>\?<\/b><\/span>/);
-  assert.match(source, /<button className=\{`fold-choice\$\{selected \? " selected" : ""\}`\} type="button"/);
-  assert.match(source, /className="fold-option-grid" aria-label="æŠ˜é æ–¹å¼ç¤ºæ„åœ–"/);
-  assert.match(source, /selected=\{detail\.fold === value\}/);
-  assert.match(source, /fold-option-grid fold-option-grid-conversation/);
-  assert.doesNotMatch(source, /detail\.structure === "folded" && <label[\s\S]*?<select aria-invalid=\{hasError\("fold"\)\}/);
-  assert.match(css, /\.fold-option-grid \{[\s\S]*?grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
-  assert.match(css, /\.fold-choice\.selected/);
-  assert.match(css, /\.fold-diagram-accordion \.fold-paper i:nth-child\(odd\)/);
-  assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.fold-option-grid \{[\s\S]*?repeat\(2, minmax\(0, 1fr\)\)/);
-  assert.doesNotMatch(source, /printFoldReferences|fold-reference-photo|fold-choice-source/);
-  assert.doesNotMatch(css, /perspective: 260px|rotateX\(-12deg\)|fold-reference-photo|fold-choice-source/);
-});
-
-test("pricing additions are itemized, non-compounding, and source files are selectable per service", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(source, /sourceFileServiceIds/);
-  assert.match(source, /toggleSourceFile/);
-  assert.match(source, /className="multi-select-wrap add-on-selector"/);
-  assert.match(source, /<strong>éœ€è¦å¯ç·¨è¼¯çš„åŸå§‹æª”å—ï¼Ÿ<\/strong>/);
-  assert.match(source, /<strong>éœ€è¦å”åŠ©å°åˆ·å—ï¼Ÿ<\/strong>/);
-  assert.match(source, /function confirmSingleAddOns\(\)[\s\S]*?move\("result"/);
-  assert.doesNotMatch(source, /move\(hasSelectedPrintService\(answers\) \? "printProduction"/);
-  assert.doesNotMatch(source, /rushLow|rushHigh|æ€¥ä»¶åŠ åƒ¹/);
-  assert.match(source, /printSpecifications\[service\.id\]\?\.support/);
-  assert.match(source, /const printLow = answers\.projectType === "single" && answers\.printSpecifications\[service\.id\]\?\.support \? baseLow \* 0\.15 : 0/);
-  assert.match(source, /const sourceFileBaseLow = service\.id === "product-frame" \? service\.low \* quantity : baseLow/);
-  assert.match(source, /const sourceFileBaseHigh = service\.id === "product-frame" \? service\.high \* quantity : baseHigh/);
-  assert.match(source, /å•†å“ä¸»åœ–ç‰ˆå‹ \$\{Math\.max\(1, quantity\)\} ç‰ˆ Ã— æ¯ç‰ˆè¨­è¨ˆè²» Ã— 50%ï¼ˆä¸å«è¿½åŠ ç”¢å“ï¼‰/);
-  assert.match(source, /ä¾å•†å“ä¸»åœ–ç‰ˆå‹æ•¸è¨ˆç®—ï¼Œæ¯ç‰ˆè¨­è¨ˆè²» \+50%ï¼ˆä¸å«è¿½åŠ ç”¢å“ï¼‰/);
-  assert.doesNotMatch(source, /priorityScheduleRate|priorityLow|priorityHigh|hasPrioritySchedule|å„ªå…ˆæ’ç¨‹/);
-  assert.match(source, /totalLow: baseLow \+ addonLow \+ sourceLow \+ printLow/);
-  assert.doesNotMatch(source, /ä¸äº’ç›¸ç–Šä¹˜|åŠ åƒ¹è¨ˆç®—ï¼š/);
-  assert.match(source, /<strong>è²»ç”¨æ˜ç´°<\/strong>/);
-  assert.doesNotMatch(source, /ç¶²ç«™åˆæ­¥ä¼°åƒ¹æ˜ç´°/);
-  assert.match(source, /const serviceBreakdown: PriceBreakdownItem\[\]/);
-  assert.match(source, /label: `\$\{service\.name\}ï½œè¨­è¨ˆè²»`/);
-  assert.match(source, /detail: getServicePriceBasis\(answers, service\)/);
-  assert.match(source, /serviceBreakdown\.push\(\{[\s\S]*?label: `\$\{service\.name\}ï½œåŸå§‹æª”åŠ è³¼`/);
-  assert.match(source, /serviceBreakdown\.push\(\{[\s\S]*?label: `\$\{service\.name\}ï½œå°åˆ·ä»£è¾¦æœå‹™è²»`/);
-  assert.match(source, /è¨ˆç®—ä¾æ“šï¼å°è¨ˆ/);
-  assert.match(source, /ä¸æœƒç›´æ¥è¿½åŠ /);
-  assert.doesNotMatch(source, /low \*= 1\.5|high \*= 1\.5|low \*= 1\.15|high \*= 1\.15/);
-});
-
-test("same-series social images and product-frame applications use extension pricing", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(source, /socialPostCount/);
-  assert.match(source, /socialPostImageCounts/);
-  assert.match(source, /è²¼æ–‡ç¯‡æ•¸/);
-  assert.match(source, /aria-label="è²¼æ–‡ç¯‡æ•¸"/);
-  assert.match(source, /ç¬¬ \$\{index \+ 1\} ç¯‡è²¼æ–‡åœ–ç‰‡å¼µæ•¸/);
-  assert.match(source, /å…ˆå¡«ç¯‡æ•¸ï¼Œå†å¡«æ¯ç¯‡åœ–æ•¸ï¼›æ¯ç¯‡æœ€å¤š 10 å¼µåœ–ï¼Œç¬¬ 2 å¼µèµ·æ¡å»¶ä¼¸åƒ¹/);
-  assert.match(source, /const SOCIAL_IMAGES_PER_POST_LIMIT = 10/);
-  assert.match(source, /max=\{SOCIAL_IMAGES_PER_POST_LIMIT\}/);
-  assert.match(source, /function getSocialPricingCounts/);
-  assert.match(source, /current\.socialPostImageCounts\?\.\[index\] \?\? 1/);
-  assert.match(source, /const extensionCount = imageCounts\.reduce\(\(sum, count\) => sum \+ Math\.max\(0, count - 1\), 0\)/);
-  assert.match(source, /const primaryCount = socialPricing\?\.postCount \?\? 1/);
-  assert.match(source, /baseLow = service\.low \* primaryCount \+ extensionCount \* socialExtensionPrice\.low/);
-  assert.match(source, /baseHigh = service\.high \* primaryCount \+ extensionCount \* socialExtensionPrice\.high/);
-  assert.match(source, /formatPriceRange\(extensionCount \* socialExtensionPrice\.low, extensionCount \* socialExtensionPrice\.high\)/);
-  assert.match(source, /æ¯ç¯‡æœ€å¤š 10 å¼µåœ–ï¼Œç¬¬ 2 å¼µèµ·æ¡å»¶ä¼¸åƒ¹/);
-  assert.match(source, /æ¯ç¯‡é¦–å¼µ Ã—\$\{postCount\}/);
-  assert.match(source, /åŒç¯‡å»¶ä¼¸ Ã—\$\{extensionCount\}/);
-  assert.match(source, /ç¸½åœ– 10 å¼µä»¥ä¸Š 9\.5 æŠ˜/);
-  assert.match(source, /baseLow \*= 0\.95/);
-  assert.match(source, /baseHigh \*= 0\.95/);
-  assert.match(source, /productFrameProductCounts/);
-  assert.match(source, /function getProductFramePricingCounts/);
-  assert.match(source, /ç¬¬ \$\{index \+ 1\} ç‰ˆåœ–æ¡†ç”¢å“æ•¸é‡/);
-  assert.match(source, /å…ˆå¡«ç‰ˆå‹æ•¸ï¼Œå†å¡«æ¯ç‰ˆå¥—ç”¨çš„ç”¢å“æ•¸ï¼›æ¯ç‰ˆå« 1 é …ç”¢å“ï¼Œæ¯è¿½åŠ  1 é …ï¼\+\$70/);
-  assert.match(source, /const extraProductCount = productCounts\.reduce\(\(sum, count\) => sum \+ Math\.max\(0, count - 1\), 0\)/);
-  assert.match(source, /extraProductCount \* 70/);
-  assert.doesNotMatch(source, /åœ–æ¡†[^\n]*(è²¼æ–‡|åŒç¯‡|10 å¼µä»¥ä¸Š)/);
-});
-
-test("ecommerce services use their own per-item specification cards", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const ecommerceCard = source.match(/case "ecommerceDetails": \{([\s\S]*?)case "printDetails": \{/)?.[1] ?? "";
-  const ecommerceValidation = source.match(/function getMissingEcommerceDetailFields[\s\S]*?\{([\s\S]*?)const printPurposeLabels/)?.[1] ?? "";
-  assert.match(source, /\| "ecommerceDetails"/);
-  assert.match(source, /type EcommerceDesignDetail/);
-  assert.match(source, /ecommerceDesignDetails: Record<string, EcommerceDesignDetail>/);
-  assert.match(source, /ecommercePlacementOptionsByService/);
-  assert.match(source, /ecommerceSizeOptionsByService/);
-  assert.match(source, /banner:[\s\S]*?å®˜ç¶²é¦–é ï¼è¼ªæ’­/);
-  assert.match(source, /bannerExtensionCount\?: number/);
-  assert.match(source, /function getBannerExtensionCount/);
-  assert.doesNotMatch(source, /const bannerDesignTypeOptions|function getBannerDesignRange|function isBannerExtension/);
-  assert.doesNotMatch(source, /id: "key-visual-extension"/);
-  assert.match(source, /social:[\s\S]*?FBï¼IG å‹•æ…‹è²¼æ–‡/);
-  assert.match(source, /reel:[\s\S]*?YouTube ç¸®åœ–/);
-  assert.match(source, /"product-frame":[\s\S]*?è¦çš®å•†å“é /);
-  assert.match(source, /resize:[\s\S]*?è·¨å¹³å°å»¶ä¼¸/);
-  assert.match(ecommerceCard, /<summary>å…¶ä»–éœ€æ±‚ï¼ˆé¸å¡«ï¼‰<\/summary>/);
-  assert.doesNotMatch(ecommerceCard, /compact-optional-note|è£œå……éœ€æ±‚ï¼ˆé¸å¡«ï¼Œå¯ç¨å¾Œè£œï¼‰/);
-  assert.match(ecommerceCard, /ä½¿ç”¨å¹³å°ï¼åˆŠç™»ä½ç½®ï¼ˆå–®é¸ï¼‰/);
-  assert.match(ecommerceCard, /getEcommerceDetailFieldLabel\(activeEcommerceService, "quantity"\)/);
-  assert.match(ecommerceCard, /answers\.quantities\[activeEcommerceService\.id\]/);
-  assert.match(ecommerceCard, /answers\.socialPostCount/);
-  assert.match(ecommerceCard, /answers\.socialPostImageCounts/);
-  assert.match(ecommerceCard, /ç‰ˆä½å°ºå¯¸ï¼æ¯”ä¾‹/);
-  assert.match(ecommerceCard, /æ–‡æ¡ˆèˆ‡ CTA/);
-  assert.match(ecommerceCard, /å“ç‰Œèˆ‡å•†å“ç´ æ/);
-  assert.match(ecommerceCard, /å»¶ä¼¸ç‰ˆæœ¬ <small>ï¼ˆåŒç‰ˆæ›å…§å®¹ï¼Œä¸å«é‡æ’æˆ– Resizeï¼‰/);
-  assert.match(ecommerceCard, /placeholder="ç„¡å‰‡ç•™ç©º"/);
-  assert.doesNotMatch(ecommerceValidation, /missing\.push\("versionCount"\)/);
-  assert.doesNotMatch(ecommerceValidation, /missing\.push\("productCount"\)/);
-  assert.match(ecommerceCard, /ä¸»è¦–è¦ºå»¶ä¼¸åŠ è³¼/);
-  assert.match(ecommerceCard, /æ˜¯å¦éœ€è¦ä¸»è¦–è¦ºå»¶ä¼¸åŠ è³¼/);
-  assert.match(ecommerceCard, /aria-label="æ˜¯å¦éœ€è¦ä¸»è¦–è¦ºå»¶ä¼¸åŠ è³¼"/);
-  assert.doesNotMatch(ecommerceCard, /Banner è¨­è¨ˆé¡å‹/);
-  assert.match(ecommerceCard, /è¦–è¦ºè£½ä½œç¨‹åº¦/);
-  assert.match(ecommerceCard, /ç¢ºèªè¦æ ¼/);
-  assert.doesNotMatch(ecommerceCard, /A4|æˆå“çµæ§‹|æŠ˜é |ç´™å¼µ|ä»£è¾¦å°åˆ·|printFormatLabels|printStructureLabels/);
-  assert.match(ecommerceCard, /renderSharedScheduleNote\(activeEcommerceService\.id\)[\s\S]*?ä¼°åƒ¹å¿…å¡«/);
-  assert.doesNotMatch(ecommerceCard, /updateActiveEcommerceDetail\(\{ timeline:/);
-  assert.doesNotMatch(ecommerceValidation, /missing\.push\("timeline"\)/);
-  assert.match(source, /\$\{service\.name\}è¦æ ¼ï¼šç‰ˆä½ \$\{size\}/);
-  assert.doesNotMatch(source, /\| "socialPrimaryCount"|\| "productFrameProductCount"/);
-});
-
-test("banner extension stays required and receives the monthly-plan discount", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const ecommerceCard = source.match(/case "ecommerceDetails": \{([\s\S]*?)case "printDetails": \{/)?.[1] ?? "";
-  const monthlyServicesStep = source.slice(source.indexOf("function renderControls()")).match(/case "monthlyServices":([\s\S]*?)case "sourceFile":/)?.[1] ?? "";
-
-  assert.match(ecommerceCard, /data-field="bannerExtensionCount"[\s\S]*?className="inline-choice-buttons"[\s\S]*?aria-label="æ˜¯å¦éœ€è¦ä¸»è¦–è¦ºå»¶ä¼¸åŠ è³¼"/);
-  assert.match(ecommerceCard, />å¦ï¼Œä¸éœ€è¦<\/button>[\s\S]*?>æ˜¯ï¼Œéœ€è¦<\/button>/);
-  assert.match(ecommerceCard, /ä¸»è¦–è¦ºå»¶ä¼¸å¼µæ•¸[\s\S]*?>\{count\} å¼µ<\/option>/);
-  assert.doesNotMatch(ecommerceCard, /\{count\} å¼µï½œæ¯å¼µ \$800ï½1,200/);
-  assert.match(source, /service\.id === "banner"\) return "ä¸»è¦–è¦ºé¢¨æ ¼"/);
-  assert.match(ecommerceCard, /æ²¿ç”¨æœ¬æ¬¡ä¸»è¦–è¦ºï¼Œå»¶ä¼¸ä¸åŒå°ºå¯¸ä¹‹ç³»åˆ—ç¨¿ï¼ˆéé‡æ–°è¨­è¨ˆï¼‰ï¼›ä¸åŒæ–¼åƒ…èª¿æ•´å°ºå¯¸çš„ Resize/);
-  assert.match(monthlyServicesStep, /æ²¿ç”¨æœ¬æ¬¡ä¸»è¦–è¦ºï¼Œå»¶ä¼¸ä¸åŒå°ºå¯¸ä¹‹ç³»åˆ—ç¨¿ï¼ˆéé‡æ–°è¨­è¨ˆï¼‰ï¼›ä¸åŒæ–¼åƒ…èª¿æ•´å°ºå¯¸çš„ Resizeã€‚ä¾å»¶ä¼¸å¼µæ•¸è¨ˆåƒ¹ä¸¦å¥—ç”¨æœˆæ–¹æ¡ˆå„ªæƒ /);
-  assert.match(ecommerceCard, /activeEcommerceService\.id !== "banner"[\s\S]*?å»¶ä¼¸ç‰ˆæœ¬/);
-  assert.match(monthlyServicesStep, /æœˆæ–¹æ¡ˆæ˜¯å¦éœ€è¦ Banner ä¸»è¦–è¦ºå»¶ä¼¸åŠ è³¼/);
-  assert.match(monthlyServicesStep, /æœˆæ–¹æ¡ˆ Banner ä¸»è¦–è¦ºå»¶ä¼¸å¼µæ•¸/);
-  assert.match(monthlyServicesStep, /className="inline-choice-buttons"[\s\S]*?aria-label="æœˆæ–¹æ¡ˆæ˜¯å¦éœ€è¦ Banner ä¸»è¦–è¦ºå»¶ä¼¸åŠ è³¼"/);
-  assert.match(monthlyServicesStep, />å¦ï¼Œä¸éœ€è¦<\/button>[\s\S]*?>æ˜¯ï¼Œéœ€è¦<\/button>/);
-  assert.doesNotMatch(monthlyServicesStep, /\{count\} å¼µï½œæ¯å¼µ \$800ï½1,200/);
-  assert.doesNotMatch(ecommerceCard, /activeEcommerceService\.id === "banner" && value === "priority"/);
-  assert.match(source, /reference\.designLow = service\.low \* quantity \+ extensionCount \* bannerExtensionPrice\.low/);
-  assert.match(source, /reference\.designHigh = service\.high \* quantity \+ extensionCount \* bannerExtensionPrice\.high/);
-  assert.doesNotMatch(source, /reference\.addonLow = extensionCount \* bannerExtensionPrice\.low/);
-  assert.match(source, /const addonLow = bannerExtensionCount \* bannerExtensionPrice\.low/);
-  assert.match(source, /totalLow: baseLow \+ addonLow \+ sourceLow \+ printLow/);
-  assert.match(source, /service\.id === "banner"[\s\S]*?ä¸»è¦–è¦ºå»¶ä¼¸ \$\{extensionCount\} å¼µ/);
-  assert.match(source, /Banner åŸºæœ¬è¨­è¨ˆè²» Ã— 50%ï¼ˆä¸å«ä¸»è¦–è¦ºå»¶ä¼¸åŠ è³¼ï¼‰/);
-});
-
-test("remaining services use dedicated specification cards without copying print-design options", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const renderControls = source.slice(source.indexOf("function renderControls()"));
-  const serviceCard = renderControls.match(/case "serviceDetails": \{([\s\S]*?)case "printPurpose": \{/)?.[1] ?? "";
-  assert.match(source, /\| "serviceDetails"/);
-  assert.match(source, /type ServiceDesignDetail/);
-  assert.match(source, /serviceDesignDetails: Record<string, ServiceDesignDetail>/);
-  assert.match(source, /const serviceDetailConfigs: Record<string, ServiceDetailConfig>/);
-  assert.match(source, /poster:[\s\S]*?æµ·å ±å°ºå¯¸èˆ‡æ–¹å‘/);
-  assert.match(source, /poster: \{[\s\S]*?quantityLabel: "æµ·å ±è¨­è¨ˆæ¬¾æ•¸"/);
-  assert.match(source, /id: "poster",[\s\S]*?unit: "æ¬¾"/);
-  assert.match(source, /quantities: service\.id === "poster" \? \{ poster: 1 \} : \{\}/);
-  assert.match(source, /toggledService\.id === "poster"/);
-  assert.match(serviceCard, /æ˜¯å¦æœ‰ç³»åˆ—ç¨¿[\s\S]*?æ²’æœ‰ï¼Œåƒ… 1 æ¬¾[\s\S]*?æœ‰ï¼Œéœ€è¦å»¶ä¼¸ç³»åˆ—ç¨¿[\s\S]*?ç³»åˆ—ç¨¿æ¬¾æ•¸/);
-  assert.match(source, /detail\.seriesArtwork === "yes"[\s\S]*?ç³»åˆ—ç¨¿ \$\{extensionCount\} æ¬¾ï¼ˆå…± \$\{answers\.quantities\.poster \?\? 1\} æ¬¾ï¼‰/);
-  assert.match(source, /card: \{[\s\S]*?quantityLabel: "ç‰ˆå‹å¥—ç”¨"[\s\S]*?quantityOptional: true[\s\S]*?specificationLabel: "å–®é¢ï¼é›™é¢"/);
-  assert.match(source, /photo: \{[\s\S]*?quantityLabel: "å¾Œè£½ç…§ç‰‡å¼µæ•¸"/);
-  assert.match(source, /slides: \{[\s\S]*?quantityLabel: "æ¨¡æ¿è¨­è¨ˆæ•¸"/);
-  assert.match(source, /service\.id === "reel"\) return "å°é¢è¨­è¨ˆå¼µæ•¸"/);
-  assert.match(source, /service\.id === "resize"\) return "å°ºå¯¸å»¶ä¼¸æ•¸"/);
-  assert.match(source, /getEcommerceDetailFieldLabel\(activeEcommerceService, "quantity"\)/);
-  assert.match(source, /å–®é¢ï½œ\$1,000ï½1,500ï¼æ¬¾[\s\S]*?é›™é¢ï½œ\$1,200ï½2,200ï¼æ¬¾/);
-  assert.doesNotMatch(source, /card-single|card-double/);
-  assert.match(source, /photo:[\s\S]*?ä¸»è¦å¾Œè£½é …ç›®/);
-  assert.match(source, /slides:[\s\S]*?éœ€è¦çš„è¨­è¨ˆç¯„åœ/);
-  assert.match(source, /slides:[\s\S]*?hideQuantity: true/);
-  assert.match(source, /return `\$\{activeService\?\.name \?\? "é€™é …æœå‹™"\}è¦æ ¼`/);
-  assert.doesNotMatch(serviceCard, /hasRequiredServiceFields/);
-  assert.match(serviceCard, /<fieldset className="compact-section">[\s\S]*?<legend>ä¼°åƒ¹å¿…å¡«<\/legend>/);
-  assert.match(serviceCard, /!config\.hideQuantity && activeServiceDetailService\.id !== "card" && activeServiceDetailService\.id !== "poster" && <label/);
-  assert.match(serviceCard, /<summary>å…¶ä»–éœ€æ±‚ï¼ˆé¸å¡«ï¼‰<\/summary>[\s\S]*?activeServiceDetailService\.id === "card" && <label className="compact-field"><span>\{config\.quantityLabel\}/);
-  assert.match(source, /!config\?\.hideQuantity && service\.pricing !== "card"/);
-  assert.match(source, /config\.hideQuantity[\s\S]*?\? undefined/);
-  assert.doesNotMatch(source, /æŠ•å½±ç‰‡é æ•¸/);
-  assert.match(serviceCard, /ä¼°åƒ¹å¿…å¡«/);
-  assert.match(serviceCard, /<summary>å…¶ä»–éœ€æ±‚ï¼ˆé¸å¡«ï¼‰<\/summary>/);
-  assert.doesNotMatch(serviceCard, /compact-optional-note|è£œå……éœ€æ±‚ï¼ˆé¸å¡«ï¼Œå¯ç¨å¾Œè£œï¼‰/);
-  assert.match(serviceCard, /activeServiceDetailService\.id === "photo" \? "å¥—ç”¨å¸¸è¦‹è¨­å®š" : "å¥—ç”¨å¸¸è¦‹å°ºå¯¸"/);
-  assert.match(serviceCard, /answers\.quantities\[activeServiceDetailService\.id\]/);
-  assert.match(serviceCard, /config\.quantityOptional \? <input[\s\S]*?min="0"[\s\S]*?placeholder="ç„¡å‰‡ç•™ç©º"[\s\S]*?: <select/);
-  assert.match(serviceCard, /requiredQuantityOptions\.map/);
-  assert.match(source, /service\.pricing !== "card" && \(answers\.quantities\[service\.id\] \?\? 0\) < 1/);
-  assert.match(source, /\(parseOptionalPositiveInteger\(rawValue\) \?\? 0\) \+ 1/);
-  assert.match(serviceCard, /config\.purposeOptions/);
-  assert.match(serviceCard, /config\.specificationOptions/);
-  assert.match(serviceCard, /config\.contentOptions/);
-  assert.match(serviceCard, /config\.assetOptions/);
-  assert.match(serviceCard, /config\.complexityOptions/);
-  assert.doesNotMatch(serviceCard, /printFormatLabels|printStructureLabels|printFoldLabels|printPaperLabels|æˆå“çµæ§‹|æŠ˜é æ–¹å¼|ä»£è¾¦é€å°/);
-  assert.match(source, /serviceDetailsRef\.current\?\.querySelector/);
-  assert.match(serviceCard, /renderSharedScheduleNote\(activeServiceDetailService\.id\)[\s\S]*?ä¼°åƒ¹å¿…å¡«/);
-  assert.doesNotMatch(serviceCard, /updateActiveServiceDetail\(\{ timeline:/);
-  assert.match(source, /selectedServiceDetailServices\.forEach/);
-  assert.match(source, /const detailedPrintServiceIds = new Set\(\["dm", "menu"\]\)/);
-});
-
-test("all optional numeric service fields can return to zero and clear", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const renderControls = source.slice(source.indexOf("function renderControls()"));
-  const ecommerceCard = renderControls.match(/case "ecommerceDetails": \{([\s\S]*?)case "printDetails": \{/)?.[1] ?? "";
-  const printCard = renderControls.match(/case "printDetails": \{([\s\S]*?)case "serviceDetails": \{/)?.[1] ?? "";
-
-  assert.match(source, /function parseOptionalPositiveInteger\(rawValue: string\)/);
-  assert.match(ecommerceCard, /å»¶ä¼¸ç‰ˆæœ¬[\s\S]*?min="0"[\s\S]*?parseOptionalPositiveInteger\(event\.target\.value\)/);
-  assert.match(ecommerceCard, /åœ–æ¡†ç‰ˆå‹æ•¸[\s\S]*?ç¬¬ \$\{index \+ 1\} ç‰ˆåœ–æ¡†ç”¢å“æ•¸é‡[\s\S]*?min="1"/);
-  assert.match(source, /function updateProductFrameProductCount\(index: number, rawValue: string\)/);
-  assert.doesNotMatch(ecommerceCard, /å¥—ç”¨ç”¢å“ç¸½æ•¸|è‹¥ç„¡è¿½åŠ å¯ç•™ç©º/);
-  assert.match(printCard, /å»¶ä¼¸ç‰ˆæœ¬[\s\S]*?min="0"[\s\S]*?parseOptionalPositiveInteger\(event\.target\.value\)/);
-  assert.match(renderControls, /case "versionCount":[\s\S]*?min="0"[\s\S]*?parseOptionalPositiveInteger\(event\.target\.value\)/);
-  assert.match(renderControls, /é è¨ˆå°é‡ï¼ˆé¸å¡«ï¼‰[\s\S]*?min="0"[\s\S]*?parseOptionalPositiveInteger\(event\.target\.value\)/);
-  assert.match(source, /\(parseOptionalPositiveInteger\(rawValue\) \?\? 0\) \+ 1/);
-});
-
-test("estimate separates excluded print costs and pending fees", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
-  assert.match(source, /æœ¬ä¼°åƒ¹ä¸åŒ…å«å°åˆ·å“è£½ä½œè²»èˆ‡é‹é€è²»/);
-  assert.match(source, /æœªå«è²»ç”¨ï¼šå°åˆ·å“è£½ä½œè²»ã€é‹é€è²»/);
-  assert.match(source, /getPendingEstimateItems/);
-  assert.match(source, /å°šæœ‰éœ€æ±‚å¾…ç¢ºèªè²»ç”¨/);
-  assert.doesNotMatch(source, /é ç®—ç•¥ä½æ–¼ç›®å‰æ¨ä¼°ç´„|é ç®—ä»åœ¨åˆä¼°å€é–“å…§|ä¸å»ºè­°å…ˆåˆ¤å®šé ç®—å……è¶³/);
-  assert.match(source, /formatPriceRange/);
-  assert.doesNotMatch(source, /ä¾ç›®å‰é¸æ“‡ï¼Œè¼ƒå¯èƒ½è½åœ¨ç´„|className="result-target"/);
-  assert.doesNotMatch(css, /\.result-target/);
-});
-
-test("questionnaire groups long print and monthly flows into compact cards", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
-  assert.match(source, /\| "printDetails"/);
-  assert.match(source, /\| "printProduction"/);
-  assert.match(source, /\| "monthlyProfile"/);
-  assert.doesNotMatch(source, /å®Œæˆä¼°åƒ¹å¿…å¡«ï¼Œå…¶ä»–éœ€æ±‚ï¼ˆé¸å¡«ï¼‰/);
-  assert.match(source, /æ²¿ç”¨ä¸Šä¸€é …è¦æ ¼/);
-  assert.match(source, /const previousPageCount = Math\.max\(0, answers\.quantities\[previousService\.id\]/);
-  assert.match(source, /updateActivePrintPageCount\(previousPageCount > 0 \? String\(previousPageCount\) : ""\)/);
-  assert.match(source, /å¥—ç”¨å¸¸è¦‹å°ºå¯¸/);
-  assert.doesNotMatch(source, /å¥—ç”¨ A4 å–®é¢å¸¸ç”¨å€¼|å¥—ç”¨ A4 å¤šé å¸¸ç”¨å€¼|å¥—ç”¨å¸¸ç”¨è¦æ ¼/);
-  assert.match(source, /<summary>å…¶ä»–éœ€æ±‚ï¼ˆé¸å¡«ï¼‰<\/summary>/);
-  assert.doesNotMatch(source, /å…¶é¤˜å¯ç•™ç©º/);
-  assert.doesNotMatch(source, /è£œå……éœ€æ±‚ï¼ˆé¸å¡«ï¼Œå¯ç¨å¾Œè£œï¼‰|å…¶é¤˜éœ€æ±‚å¯é¸å¡«/);
-  assert.match(source, /ä¼°åƒ¹å¿…å¡«/);
-  assert.match(source, /function confirmSingleAddOns\(\)[\s\S]*?move\("result"/);
-  assert.match(source, /å°é‡ã€ç´™å¼µèˆ‡åŠ å·¥çš†å¯ç•™ç©ºï¼Œæ­£å¼åˆä½œæ™‚å†ç¢ºèª/);
-  assert.match(source, /move\("monthlyServices", \{ projectType: "monthly",[\s\S]*?serviceIds: \[\],[\s\S]*?quantities: \{\}/);
-  assert.match(source, /ç¢ºèªåˆä½œç´€éŒ„å¾Œï¼Œé¸æ“‡æœå‹™èˆ‡æ•¸é‡ï¼Œç³»çµ±æœƒè‡ªå‹•é…å°æ–¹æ¡ˆ/);
-  assert.doesNotMatch(source, /æ¥è‘—ä¾æœå‹™æ•¸é‡è‡ªå‹•å¸¶å…¥æ–¹æ¡ˆ/);
-  assert.match(css, /\.compact-card/);
-  assert.match(css, /\.compact-grid/);
-  assert.match(css, /\.compact-purpose-grid/);
-});
-
-test("questionnaire keeps core fields required and shortens repeated work", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  const ecommerceValidation = source.match(/function getMissingEcommerceDetailFields[\s\S]*?\{([\s\S]*?)return missing;/)?.[1] ?? "";
-  const printValidation = source.match(/function getMissingPrintDetailFields[\s\S]*?\{([\s\S]*?)return missing;/)?.[1] ?? "";
-  const serviceValidation = source.match(/function getMissingServiceDetailFields[\s\S]*?\{([\s\S]*?)return missing;/)?.[1] ?? "";
-  const monthlyConfirm = source.match(/function confirmMonthlyProfile\(\) \{([\s\S]*?)function selectPrintPurpose/)?.[1] ?? "";
-  assert.equal(source.match(/\{renderSharedScheduleNote\(active(?:EcommerceService|DetailedService|ServiceDetailService)\.id\)\}/g)?.length, 3);
-  assert.match(ecommerceValidation, /missing\.push\("quantity"\)/);
-  assert.doesNotMatch(ecommerceValidation, /missing\.push\("timeline"\)/);
-  assert.doesNotMatch(ecommerceValidation, /missing\.push\("placement"\)|missing\.push\("size"\)|missing\.push\("copyStatus"\)|missing\.push\("assetStatus"\)/);
-  assert.match(ecommerceValidation, /service\.id === "banner" && detail\.bannerExtensionCount === undefined\) missing\.push\("bannerExtensionCount"\)/);
-  assert.doesNotMatch(ecommerceValidation, /service\.id === "banner" && !detail\.visualLevel/);
-  assert.match(printValidation, /missing\.push\("structure"\)/);
-  assert.doesNotMatch(printValidation, /missing\.push\("timeline"\)/);
-  assert.doesNotMatch(printValidation, /missing\.push\("purposes"\)|missing\.push\("format"\)|missing\.push\("contentStatus"\)|missing\.push\("imageStatus"\)|missing\.push\("complexity"\)/);
-  assert.match(serviceValidation, /missing\.push\("quantity"\)/);
-  assert.doesNotMatch(serviceValidation, /missing\.push\("timeline"\)/);
-  assert.match(serviceValidation, /service\.id === "card" && !detail\.specification/);
-  assert.doesNotMatch(serviceValidation, /missing\.push\("purpose"\)|missing\.push\("contentStatus"\)|missing\.push\("assetStatus"\)|missing\.push\("complexity"\)/);
-  assert.doesNotMatch(source, /ä¸»è¦è¨­è¨ˆé¡å‹/);
-  assert.match(source, /<summary>å…¶ä»–éœ€æ±‚ï¼ˆé¸å¡«ï¼‰<\/summary>/);
-  assert.match(source, /<span>äº¤ä»˜ç¯€å¥<\/span>/);
-  assert.doesNotMatch(source, /å¹³å‡è¦–è¦ºè¤‡é›œåº¦|å¹³å‡ç´ æç‹€æ³/);
-  assert.match(source, /<span>ç´ æç‹€æ³<\/span><select value=\{answers\.materials/);
-  assert.doesNotMatch(monthlyConfirm, /!answers\.monthlyContent|!answers\.monthlyCadence/);
-  assert.doesNotMatch(monthlyConfirm, /!answers\.complexity|!answers\.materials/);
-  assert.doesNotMatch(source, /æœªé¸ï¼å…¨éƒ¨ä¸éœ€è¦ä»£è¾¦/);
-  assert.match(source, /æ²’æœ‰åŠ è³¼å¯ç›´æ¥å®Œæˆè©¦ç®—/);
-  assert.doesNotMatch(source, /æ²¿ç”¨ä¸Šä¸€é …å°åˆ·éœ€æ±‚|ä¸‹ä¸€é … â†’.*ç¢ºèªå°åˆ·éœ€æ±‚/);
-  assert.match(css, /\.add-on-selector/);
-  assert.match(css, /\.print-production-details/);
-  assert.match(source, /const singleProgress/);
-  assert.match(source, /chatBody\.scrollTo\(/);
-  assert.match(css, /\.compact-optional-note/);
-  assert.match(css, /\.optional-details/);
-  assert.match(css, /\.service-choice-group h3/);
-});
-
-test("mobile quote summary stays visible while the customer fills the form", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  assert.match(source, /site-shell\$\{step === "result" \? " estimate-complete" : ""\}/);
-  assert.match(source, /className="summary-context"/);
-  assert.match(source, /className="summary-mobile-toggle"/);
-  assert.match(source, /aria-expanded=\{isMobileSummaryExpanded\}/);
-  assert.match(source, /å·²é¸ \$\{selectedServices\.length\} é …æœå‹™/);
-  assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.summary-panel \{[\s\S]*?position: fixed;/);
-  assert.match(css, /bottom: calc\(8px \+ env\(safe-area-inset-bottom\)\)/);
-  assert.match(css, /\.chat-body \{\s*padding-bottom: 104px;/);
-  assert.match(css, /\.summary-panel\.is-expanded \{[\s\S]*?max-height: min\(70vh, 570px\);/);
-  assert.match(css, /\.estimate-complete \.summary-panel \{\s*display: none;/);
-});
-
-test("mobile specification fields do not trigger browser focus zoom", async () => {
-  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
-
-  assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.chat-panel input,[\s\S]*?\.chat-panel select,[\s\S]*?\.chat-panel textarea \{[\s\S]*?font-size: 16px !important;[\s\S]*?touch-action: manipulation;/);
-});
-
-test("wide desktop calculator places its headline above a widening workspace", async () => {
-  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
-  assert.match(css, /@media \(min-width: 1241px\)/);
-  assert.match(css, /\.intro \{[\s\S]*?width: min\(1600px, calc\(100% - 96px\)\);[\s\S]*?grid-template-columns: 1fr;/);
-  assert.match(css, /\.intro-copy \{[\s\S]*?width: min\(100%, 1040px\);[\s\S]*?justify-self: center;[\s\S]*?text-align: center;/);
-  assert.match(css, /\.eyebrow,[\s\S]*?\.trust-list \{[\s\S]*?justify-content: center;/);
-  assert.match(css, /\.quote-workspace \{[\s\S]*?width: 100%;[\s\S]*?grid-template-columns: minmax\(640px, 2\.2fr\) minmax\(300px, 0\.8fr\);/);
-  assert.match(css, /@media \(min-width: 1600px\)[\s\S]*?\.intro \{[\s\S]*?width: min\(1680px, calc\(100% - 120px\)\);/);
-  assert.doesNotMatch(css, /grid-template-columns: minmax\(400px, 430px\) minmax\(700px, 1fr\);/);
-});
-
-test("calculator headline uses the same loaded typeface on desktop and mobile", async () => {
-  const [source, layout, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(source, /<h1 aria-label="ç”¨å¹¾å€‹å•é¡Œï¼Œæ‰¾åˆ°é©åˆä½ çš„è¨­è¨ˆé ç®—ã€‚">[\s\S]*?ç”¨å¹¾å€‹å•é¡Œ/);
-  assert.match(source, /ç”¨å¹¾å€‹å•é¡Œ<span className="headline-punctuation">ï¼Œ<\/span>/);
-  assert.match(source, /æ‰¾åˆ°é©åˆä½ çš„è¨­è¨ˆé ç®—<span className="headline-punctuation">ã€‚<\/span>/);
-  assert.match(layout, /fonts\.googleapis\.com\/css2\?family=Noto\+Serif\+TC/);
-  assert.match(css, /--title-serif: "Noto Serif TC", "Songti TC", serif;/);
-  const baseIntroCopy = css.match(/\.intro-copy \{([\s\S]*?)\}/)?.[1] ?? "";
-  const baseHeadline = css.match(/\.intro h1 \{([\s\S]*?)\}/)?.[1] ?? "";
-  assert.doesNotMatch(baseIntroCopy, /width: 100%|justify-self/);
-  assert.match(baseHeadline, /margin: 0;/);
-  assert.match(baseHeadline, /font-family: var\(--title-serif\);/);
-  assert.doesNotMatch(baseHeadline, /text-align/);
-  assert.match(css, /\.headline-punctuation \{[\s\S]*?font-size: 0\.7em;[\s\S]*?vertical-align: 0\.08em;/);
-  const mobileCss = css.slice(css.indexOf("@media (max-width: 760px)"));
-  const mobileHeadline = mobileCss.match(/\.intro h1 \{([\s\S]*?)\}/)?.[1] ?? "";
-  assert.doesNotMatch(mobileHeadline, /font-family/);
-});
-
-test("specification cards place back immediately left of their next action", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  assert.match(source, /const inlineBackSteps = new Set<Step>/);
-  const renderControls = source.slice(source.indexOf("function renderControls()"));
-  const ecommerceCard = renderControls.match(/case "ecommerceDetails": \{([\s\S]*?)case "printDetails": \{/)?.[1] ?? "";
-  const printCard = renderControls.match(/case "printDetails": \{([\s\S]*?)case "serviceDetails": \{/)?.[1] ?? "";
-  const serviceCard = renderControls.match(/case "serviceDetails": \{([\s\S]*?)case "printPurpose": \{/)?.[1] ?? "";
-  for (const card of [ecommerceCard, printCard, serviceCard]) {
-    assert.match(card, /className="compact-card-actions">[\s\S]*?â† è¿”å›ä¸Šä¸€æ­¥[\s\S]*?className="send-button"/);
-  }
-  assert.match(source, /const usesInlineBackNavigation = inlineBackSteps\.has\(step\)/);
-  assert.match(css, /\.compact-card-actions \{[\s\S]*?display: flex;/);
-  assert.match(css, /\.inline-back-button/);
-});
-
-test("choice-only questionnaire steps place back navigation below the choices", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  assert.match(source, /className=\{`response-area step-transition is-\$\{transitionDirection\}\$\{history\.length > 0 && !usesInlineBackNavigation/);
-  assert.match(source, /className="response-controls">\{renderControls\(\)\}<\/div>[\s\S]*?className="response-back-row"[\s\S]*?className="response-back-button"/);
-  assert.match(source, /\{step === "result" && <button type="button" onClick=\{goBack\}/);
-  assert.match(css, /\.response-area\.with-back-navigation \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\)/);
-  assert.match(css, /\.response-back-row \{[\s\S]*?justify-content: flex-start/);
-});
-
-test("questionnaire step navigation keeps reached sections available in both directions", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(source, /type JourneySection = "cooperation"[\s\S]*?"result"/);
-  assert.match(source, /const journeySectionLabels: Record<JourneySection, string>/);
-  assert.match(source, /cooperation: "åˆä½œæ–¹å¼"/);
-  assert.match(source, /services: "æœå‹™é …ç›®"/);
-  assert.match(source, /specifications: "è¦æ ¼"/);
-  assert.match(source, /const singleJourneySections: JourneySection\[\] = \["cooperation", "services", "specifications", "source", "result"\]/);
-  assert.match(source, /const monthlyJourneySections: JourneySection\[\] = \["cooperation", "services", "source", "result"\]/);
-  assert.match(source, /function getJourneySection\(step: Step\)/);
-  assert.match(source, /const \[journeyTimeline, setJourneyTimeline\] = useState<HistoryEntry\[\]>\(\[\]\)/);
-  assert.match(source, /const \[journeyPosition, setJourneyPosition\] = useState\(0\)/);
-  assert.match(source, /const history = journeyTimeline\.slice\(0, journeyPosition\)/);
-  assert.match(source, /const \[journeyFlow, setJourneyFlow\] = useState<ProjectType>\(\)/);
-  assert.match(source, /const \[journeySnapshots, setJourneySnapshots\] = useState<Partial<Record<JourneySection, HistoryEntry>>>\(\{\}\)/);
-  assert.match(source, /const journeySteps = useMemo\(\(\) => \{/);
-  assert.match(source, /const flow = answers\.projectType \?\? journeyFlow/);
-  assert.match(source, /return sections\.map\(\(section\) => \(\{/);
-  assert.match(source, /available: journeyTimeline\.some\(\(entry\) => getJourneySection\(entry\.step\) === section\)/);
-  assert.match(source, /if \(step === "projectType" && selectedProjectType\) setJourneyFlow\(selectedProjectType\)/);
-  assert.match(source, /const destinationSnapshot: HistoryEntry = \{ step: next, answers: nextAnswers, messages: nextMessages \}/);
-  assert.match(source, /current\.slice\(0, journeyPosition \+ 1\)/);
-  assert.match(source, /updated\.push\(destinationSnapshot\)/);
-  assert.match(source, /setJourneyPosition\(journeyPosition \+ 1\)/);
-  assert.match(source, /\[nextSection\]: destinationSnapshot/);
-  assert.match(source, /const previous = journeyTimeline\[journeyPosition - 1\]/);
-  assert.match(source, /setJourneyPosition\(journeyPosition - 1\)/);
-  assert.match(source, /setJourneyFlow\(undefined\)/);
-  assert.match(source, /setJourneySnapshots\(\{\}\)/);
-  assert.match(source, /setJourneyTimeline\(\[\]\)/);
-  assert.match(source, /setJourneyPosition\(0\)/);
-  assert.match(source, /function jumpToJourneySection\(section: JourneySection\)/);
-  assert.match(source, /const targetTimelineIndex = journeyTimeline\.findIndex\(\(entry\) => getJourneySection\(entry\.step\) === section\)/);
-  assert.match(source, /const target = journeySnapshots\[section\] \?\? journeyTimeline\[targetTimelineIndex\]/);
-  assert.match(source, /setJourneyPosition\(targetTimelineIndex\)/);
-  assert.match(source, /function restoreRememberedSpecifications\(current: Answers, remembered\?: Answers\)/);
-  assert.match(source, /restoreRememberedSpecifications\(patchedAnswers, journeySnapshots\.specifications\?\.answers\)/);
-  assert.match(source, /const rememberedAnswers = currentSection === "specifications"/);
-  assert.match(source, /restoreRememberedSpecifications\(currentSnapshot\.answers, current\[currentSection\]\?\.answers\)/);
-  assert.match(source, /\[currentSection\]: \{ \.\.\.currentSnapshot, answers: rememberedAnswers \}/);
-  assert.doesNotMatch(source, /å·²å¡«å…§å®¹æœƒä¿ç•™ï¼Œä¸ç”¨é€é¡Œè¿”å›/);
-  assert.doesNotMatch(source, /className="time-pill"/);
-  assert.doesNotMatch(source, /nextStep === "ecommerceDetails" \? \{ ecommerceDesignDetails: \{\}, ecommerceDetailIndex: 0 \}/);
-  assert.doesNotMatch(source, /nextStep === "printDetails" \? \{ printDesignDetails: \{\}, printDetailIndex: 0 \}/);
-  assert.doesNotMatch(source, /nextStep === "serviceDetails" \? \{ serviceDesignDetails: \{\}, serviceDetailIndex: 0 \}/);
-  assert.doesNotMatch(source, /setHistory|targetHistoryIndex/);
-  assert.match(source, /<nav className="journey-nav" aria-label="å¿«é€Ÿè·³è½‰è©¦ç®—æ­¥é©Ÿ">/);
-  assert.match(source, /journeySteps\.map\(\(item, index\) =>/);
-  assert.match(source, /disabled=\{item\.current \|\| !item\.available\}/);
-  assert.match(source, /aria-current=\{item\.current \? "step" : undefined\}/);
-  assert.match(source, /å°šæœªåˆ°é”ï¼š\$\{item\.label\}/);
-  assert.match(source, /å‰å¾€æ­¥é©Ÿï¼š\$\{item\.label\}/);
-  assert.match(source, /jumpToJourneySection\(item\.section\)/);
-  assert.match(source, /PointerEvent as ReactPointerEvent/);
-  assert.match(source, /const journeyNavListRef = useRef<HTMLDivElement>\(null\)/);
-  assert.match(source, /const journeyDragRef = useRef\(\{ active: false, pointerId: -1, startX: 0, scrollLeft: 0, moved: false \}\)/);
-  assert.match(source, /function startJourneyDrag\(event: ReactPointerEvent<HTMLDivElement>\)/);
-  assert.match(source, /function moveJourneyDrag\(event: ReactPointerEvent<HTMLDivElement>\)/);
-  const startJourneyDrag = source.match(/function startJourneyDrag\(event: ReactPointerEvent<HTMLDivElement>\) \{([\s\S]*?)function moveJourneyDrag/)?.[1] ?? "";
-  const moveJourneyDrag = source.match(/function moveJourneyDrag\(event: ReactPointerEvent<HTMLDivElement>\) \{([\s\S]*?)function endJourneyDrag/)?.[1] ?? "";
-  assert.doesNotMatch(startJourneyDrag, /setPointerCapture/);
-  assert.match(moveJourneyDrag, /if \(!drag\.moved\) \{[\s\S]*?drag\.moved = true;[\s\S]*?list\.setPointerCapture\(event\.pointerId\)/);
-  assert.match(source, /list\.scrollLeft = drag\.scrollLeft - distance/);
-  assert.match(source, /onPointerDown=\{startJourneyDrag\}/);
-  assert.match(source, /onPointerMove=\{moveJourneyDrag\}/);
-  assert.match(source, /onPointerUp=\{endJourneyDrag\}/);
-  assert.match(source, /event\.preventDefault\(\);[\s\S]*?event\.stopPropagation\(\)/);
-  assert.match(css, /\.journey-nav-list \{[\s\S]*?overflow-x: auto;[\s\S]*?overflow-y: hidden;[\s\S]*?scrollbar-width: thin;/);
-  assert.match(css, /\.journey-nav-list \{[\s\S]*?overscroll-behavior-y: none;[\s\S]*?touch-action: pan-x;[\s\S]*?cursor: grab;/);
-  assert.match(css, /\.journey-nav-list\.is-dragging,[\s\S]*?cursor: grabbing;/);
-  assert.match(css, /\.journey-nav-button\.is-current \{[\s\S]*?background: var\(--brown-dark\);/);
-  assert.match(css, /\.journey-nav-button\.is-pending,[\s\S]*?\.journey-nav-button\.is-skipped \{/);
-  assert.match(css, /\.journey-nav-button\.is-pending \{[\s\S]*?border-style: dashed;/);
-  assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.journey-nav-label \{[\s\S]*?display: none;/);
-});
-
-test("single-service specifications follow the visible service order", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const firstDestination = source.match(/function getFirstIncompleteSpecificationDestination\(answers: Answers\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
-  const nextDestination = source.match(/function getNextIncompleteSpecificationDestination\(answers: Answers, currentServiceId: string\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
-  const nextSingleDestination = source.match(/function getNextSingleSpecificationDestination\(([\s\S]*?)\n  \}/)?.[1] ?? "";
-
-  assert.match(source, /function getSelectedSpecificationServices\(answers: Answers\)[\s\S]*?return services\.filter/);
-  assert.match(source, /const specificationServices = getSelectedSpecificationServices\(answers\)/);
-  assert.match(firstDestination, /\.find\(\(service\) => !isSpecificationCompleteForAnswers\(answers, service\)\)/);
-  assert.match(nextDestination, /\.\.\.selected\.slice\(currentIndex \+ 1\), \.\.\.selected\.slice\(0, currentIndex\)/);
-  assert.match(nextDestination, /candidates\.find\(\(service\) => !isSpecificationCompleteForAnswers\(answers, service\)\)/);
-  assert.match(source, /function beginServiceQuestions\(\)[\s\S]*?getSpecificationDestination\(answers, nextService\)[\s\S]*?move\(destination\.step, destination\.patch, userText\)/);
-  assert.match(source, /function submitQuantities\([\s\S]*?getFirstIncompleteSpecificationDestination\(answers\)[\s\S]*?move\(destination\.step, destination\.patch, quantitySummary\)/);
-  assert.match(nextSingleDestination, /candidates\.find\(\(service\) => !confirmedIds\.includes\(service\.id\)\)/);
-  assert.match(source, /function confirmEcommerceDetails\([\s\S]*?advanceSingleSpecification\(activeEcommerceService\.id/);
-  assert.match(source, /function confirmPrintDetails\([\s\S]*?advanceSingleSpecification\(activeDetailedService\.id/);
-  assert.match(source, /function confirmServiceDetails\([\s\S]*?advanceSingleSpecification\(activeServiceDetailService\.id/);
-  assert.doesNotMatch(source, /function nextAfterQuantity|function nextAfterEcommerceDetails/);
-});
-
-test("category and service selection places back immediately left of confirm items", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  const renderControls = source.slice(source.indexOf("function renderControls()"));
-  const categoryStep = renderControls.match(/case "category":([\s\S]*?)case "quantity":/)?.[1] ?? "";
-  assert.match(source, /const inlineBackSteps = new Set<Step>\(\[[\s\S]*?"category"/);
-  assert.match(categoryStep, /className="multi-select-actions">[\s\S]*?â† è¿”å›ä¸Šä¸€æ­¥[\s\S]*?é–‹å§‹ç¢ºèªéœ€æ±‚ â†’/);
-  assert.match(css, /\.multi-select-actions \{[\s\S]*?display: flex;/);
-});
-
-test("all explicit primary actions keep back immediately to their left", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  const inlineSteps = source.match(/const inlineBackSteps = new Set<Step>\(\[([\s\S]*?)\]\);/)?.[1] ?? "";
-  for (const step of [
-    "category",
-    "quantity",
-    "ecommerceDetails",
-    "printDetails",
-    "serviceDetails",
-    "printPurpose",
-    "versionCount",
-    "printDeadline",
-    "sourceFile",
-    "printProduction",
-    "monthlyProfile",
-    "monthlyServices",
-    "monthlyVolume",
-  ]) {
-    assert.match(inlineSteps, new RegExp(`"${step}"`));
-  }
-  assert.match(source, /className="number-form-actions">[\s\S]*?â† è¿”å›ä¸Šä¸€æ­¥[\s\S]*?className="send-button"/);
-  assert.match(source, /className="standalone-actions">[\s\S]*?â† è¿”å›ä¸Šä¸€æ­¥[\s\S]*?ç¹¼çºŒ â†’/);
-  assert.match(source, /const usesInlineBackNavigation = inlineBackSteps\.has\(step\)/);
-  assert.match(css, /\.number-form-actions \{[\s\S]*?display: flex;/);
-  assert.match(css, /\.standalone-actions \{[\s\S]*?display: flex;/);
-});
-
-test("questionnaire omits the client budget question and finishes directly", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-
-  assert.doesNotMatch(source, /\| "budget"|case "budget"|è¨­è¨ˆé ç®—ï¼ˆé¸å¡«ï¼‰|æš«æ™‚ä¸è¨­å®šé ç®—|answers\.budget|å®¢æˆ¶é ç®—|é ç®—ç‹€æ…‹/);
-  assert.match(source, /function confirmMonthlySourceFiles\(\)[\s\S]*?move\("result"/);
-  assert.match(source, /function confirmSingleAddOns\(\)[\s\S]*?move\("result"/);
-  assert.doesNotMatch(source, /hasSelectedPrintService\(answers\) \? "printProduction" : "result"/);
-});
-
-test("monthly plans are matched after service quantities are selected", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  const renderControls = source.slice(source.indexOf("function renderControls()"));
-  const monthlyServices = renderControls.match(/case "monthlyServices":([\s\S]*?)case "sourceFile":/)?.[1] ?? "";
-  const monthlyVolume = renderControls.match(/case "monthlyVolume":([\s\S]*?)case "monthlyCadence":/)?.[1] ?? "";
-
-  assert.doesNotMatch(monthlyServices, /æ¯æœˆè¨­è¨ˆçµ„æ•¸<\/span><(?:select|input)/);
-  assert.match(monthlyServices, /æ˜¯å¦é¦–æ¬¡åˆä½œ/);
-  assert.match(monthlyServices, /selectMonthlyFirstTime\(true\)/);
-  assert.match(monthlyServices, /selectMonthlyFirstTime\(false\)/);
-  assert.match(monthlyServices, /ç¢ºèªåˆä½œç´€éŒ„å¾Œï¼Œé¸æ“‡æœå‹™èˆ‡æ•¸é‡ï¼Œç³»çµ±æœƒè‡ªå‹•é…å°æ–¹æ¡ˆ/);
-  assert.doesNotMatch(monthlyServices, /autoMatchedPrice|monthlyGroupOptions/);
-  assert.match(source, /function selectMonthlyFirstTime\(monthlyFirstTime: boolean\)[\s\S]*?matchMonthlyPlanToServices/);
-  assert.match(monthlyVolume, /<select[\s\S]*?è«‹é¸æ“‡æ¯æœˆè¨­è¨ˆçµ„æ•¸[\s\S]*?çµ„ï¼æœˆ/);
-  assert.doesNotMatch(monthlyVolume, /type="number"/);
-  assert.match(css, /\.number-form input,\s*\.number-form select/);
-});
-
-test("questionnaire buttons share the completion action proportions", async () => {
-  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
-
-  assert.match(css, /button\.send-button,\s*button\.inline-back-button,\s*button\.response-back-button \{[\s\S]*?font-family: var\(--specification-ui-sans\);[\s\S]*?font-size: 0\.74rem;[\s\S]*?font-weight: 650;[\s\S]*?line-height: 1\.4;/);
-  assert.match(css, /\.send-button \{[\s\S]*?min-height: 52px;[\s\S]*?border-radius: 11px;/);
-  assert.match(css, /\.inline-back-button \{[\s\S]*?min-height: 52px;[\s\S]*?border-radius: 11px;/);
-  assert.match(css, /\.response-back-button \{[\s\S]*?min-height: 52px;[\s\S]*?border-radius: 11px;/);
-  assert.match(css, /\.compact-check \{[\s\S]*?min-height: 47px;[\s\S]*?border-radius: 11px;/);
-  assert.doesNotMatch(css, /\.multi-select-footer \.send-button \{[^}]*min-height:/);
-  assert.doesNotMatch(css, /\.compact-card-footer \.send-button \{[^}]*min-height:/);
-  assert.match(css, /\.send-button,\s*\.inline-back-button,\s*\.response-back-button \{\s*min-height: 47px;/);
-});
-
-test("matched monthly plans show a compact specification summary", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  const renderControls = source.slice(source.indexOf("function renderControls()"));
-  const monthlyServicesStep = renderControls.match(/case "monthlyServices":([\s\S]*?)case "sourceFile":/)?.[1] ?? "";
-
-  assert.match(monthlyServicesStep, /className="matched-plan-card"/);
-  assert.match(monthlyServicesStep, /className="multi-select-wrap monthly-service-selector"[\s\S]*?className="matched-plan-card"/);
-  assert.match(monthlyServicesStep, /ä¾æœå‹™è‡ªå‹•å¸¶å…¥[\s\S]*?\{plan\.name\}/);
-  assert.match(monthlyServicesStep, /æ¯æœˆæ•¸é‡[\s\S]*?è¨ˆç®—æ–¹å¼[\s\S]*?æœå‹™ç¯„åœ[\s\S]*?äº¤ä»˜å®‰æ’/);
-  assert.match(monthlyServicesStep, /<dd>ä¾å–®æ¬¡è¨­è¨ˆè²»åˆè¨ˆ<\/dd>/);
-  assert.match(monthlyServicesStep, /äº¤ä»˜ JPGï¼PNGï¼PDF å®Œç¨¿/);
-  assert.doesNotMatch(source, /includesResize|è´ˆé€.*Resize|Resize.*è´ˆé€/);
-  assert.match(css, /\.matched-plan-specs \{[\s\S]*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
-});
-
-test("monthly plans allocate service quantities without exceeding plan rules", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  const renderControls = source.slice(source.indexOf("function renderControls()"));
-  const monthlyServicesStep = renderControls.match(/case "monthlyServices":([\s\S]*?)case "sourceFile":/)?.[1] ?? "";
-  const monthlyGroups = source.match(/const monthlyServiceGroups = \[([\s\S]*?)\];/)?.[1] ?? "";
-  const monthlySocialAdjustment = source.match(/function adjustMonthlySocialImageCount\([\s\S]*?\n  }\n\n  function adjustMonthlyProductFrameProductCount/)?.[0] ?? "";
-
-  assert.match(source, /move\("monthlyServices", \{[\s\S]*?monthlyPlanId: matchedPlan\?\.id/);
-  assert.match(source, /function adjustMonthlyServiceQuantity\(serviceId: string, change: -1 \| 1\)/);
-  assert.doesNotMatch(source, /function getMonthlyServiceUnitNote\(service: Service\)/);
-  assert.match(source, /function getMonthlyServiceGroupCost\(_service: Service\) \{\s*return 1;\s*\}/);
-  assert.doesNotMatch(source, /function getMonthlyServiceGroupCost[\s\S]*?if \(service\.id === "resize"\) return 0\.5/);
-  assert.doesNotMatch(source, /if \(service\.id === "banner"\) return 2/);
-  assert.doesNotMatch(source, /service\.category === "print"\) return 2/);
-  assert.match(source, /const maximum = service\.id === "banner" \? BANNER_MAIN_VISUAL_LIMIT : service\.category === "print" \? 2 : 10/);
-  assert.match(source, /service\.category === "other"/);
-  assert.match(source, /allocatedPrintGroups \+ groupCost > 2 \+ 0\.001/);
-  assert.match(source, /allocated \+ groupCost > 10 \+ 0\.001/);
-  assert.match(source, /function matchMonthlyPlanToServices\(answers: Answers\)/);
-  assert.match(source, /const canMatchPlan = isWholeGroup && allocatedGroups >= minimumGroups && allocatedGroups <= 10/);
-  assert.match(source, /return \{ \.\.\.answers, monthlyGroupCount, monthlyPlanId: matchedPlan\?\.id \}/);
-  assert.match(source, /function confirmMonthlyServices\(\)[\s\S]*?if \(!monthlyDistributionComplete\) return;[\s\S]*?move\("sourceFile"/);
-  assert.match(monthlyServicesStep, /monthlyServiceGroups\.map[\s\S]*?monthly-service-quantity-list/);
-  assert.match(monthlyServicesStep, /service-category-list monthly-service-category-list/);
-  assert.match(monthlyServicesStep, /service-category-panel/);
-  assert.match(monthlyServicesStep, /monthly-service-list-\$\{group\.key\}/);
-  assert.match(monthlyServicesStep, /setExpandedServiceCategory\(isExpanded \? null : group\.key\)/);
-  assert.doesNotMatch(monthlyServicesStep, /monthly-category-tabs|monthlyServiceCategory/);
-  assert.match(monthlyServicesStep, /choice monthly-service-quantity monthly-service-choice/);
-  assert.match(monthlyServicesStep, /<small>\{item\.description\}<\/small>/);
-  assert.match(monthlyServicesStep, /å–®æ¬¡åƒ¹æ ¼åƒè€ƒï¼š\{getServiceDisplayPrice\(item\)\}/);
-  assert.match(monthlyServicesStep, /æ¸›å°‘ \$\{item\.name\}[\s\S]*?å¢åŠ  \$\{item\.name\}/);
-  assert.doesNotMatch(monthlyServicesStep, /å  \$\{groupCost\} çµ„|å  1 çµ„|å  2 çµ„/);
-  assert.match(monthlyServicesStep, /å¹³é¢è¨­è¨ˆæ¯æœˆåˆè¨ˆé™ 2 çµ„ï¼Œæœªä½¿ç”¨çµ„æ•¸ä¸ç´¯ç©/);
-  assert.doesNotMatch(monthlyServicesStep, /Resizeã€ç…§ç‰‡å¾Œè£½èˆ‡æ¨¡æ¿è¨­è¨ˆè«‹ä½¿ç”¨å–®æ¬¡ä¼°åƒ¹/);
-  assert.match(monthlyServicesStep, /blockedByPrintLimit/);
-  assert.match(monthlyServicesStep, /const maximumQuantity = item\.id === "banner" \? BANNER_MAIN_VISUAL_LIMIT : item\.category === "print" \? 2 : 10/);
-  assert.match(monthlyServicesStep, /const maximumReached = quantity >= maximumQuantity/);
-  assert.match(source, /activeEcommerceService\.id === "banner" \? requiredQuantityOptions\.slice\(0, BANNER_MAIN_VISUAL_LIMIT\) : requiredQuantityOptions/);
-  assert.match(monthlyServicesStep, /requiredPageCountOptions\.filter\(\(count\) => count >= minimumPageCount\)\.map/);
-  assert.match(monthlyServicesStep, /disabled=\{answers\.monthlyFirstTime === undefined \|\| monthlyRemainingCapacity \+ 0\.001 < groupCost \|\| maximumReached \|\| blockedByPrintLimit\}/);
-  assert.match(monthlyServicesStep, /disabled=\{!monthlyDistributionComplete\}[\s\S]*?ç¢ºèªä¸¦å¸¶å…¥æ–¹æ¡ˆ â†’/);
-  assert.match(source, /function formatMonthlyServiceQuantity\(service: Service, quantity: number, concise = false, answers\?: Answers\)/);
-  assert.match(source, /service\.id === "dm" \|\| service\.id === "menu"/);
-  assert.match(source, /function getMonthlyPrintDetails\(answers: Answers, serviceId: "dm" \| "menu", quantity: number\)/);
-  assert.match(source, /savedDetails\[index\] \?\? \(index === 0 \? legacyDetail \?\? \{\} : \{\}\)/);
-  assert.match(source, /details\.join\("ï¼›"\)/);
-  assert.doesNotMatch(source, /MonthlyServiceMode|monthlyServiceModes|updateMonthlyServiceMode|åŒä¸€ä»½å¤šé /);
-  assert.match(source, /é …ç›®ï¼š\$\{selectedServices\.map\(\(item\) => formatMonthlyServiceQuantity/);
-  assert.match(monthlyServicesStep, /æ¯ç¯‡è²¼æ–‡éœ€è¦å¹¾å¼µåœ–ï¼Ÿ/);
-  assert.match(source, /if \(nextPostCount > 0\) quantities\.social = nextPostCount/);
-  assert.match(source, /return `\$\{name\} Ã—\$\{postCount\} ç¯‡ï¼ˆå…± \$\{totalImages\} å¼µï¼‰`/);
-  assert.match(monthlySocialAdjustment, /return \{ \.\.\.current, socialPostImageCounts: imageCounts \}/);
-  assert.doesNotMatch(monthlySocialAdjustment, /getMonthlyAllocatedGroups|quantities|matchMonthlyPlanToServices/);
-  assert.match(monthlyServicesStep, /ç¯‡å…§å¼µæ•¸ä¸å¢åŠ æœˆæ–¹æ¡ˆçµ„æ•¸/);
-  assert.match(monthlyServicesStep, /å¢åŠ ç¬¬ \$\{index \+ 1\} ç¯‡åœ–ç‰‡å¼µæ•¸`} disabled=\{imageCount >= SOCIAL_IMAGES_PER_POST_LIMIT\}/);
-  assert.match(monthlyServicesStep, /æ¯ç¯‡æœ€å¤š 10 å¼µåœ–ä¸¦è¨ˆ 1 çµ„/);
-  assert.match(monthlyServicesStep, /åŒç¯‡ç¬¬ 2 å¼µèµ· \$250ï½\$500ï¼å¼µ/);
-  assert.match(monthlyServicesStep, /æ¯ç‰ˆåœ–æ¡†éœ€è¦å¥—ç”¨å¹¾é …ç”¢å“ï¼Ÿ/);
-  assert.match(monthlyServicesStep, /ç¬¬ \$\{index \+ 1\} ç‰ˆåœ–æ¡†ç”¢å“æ•¸é‡/);
-  assert.match(monthlyServicesStep, /æ¯ç‰ˆå« 1 é …ç”¢å“ï¼›æ¯è¿½åŠ  1 é … \+\$70ï¼Œä¸å¢åŠ æœˆæ–¹æ¡ˆçµ„æ•¸/);
-  assert.doesNotMatch(monthlyServicesStep, /å¥—ç”¨ç”¢å“ç¸½æ•¸/);
-  assert.match(source, /function getMonthlyCardDetails\(answers: Answers, quantity: number\)/);
-  assert.match(monthlyServicesStep, /monthlyCardDetails\.map\(\(monthlyCardDetail, versionIndex\)/);
-  assert.match(monthlyServicesStep, /å·²é¸ \{quantity\} æ¬¾ï¼Œè«‹åˆ†åˆ¥é¸æ“‡æ¯æ¬¾çš„è¦æ ¼/);
-  assert.match(monthlyServicesStep, /æœˆæ–¹æ¡ˆåç‰‡ï¼æœƒå“¡å¡ç¬¬\$\{versionIndex \+ 1\}æ¬¾å–®é¢æˆ–é›™é¢/);
-  assert.match(monthlyServicesStep, /<option value="single">å–®é¢<\/option>[\s\S]*?<option value="double">é›™é¢<\/option>/);
-  assert.doesNotMatch(monthlyServicesStep, /å–®é¢ \$1,000ï½\$1,500ï¼æ¬¾|é›™é¢ \$1,200ï½\$2,200ï¼æ¬¾|æ¯æ¬¾ \+\$300/);
-  assert.match(source, /getMonthlyCardDetails\(answers, quantity\)\.forEach\(\(detail\)/);
-  assert.match(source, /reference\.designLow \+= range\.low/);
-  assert.match(source, /reference\.designHigh \+= range\.high/);
-  assert.match(monthlyServicesStep, /monthlyPrintServiceId = item\.id === "dm" \|\| item\.id === "menu" \? item\.id : undefined/);
-  assert.match(monthlyServicesStep, /monthlyPrintDetails\.map\(\(monthlyPrintDetail, versionIndex\)/);
-  assert.match(monthlyServicesStep, /å·²é¸ \{quantity\} é …ï¼Œè«‹åˆ†åˆ¥å¡«å¯«æ¯å€‹ç‰ˆæœ¬çš„è¦æ ¼/);
-  assert.match(monthlyServicesStep, /aria-label=\{`æœˆæ–¹æ¡ˆ\$\{item\.name\}ç¬¬\$\{versionIndex \+ 1\}é …æˆå“çµæ§‹`\}/);
-  assert.match(monthlyServicesStep, /getPrintStructureOptions\(monthlyPrintServiceId\)/);
-  assert.match(monthlyServicesStep, /aria-label=\{`æœˆæ–¹æ¡ˆ\$\{item\.name\}ç¬¬\$\{versionIndex \+ 1\}é …æŠ˜é æ–¹å¼`\}/);
-  assert.match(monthlyServicesStep, /aria-label=\{`æœˆæ–¹æ¡ˆ\$\{item\.name\}ç¬¬\$\{versionIndex \+ 1\}é …å°ºå¯¸èˆ‡æ–¹å‘`\}/);
-  assert.doesNotMatch(monthlyServicesStep, /æä¾›åˆç¨¿æ’ç¨‹|timelineLabels|dmDetail\.timeline/);
-  assert.match(monthlyServicesStep, /FoldChoice key={value} fold={value}/);
-  assert.match(monthlyServicesStep, /ä¸»è¦ç”¨é€”ï¼ˆå–®é¸ï¼‰/);
-  assert.match(monthlyServicesStep, /name=\{`monthly-\$\{monthlyPrintServiceId\}-\$\{versionIndex\}-purpose`\}/);
-  assert.doesNotMatch(monthlyServicesStep, /toggleMonthlyDmPurpose|selectMonthlyDmPurpose|ä¸»è¦ç”¨é€”ï¼ˆå¯è¤‡é¸ï¼‰/);
-  assert.match(monthlyServicesStep, /æ–‡å­—å…§å®¹[\s\S]*?ç´ æç‹€æ³[\s\S]*?å»¶ä¼¸ç‰ˆæœ¬[\s\S]*?è¦–è¦ºè¤‡é›œåº¦[\s\S]*?å®Œç¨¿æœŸé™/);
-  assert.match(monthlyServicesStep, /å¥—ç”¨å¸¸è¦‹å°ºå¯¸/);
-  assert.match(monthlyServicesStep, /ç¸½è¨­è¨ˆé æ•¸ <small>ï¼ˆå«å°é¢ã€å°åº•ï¼‰<\/small>/);
-  assert.match(monthlyServicesStep, /aria-label=\{`æœˆæ–¹æ¡ˆ\$\{item\.name\}ç¬¬\$\{versionIndex \+ 1\}é …ç¸½è¨­è¨ˆé æ•¸`\}[\s\S]*?requiredPageCountOptions\.filter\(\(count\) => count >= minimumPageCount\)\.map/);
-  assert.match(monthlyServicesStep, /<option value="custom">è‡ªè¨‚é æ•¸<\/option>/);
-  assert.match(monthlyServicesStep, /aria-label=\{`æœˆæ–¹æ¡ˆ\$\{item\.name\}ç¬¬\$\{versionIndex \+ 1\}é …è‡ªè¨‚ç¸½è¨­è¨ˆé æ•¸`\}/);
-  assert.match(monthlyServicesStep, /className="custom-page-count-input"/);
-  assert.match(monthlyServicesStep, /pageCount: parseOptionalPositiveInteger\(event\.target\.value\)/);
-  assert.match(monthlyServicesStep, /é æ•¸ä¸å¢åŠ æœˆæ–¹æ¡ˆçµ„æ•¸ï¼›ç¬¬ 2 é èµ·ä¾è¿½åŠ é åƒ¹æ ¼è¨ˆç®—ï¼Œä¸¦å¥—ç”¨æœˆæ–¹æ¡ˆå„ªæƒ /);
-  assert.match(source, /getMonthlyPrintDetails\(answers, item\.id, quantity\)\.flatMap/);
-  assert.match(source, /quantity > 1 \? `\$\{item\.name\}ç¬¬ \$\{index \+ 1\} é …` : item\.name/);
-  assert.doesNotMatch(source, /å‚³å–®ï¼DMæä¾›åˆç¨¿æ’ç¨‹/);
-  assert.match(source, /\(\["dm", "menu"\] as const\)\.forEach/);
-  assert.match(source, /const prefix = quantity > 1 \? `\$\{service\.name\}ç¬¬ \$\{index \+ 1\} é …` : service\.name/);
-  assert.match(source, /`\$\{prefix\}ç”¨é€”ï¼š\$\{detail\.purposes/);
-  assert.match(source, /`\$\{prefix\}è¦æ ¼ï¼š\$\{specification\.join/);
-  assert.match(source, /`\$\{prefix\}å…§å®¹ï¼š\$\{content\.join/);
-  assert.match(source, /`\$\{prefix\}è¦–è¦ºï¼å®Œç¨¿ï¼š\$\{schedule\.join/);
-  assert.match(source, /detail\.structure === "multipage" && detail\.pageCount[\s\S]*?`\$\{structure\}ãƒ»\$\{detail\.pageCount\} é `/);
-  assert.match(source, /monthlyMissingDetailLabels/);
-  assert.match(css, /\.monthly-service-selector \{[\s\S]*?border-radius: 13px;/);
-  assert.match(css, /\.monthly-quantity-stepper \{[\s\S]*?grid-template-columns: 34px 30px 34px/);
-  assert.match(css, /\.monthly-print-version-list \{[\s\S]*?display: grid;/);
-  assert.match(css, /\.monthly-print-version \{[\s\S]*?border-radius: 10px;/);
-  assert.match(monthlyGroups, /key: "ecommerce"[\s\S]*?key: "print"/);
-  assert.doesNotMatch(monthlyGroups, /key: "resize"|serviceIds: \["resize"\]/);
-  assert.doesNotMatch(monthlyGroups, /key: "other"|å…¶ä»–è¨­è¨ˆæœå‹™/);
-});
-
-test("monthly pricing discounts the selected one-time services without discounting add-ons", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(source, /const monthlyDiscountRates:[\s\S]*?3: 0\.95[\s\S]*?4: 0\.92[\s\S]*?6: 0\.9[\s\S]*?8: 0\.88[\s\S]*?10: 0\.88/);
-  assert.match(source, /function getMonthlyDiscountRate/);
-  assert.match(source, /const monthlyReference = getMonthlyPricingReference\(answers\)/);
-  assert.match(source, /const discountedDesign = getMonthlyDiscountedDesignRange\(answers\)/);
-  assert.match(source, /const socialVolumeDiscountPercent = 5/);
-  assert.doesNotMatch(source, /monthlyCombinedDiscountPercentCap|getMonthlySocialCombinedDiscountPercent|hasMonthlySocialCombinedDiscount|socialPayableRate/);
-  assert.match(source, /low: roundMonthlyPrice\(reference\.designLow \* discountRate\)/);
-  assert.match(source, /answers\.projectType === "single" && service\.id === "social" && quantity >= 10/);
-  assert.match(source, /baseLow = discountedDesignLow/);
-  assert.match(source, /addonLow = monthlyReference\.addonLow/);
-  assert.match(source, /function getMonthlyPricingReference/);
-  assert.match(source, /const pageCount = detail\.structure === "multipage"[\s\S]*?Math\.max\(1, detail\.pageCount \?\? 1\)/);
-  assert.doesNotMatch(source, /Math\.max\(2, detail\.pageCount \?\? 2\)/);
-  assert.match(source, /getMonthlyPrintDetails\(answers, service\.id, quantity\)\.forEach\(\(detail\)/);
-  assert.match(source, /reference\.designLow \+= service\.low \+ extraPageCount \* 600/);
-  assert.match(source, /reference\.designHigh \+= service\.high \+ extraPageCount \* 800/);
-  assert.doesNotMatch(source, /reference\.addonLow \+= extraPageCount \* 600/);
-  assert.doesNotMatch(source, /reference\.addonHigh \+= extraPageCount \* 800/);
-  assert.match(source, /return total \+ Math\.max\(0, answers\.quantities\[serviceId\] \?\? 0\) \* getMonthlyServiceGroupCost\(service\)/);
-  assert.match(source, /function getMonthlySingleReference/);
-  assert.match(source, /function getMonthlyComparison/);
-  assert.match(source, /singleSocialPayableRate = \(100 - socialVolumeDiscountPercent\) \/ 100/);
-  assert.match(source, /å–®æ¬¡åˆè¨ˆåƒè€ƒå·²å¥—ç”¨ç¤¾ç¾¤åœ–æ–‡ç¸½åœ–æ»¿ 10 å¼µçš„ 5% å„ªæƒ ï¼›æœˆæ–¹æ¡ˆä»åªå¥—ç”¨çµ„æ•¸æŠ˜æ‰£/);
-  assert.match(source, /å–®æ¬¡æ»¿ 10 å¼µå·²å¥—ç”¨ 5% å„ªæƒ /);
-  assert.match(source, /èˆ‡å–®æ¬¡å„ªæƒ å¾Œç›¸è¿‘/);
-  assert.match(source, /å•†å“ä¸»åœ–å¥—ç‰ˆï½œè¿½åŠ ç”¢å“/);
-  assert.doesNotMatch(source, /ç¶²é  Bannerï½œä¸»è¦–è¦ºå»¶ä¼¸åŠ è³¼/);
-  assert.doesNotMatch(source, /\$\{service\.name\}ï½œè¿½åŠ é æ•¸/);
-  assert.match(source, /ç¶²ç«™ä¸»è¦–è¦ºå»¶ä¼¸èˆ‡å®£å‚³å–®ï¼èœå–®å¤šé ä¾åŠ åƒ¹è¨ˆç®—ä¸¦å¥—ç”¨æœˆæ–¹æ¡ˆå„ªæƒ /);
-  assert.match(source, /const serviceAddonRows = monthlyAddonBreakdown\.filter\(\(item\) => item\.label\.startsWith\(`\$\{service\.name\}ï½œ`\)\)/);
-  assert.match(source, /return \[designFeeRow, \.\.\.serviceAddonRows\]/);
-  assert.doesNotMatch(source, /\.\.\.monthlyAddonBreakdown,\n\s*\]/);
-  assert.match(source, /const addonRows = monthlyPdfAddonRows[\s\S]*?item\.label\.startsWith\(`\$\{service\.name\}ï½œ`\)/);
-  assert.match(source, /label: item\.label\.replace\(`\$\{service\.name\}ï½œ`, `é …æ¬¡ \$\{serviceIndex \+ 1\}ãƒ»`\)/);
-  assert.match(source, /ä¸å¥—ç”¨æœˆæ–¹æ¡ˆæŠ˜æ‰£/);
-  assert.match(source, /å·²å¥—ç”¨æœˆæ–¹æ¡ˆ \$\{formatMonthlyDiscount\(discountRate\)\}/);
-  assert.match(source, /IGï¼FB ç¤¾ç¾¤åœ–æ–‡ç¸½åœ–æ»¿ 10 å¼µçš„ 5% å„ªæƒ åƒ…é©ç”¨å–®æ¬¡æœå‹™ï¼Œæœˆæ–¹æ¡ˆä¸é©ç”¨/);
-  assert.match(source, /ç¸½åœ–æ»¿ 10 å¼µçš„ 5% å„ªæƒ åƒ…é©ç”¨å–®æ¬¡æœå‹™ï¼Œæœˆæ–¹æ¡ˆä¸é©ç”¨/);
-  assert.match(source, /åŸå§‹æª”å¦è¡Œç¢ºèªï¼›ä»£è¾¦å°åˆ·æ–¼åˆä½œç¢ºèªæ™‚å¦è¡Œä¼°åƒ¹ï¼Œå‡ä¸è¨ˆå…¥ç¶²ç«™åˆä¼°/);
-  assert.match(source, /å–®æ¬¡å§”è¨—åƒè€ƒ/);
-  assert.match(source, /className=\{`monthly-comparison/);
-  assert.match(css, /\.monthly-comparison \{/);
-});
-
-test("calculator and PDF state cooperation terms without tax and invoice wording", async () => {
-  const source = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-
-  assert.match(source, /ä»˜æ¬¾æ–¹å¼ï¼š20% è¨‚é‡‘ã€80% å°¾æ¬¾/);
-  assert.match(source, /æ¯æ¡ˆå« 3 æ¬¡ç´°ç¯€ä¿®æ”¹ï¼Œä¸å«é‡æ–°è¨­å®šä¸»è¦–è¦ºæ–¹å‘ï¼›è¶…å‡º 3 æ¬¡ï¼Œè²»ç”¨ \$300 èµ·ï¼æ¬¡/);
-  assert.match(source, /æ¯çµ„å« 3 æ¬¡ç´°ç¯€ä¿®æ”¹ï¼Œä¸å«é‡æ–°è¨­å®šä¸»è¦–è¦ºæ–¹å‘ï¼›è¶…å‡º 3 æ¬¡ï¼Œè²»ç”¨ \$300 èµ·ï¼æ¬¡/);
-  assert.match(source, /å–®æ¬¡æœå‹™ç¢ºèªåˆä½œä¸¦æ”¯ä»˜è¨‚é‡‘å¾Œï¼Œå¦‚å–æ¶ˆåˆä½œï¼Œ20% è¨‚é‡‘ä¸äºˆé€€é‚„/);
-  assert.doesNotMatch(source, /é€²å…¥è£½ä½œå¾Œæ•ä¸é€€æ¬¾/);
-  assert.match(source, /æœˆæ–¹æ¡ˆå¦‚éœ€å–æ¶ˆæˆ–èª¿æ•´ï¼Œæœ€æ™šæ–¼è£½ä½œå‰ 2 æ—¥å‘ŠçŸ¥ï¼›å·²é–‹å§‹è£½ä½œçš„éƒ¨åˆ†ä¸äºˆé€€æ¬¾/);
-  assert.match(source, /åƒ…å°šæœªé–‹å§‹è£½ä½œçš„éƒ¨åˆ†å¯ä¾å¯¦éš›é€²åº¦è©•ä¼°é€€æ¬¾/);
-  assert.match(source, /const singlePdfTermsRows:[\s\S]*?æ¯æ¡ˆå« 3 æ¬¡ç´°ç¯€ä¿®æ”¹ï¼›æ›´æ›æ•´é«”æ–¹å‘æˆ–è¶…éæ¬¡æ•¸å°‡å¦è¡Œå ±åƒ¹ã€‚[\s\S]*?ç¢ºèªåˆä½œå¾Œå¦‚å–æ¶ˆï¼Œ20% è¨‚é‡‘ä¸é€€ã€‚[\s\S]*?label: "ä»˜æ¬¾æ–¹å¼"/);
-  assert.match(source, /const monthlyPdfTermsRows:[\s\S]*?æ¯çµ„å« 3 æ¬¡ç´°ç¯€ä¿®æ”¹ï¼›æ›´æ›æ•´é«”æ–¹å‘æˆ–è¶…éæ¬¡æ•¸å°‡å¦è¡Œå ±åƒ¹ã€‚[\s\S]*?å–æ¶ˆæˆ–èª¿æ•´è«‹æ–¼è£½ä½œå‰ 2 æ—¥å‘ŠçŸ¥ï¼›å·²é–‹å§‹è£½ä½œçš„éƒ¨åˆ†ä¸é€€æ¬¾ã€‚[\s\S]*?åŸå§‹æª”èˆ‡ä»£è¾¦å°åˆ·è²»ç”¨å¦è¨ˆã€‚[\s\S]*?label: "ä»˜æ¬¾æ–¹å¼"/);
-  assert.doesNotMatch(source, /æœªåŸ·è¡Œéƒ¨åˆ†å¯è©•ä¼°é€€æ¬¾|è‹¥å°šæœªå®Œæˆ/);
-  assert.match(source, /const pdfSummaryLines = summaryLines\.slice\(1, -1\)/);
-  assert.doesNotMatch(source, /ç¨…é‡‘èˆ‡ç™¼ç¥¨/);
-  assert.doesNotMatch(source, /40% è¨‚é‡‘|60% å°¾æ¬¾/);
-});
-
-test("reviewed summaries and PDFs omit redundant or empty information", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.doesNotMatch(source, /monthlyContent|monthlyContentLabels|ä¸»è¦è¨­è¨ˆé¡å‹/);
-  assert.match(source, /answers\.projectType === "monthly"[\s\S]*?"æ’ç¨‹å‰ç¢ºèª"/);
-  assert.match(source, /answers\.projectType === "monthly" && plan \? "å°šæœªé¸æ“‡æœå‹™"/);
-  assert.doesNotMatch(source, /answers\.budget|<dt>é ç®—ç‹€æ…‹<\/dt>|å®¢æˆ¶é ç®—/);
-  assert.match(source, /activeServiceDetailService\.id === "photo" \? "å¥—ç”¨å¸¸è¦‹è¨­å®š" : "å¥—ç”¨å¸¸è¦‹å°ºå¯¸"/);
-  assert.doesNotMatch(source, /\$\{service\.name\}å¾…ç¢ºèªï¼š\$\{pending\.join\("ã€"\)\}/);
-  assert.doesNotMatch(source, /line\.startsWith\(`\$\{service\.name\}å¾…ç¢ºèªï¼š`\)/);
-  assert.doesNotMatch(source, /æ–‡æ¡ˆå°šæœªç¢ºå®š|ç´ æå°šæœªç¢ºå®š|è£½ä½œç¨‹åº¦å°šæœªç¢ºå®š|è¦–è¦ºå°šæœªç¢ºå®š/);
-  assert.match(source, /function formatExtensionSummary/);
-  assert.match(source, /å»¶ä¼¸ç‰ˆæœ¬ Ã—\$\{count\}ï¼ˆåŒç‰ˆæ›å…§å®¹ï¼›ä¸å«é‡æ’ï¼Resizeï¼‰/);
-  assert.match(source, /å„ªæƒ å¹…åº¦ï¼šå–®æ¬¡è¨­è¨ˆè²»åˆè¨ˆï¼ˆå« Banner ä¸»è¦–è¦ºå»¶ä¼¸èˆ‡ DMï¼èœå–®å¤šé ï¼‰Ã— \$\{formatMonthlyDiscount/);
-  assert.match(source, /ç‰¹æ®Šè¨ˆåƒ¹ï¼š\$\{monthlyCooperationNotes\[1\]\}/);
-  assert.match(source, /const summaryServiceItems = selectedServices\.map/);
-  assert.match(source, /function formatLiveSummaryServiceQuantity/);
-  assert.match(source, /service\.pricing === "dm"[\s\S]*?Ã—\$\{quantity\} é /);
-  assert.match(source, /summaryServiceItems\.map\(\(item\) => <span key=\{item\}>\{item\}<\/span>\)/);
-  assert.doesNotMatch(source, /è´ˆé€.*Resize|Resize.*è´ˆé€|Resize 1 å¼µ/);
-  assert.match(source, /<dt>åŸå§‹æª”<\/dt>[\s\S]*?\{monthlySourceFileCount\} ä»½ãƒ»è²»ç”¨å¦è¡Œç¢ºèª/);
-  assert.match(source, /<dt>é…å°æ–¹æ¡ˆ<\/dt>[\s\S]*?plan\.name[\s\S]*?answers\.monthlyGroupCount/);
-  assert.doesNotMatch(source, /<dt>æ–¹æ¡ˆæ¯”è¼ƒ<\/dt>/);
-  assert.match(source, /selectedServices\.some\(\(service\) => service\.category === "print"\)[\s\S]*?å¹³é¢è¨­è¨ˆæ¯æœˆåˆè¨ˆé™ 2 çµ„/);
-  assert.match(source, /æœˆæ–¹æ¡ˆåŸå§‹æª”åŠ è³¼ï¼ˆ\$\{sourceFileSelections\.map/);
-  assert.doesNotMatch(source, /æŠ˜ç®—å¾Œè¨­è¨ˆè²» Ã— 50%|å…¨æ•¸åŠ è³¼åˆè¨ˆæœ€é«˜/);
-  assert.match(source, /ç´™å¼µï¼ˆé¸å¡«ï¼‰/);
-  assert.match(source, /åŠ å·¥ï¼ˆé¸å¡«ï¼‰/);
-  assert.doesNotMatch(source, /å°é‡å¾…ç¢ºèª|ç´™å¼µå¾…ç¢ºèª|åŠ å·¥å¾…ç¢ºèª/);
-  assert.match(source, /å°é‡ã€ç´™å¼µèˆ‡åŠ å·¥çš†å¯ç•™ç©ºï¼Œæ­£å¼åˆä½œæ™‚å†ç¢ºèª/);
-  assert.match(source, /ç¢ºèªåˆä½œç´€éŒ„å¾Œï¼Œé¸æ“‡æœå‹™èˆ‡æ•¸é‡ï¼Œç³»çµ±æœƒè‡ªå‹•é…å°æ–¹æ¡ˆ/);
-  assert.match(source, /<summary>æŸ¥çœ‹å–®æ¬¡èˆ‡æœˆæ–¹æ¡ˆæ¯”è¼ƒ<\/summary>/);
-  assert.match(source, /<summary>æŸ¥çœ‹åˆä½œèˆ‡ä»˜æ¬¾é‡é»<\/summary>/);
-  assert.match(source, /<summary>æŸ¥çœ‹è¨ˆåƒ¹è¦å‰‡<\/summary>/);
-  assert.match(source, /label: `é …æ¬¡ \$\{serviceIndex \+ 1\}ãƒ»\$\{row\.label\}`/);
-  assert.match(source, /label !== "é …ç›®" && label !== "åŸå§‹æª”"/);
-  assert.match(source, /conciseLabel === "è¦–è¦ºï¼æ’ç¨‹"[\s\S]*?\? "æ’ç¨‹"/);
-  assert.match(source, /`\$\{structure\}ãƒ»\$\{detail\.pageCount\} é `/);
-  assert.match(source, /specification\?\.support \? \{ \.\.\.specification, support: true \} : \{ support: false \}/);
-  assert.doesNotMatch(source, /specification\.support && \(!specification\.paper \|\| !specification\.finish\)/);
-  assert.match(source, /å¾éœ€æ±‚é–‹å§‹é€é …ç¢ºèªï¼Œè®“è¤‡é›œçš„è¨­è¨ˆä¼°åƒ¹è®Šå¾—æ›´æ¸…æ¥šã€‚/);
-  assert.doesNotMatch(source, /\d+[ï½~]\d+ åˆ†é˜|å–®é …ç´„.*åˆ†é˜/);
-  assert.match(css, /\.price-breakdown-copy \{[\s\S]*?white-space: pre-line;/);
-});
-
-test("live summary and downloaded PDF explain each price calculation", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(source, /type PriceBreakdownItem = \{[\s\S]*?detail: string/);
-  assert.match(source, /function getServicePriceBasis/);
-  assert.match(source, /æ¯ç¯‡é¦–å¼µï¼Œå…± \$\{socialPricing\.postCount\} å¼µ Ã—/);
-  assert.match(source, /è¿½åŠ ç”¢å“ \$\{extraProductCount\} é … Ã— \$70/);
-  assert.match(source, /è©²é …è¨­è¨ˆè²» Ã— 50%/);
-  assert.match(source, /è©²é …è¨­è¨ˆè²» Ã— 15%/);
-  assert.match(source, /className="live-breakdown" aria-label="å³æ™‚è²»ç”¨æ˜ç´°" aria-live="polite"/);
-  assert.match(source, /detail\.structure === "multipage"[\s\S]*?detail\.pageCount \? `\$\{detail\.pageCount\} é ` : "é æ•¸å¾…å¡«"/);
-  assert.match(source, /quote\.breakdown\.map\(\(item\) => `\$\{item\.label\}:\$\{item\.detail\}/);
-  assert.match(source, /å³å´ç‚ºå°è¨ˆ/);
-  assert.match(source, /compactSummaryServiceNames\(item\.label\)/);
-  assert.match(source, /<small>\{item\.detail\}<\/small>/);
-  assert.match(source, /lines\.push\(`\$\{item\.label\}ï¼š\$\{item\.detail\}\\n\$\{formatPriceRange/);
-  assert.match(source, /serviceRows\.push\(\{ label: "è¨ˆç®—ä¾æ“š", value: getServicePriceBasis\(answers, service\) \}\)/);
-  assert.match(source, /åŸå§‹æª”åŠ è³¼ï¼š\$\{getSourceFilePriceBasis\(service, quantity\)\} =/);
-  assert.match(source, /å°åˆ·ä»£è¾¦æœå‹™è²»ï¼šè¨­è¨ˆè²» Ã— 15% =/);
-  assert.match(css, /\.live-breakdown-list \{[\s\S]*?max-height: 178px/);
-  assert.match(css, /\.summary-list,[\s\S]*?\.live-breakdown,[\s\S]*?\.summary-help/);
-});
-
-test("inquiry capture uses one required contact method and a three-day reply window", async () => {
-  const [source, api, record, dashboard, worker] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/[id]/inquiry-record.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(source, /é€šå¸¸æ–¼ 3 å€‹å·¥ä½œæ—¥å…§å›è¦†/);
-  assert.match(source, /éœ€æ±‚å·²é€å‡ºï¼Œå°‡æœƒç›¡å¿«èˆ‡æ‚¨è¯çµ¡/);
-  assert.match(source, /é€å‡ºå¾Œæœƒä¿ç•™æœ¬æ¬¡è©¦ç®—å…§å®¹ï¼Œä¸¦åŒæ­¥åˆ°éœ€æ±‚ç®¡ç†å¾Œå°ï¼Œå¾ŒçºŒå°‡æœƒèˆ‡æ‚¨è¯ç¹«/);
-  assert.match(source, /<details className="inquiry-capture" open>/);
-  assert.match(source, /"é€å‡ºéœ€æ±‚ â†’"/);
-  assert.match(source, /https:\/\/samdesign-questionnaire\.samdesign-studio\.workers\.dev\/api\/inquiries/);
-  assert.doesNotMatch(source, /usesStaticContactFlow|setUsesStaticContactFlow/);
-  assert.match(source, /å¸¶è‘—éœ€æ±‚èˆ‡æˆ‘è¯ç¹«/);
-  assert.match(source, /function copyLineInquirySummary\(\)/);
-  assert.match(source, /const lineInquirySummaryLines = useMemo/);
-  assert.match(source, /æ‚¨å¥½ï¼Œæˆ‘æƒ³è©¢å•æ­£å¼å ±åƒ¹èˆ‡æª”æœŸã€‚/);
-  assert.match(source, /åˆä½œæ–¹å¼ï¼š\$\{isMonthly \? "æœˆæ–¹æ¡ˆ" : "å–®æ¬¡è¨­è¨ˆ"\}/);
-  assert.match(source, /éœ€æ±‚ï¼š\$\{serviceSummary\}/);
-  assert.match(source, /äº¤æœŸï¼šç´„ \$\{schedules\.join\("ï¼"\)\}/);
-  assert.match(source, /åˆä¼°ï¼š\$\{formatPriceRange\(quote\.low, quote\.high\)\}/);
-  assert.match(source, /navigator\.clipboard\.writeText\(lineInquirySummaryLines\.join\("\\n"\)\)/);
-  assert.match(source, /onClick=\{\(\) => \{ void copyLineInquirySummary\(\); \}\}/);
-  assert.match(source, /éœ€æ±‚æ‘˜è¦å·²è¤‡è£½ï¼›é€²å…¥ LINE èŠå¤©å®¤å¾Œè«‹è²¼ä¸Š/);
-  assert.match(source, /é»æ“Šè¯ç¹«æŒ‰éˆ•æœƒå…ˆè¤‡è£½éœ€æ±‚æ‘˜è¦ï¼›é€²å…¥ LINE èŠå¤©å®¤å¾Œè«‹è²¼ä¸Š/);
-  assert.doesNotMatch(source, /é€šå¸¸æ–¼ 1 å€‹å·¥ä½œæ—¥å…§å›è¦†|æˆ‘å€‘æœƒç›¡å¿«èˆ‡ä½ è¯çµ¡|name="email"|Email \*/);
-  assert.doesNotMatch(source, /å„²å­˜é€™ä»½éœ€æ±‚ï¼Œäº¤çµ¦æˆ‘å€‘æ¥çºŒç¢ºèª|å¸¶è‘—éœ€æ±‚å‰å¾€ LINE/);
-  assert.match(source, /<span>æ‚¨çš„è¯çµ¡æ–¹å¼ \*<\/span><input name="contact"[\s\S]*?required/);
-  assert.match(source, /å“ç‰Œï¼å…¬å¸ï¼ˆé¸å¡«ï¼‰[\s\S]*?placeholder="å¯ç•™ç©º"/);
-  assert.match(api, /if \(!clientName \|\| !contact \|\| !projectType \|\| services\.length === 0\)/);
-  assert.match(api, /è«‹å¡«å¯«å§“åèˆ‡è¯çµ¡æ–¹å¼ï¼Œä¸¦å®Œæˆéœ€æ±‚è©¦ç®—/);
-  assert.match(api, /https:\/\/sam22391577\.github\.io/);
-  assert.match(api, /export async function OPTIONS\(request: Request\)/);
-  assert.match(api, /access-control-allow-origin/);
-  assert.match(worker, /\["POST", "OPTIONS"\]\.includes\(request\.method\)/);
-  assert.match(record, /const contactValue = inquiry\.contact \|\| inquiry\.email \|\| "æœªå¡«å¯«"/);
-  assert.match(record, /<span>æ‚¨çš„è¯çµ¡æ–¹å¼<\/span><button className=\{`record-contact-copy[\s\S]*?<strong>\{contactValue\}<\/strong>/);
-  assert.doesNotMatch(record, /å…¶ä»–è¯çµ¡æ–¹å¼|å¯„é€ Email/);
-  assert.match(dashboard, /contact: row\.contact \|\| row\.email \|\| "æœªå¡«å¯«"/);
-  assert.match(dashboard, /\["ç·¨è™Ÿ", "æ”¶åˆ°æ™‚é–“", "å®¢æˆ¶", "å“ç‰Œï¼å…¬å¸", "è¯çµ¡æ–¹å¼"/);
-});
-
-test("inquiry dashboard uses task-focused groups and plain-language controls", async () => {
-  const [dashboard, record, workflow, css] = await Promise.all([
-    readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/[id]/inquiry-record.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/workflow-options.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/inquiries.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(dashboard, /type StatusView = "todo" \| "active" \| "done" \| "all"/);
-  assert.match(dashboard, /\{ key: "active", label: "è¿½è¹¤ä¸­" \}/);
-  assert.match(dashboard, /\{ key: "done", label: "å·²å®Œæˆ" \}/);
-  assert.match(dashboard, /activeFilter === "active" && \["waiting_client", "scheduled", "paused"\]\.includes/);
-  assert.match(dashboard, /<span>æ”¶åˆ°æ™‚é–“<\/span><select value=\{dateFilter\}/);
-  assert.match(dashboard, /<h1>å®¢æˆ¶å·¥ä½œå°<\/h1>/);
-  assert.match(dashboard, /<h2>å®¢æˆ¶èˆ‡éœ€æ±‚<\/h2>/);
-  assert.match(dashboard, /<th>ç¶²ç«™åˆä¼°<\/th><th>å›è¦†ç‹€æ³<\/th><th>ä¸‹æ¬¡è¿½è¹¤<\/th><th>æ¡ˆä»¶é€²åº¦<\/th>/);
-  assert.match(dashboard, /<h2 id="follow-up-title">è¿‘æœŸè¿½è¹¤æ’ç¨‹<\/h2>/);
-  assert.match(dashboard, /å¾…æˆ‘å›è¦†/);
-  assert.match(dashboard, /ç­‰å¾…å®¢æˆ¶/);
-  assert.match(dashboard, /ä»Šæ—¥è¿½è¹¤/);
-  assert.match(dashboard, /å·²é€¾æœŸ/);
-  assert.match(dashboard, /<span>å¿«é€Ÿè™•ç†<\/span>/);
-  assert.match(dashboard, /è®Šæ›´å®‰æ’/);
-  assert.match(dashboard, /quickWorkflowOpen/);
-  assert.match(dashboard, /å¥—ç”¨å®‰æ’/);
-  assert.match(dashboard, /name="nextAction" value=\{action\.value\}/);
-  assert.doesNotMatch(dashboard, /followUpPresets\.map|è¿½è¹¤æ™‚é–“è¨­ç‚º3 å¤©å¾Œ|è¿½è¹¤æ™‚é–“è¨­ç‚º5 å¤©å¾Œ/);
-  assert.match(dashboard, /èª¿æ•´æ—¥æœŸ/);
-  assert.match(dashboard, />å…¶ä»–è™•ç†</);
-  assert.doesNotMatch(dashboard, /name="nextAction" maxLength/);
-  assert.match(dashboard, /é€™ä½å®¢æˆ¶å¦æœ‰ \{relatedInquiries\.length\} ç­†éœ€æ±‚/);
-  assert.doesNotMatch(dashboard, /é€™ä½å®¢æˆ¶çš„æ­·å²éœ€æ±‚|å¯„é€ Email|<h3>è¯çµ¡èˆ‡è² è²¬<\/h3>/);
-  assert.match(dashboard, /detailInquiry\.services\.slice\(0, 2\)/);
-  assert.match(dashboard, /detailInquiry\.summary\.slice\(0, 3\)/);
-  assert.match(dashboard, />æŸ¥çœ‹éœ€æ±‚<\/button>/);
-  assert.match(dashboard, />æŸ¥çœ‹å®Œæ•´å…§å®¹<\/a>/);
-  assert.match(dashboard, />ä¸‹è¼‰è³‡æ–™<\/button>/);
-  assert.match(dashboard, />æ›´æ–°ç‹€æ…‹<\/button>/);
-  assert.doesNotMatch(dashboard, /é€²è¡Œä¸­çš„æ´½è«‡|å„ªå…ˆå±¤ç´š|å¿«é€ŸæŸ¥çœ‹|é–‹å•Ÿå®Œæ•´è³‡æ–™|åŒ¯å‡º CSV/);
-  assert.match(record, /<span>å„ªå…ˆé †åº<\/span>/);
-  assert.match(record, /<h2>è¯çµ¡èˆ‡æ’ç¨‹<\/h2>/);
-  assert.match(record, /æ¨™è¨˜å·²å›è¦†å®¢æˆ¶/);
-  assert.match(record, /recordNextAction/);
-  assert.doesNotMatch(record, /record-next-action[^\n]*<span>ä¸‹ä¸€æ­¥äº‹é …<\/span><input/);
-  assert.match(record, />è¿”å›å…¨éƒ¨éœ€æ±‚<\/a>/);
-  for (const label of ["æ–°éœ€æ±‚", "å ±åƒ¹æ´½è«‡", "åˆä½œç¢ºèª", "è£½ä½œä¸­", "äº¤ä»˜ä¸­", "å·²å®Œæˆ", "ç¢ºèªå®¢æˆ¶éœ€æ±‚", "è£½ä½œæ­£å¼å ±åƒ¹", "ç­‰å¾…è¨‚é‡‘", "ç­‰å¾…å®¢æˆ¶æä¾›ç´ æ", "å¯„é€åˆç¨¿", "å¯„é€ä¿®æ”¹ç¨¿", "ç­‰å¾…å°¾æ¬¾", "äº¤ä»˜æˆå“", "å®Œæˆä¸¦çµæ¡ˆ", "æš«ç·©è¿½è¹¤", "æœªåˆä½œ", "å°å­˜æ¡ˆä»¶"]) {
-    assert.match(workflow, new RegExp(label));
-  }
-  assert.doesNotMatch(dashboard, /className="workflow-stage-picker"|quickCaseStage/);
-  assert.match(record, /className="workflow-stage-picker"/);
-  assert.match(dashboard, /getQuickWorkflowActionsForStage\(detailInquiry\.status, detailInquiry\.nextAction\)/);
-  assert.match(dashboard, /getOtherWorkflowActionsForStage\(detailInquiry\.status, quickWorkflowActions\)/);
-  assert.match(record, /getWorkflowActionsForStage\(selectedCaseStage\)/);
-  assert.match(dashboard, /status: workflowAction\.caseStage/);
-  assert.match(record, /status: workflowAction\.caseStage/);
-  assert.match(workflow, /normalizeCaseStage/);
-  assert.match(workflow, /contacted: "negotiating"/);
-  assert.match(workflow, /quoted: "negotiating"/);
-  assert.match(workflow, /won: "confirmed"/);
-  assert.match(workflow, /å¯„é€åˆç¨¿: "ç­‰å¾…å®¢æˆ¶å›è¦†"/);
-  assert.match(workflow, /å¯„é€ä¿®æ”¹ç¨¿: "ç­‰å¾…å®šç¨¿ç¢ºèª"/);
-  assert.match(workflow, /äº¤ä»˜æˆå“: "ç­‰å¾…äº¤ä»˜ç¢ºèª"/);
-  assert.match(workflow, /ç­‰å¾…å®¢æˆ¶ç¢ºèªåˆä½œ: "ç­‰å¾…è¨‚é‡‘"/);
-  assert.match(workflow, /ç­‰å¾…å®šç¨¿ç¢ºèª: "ç­‰å¾…å°¾æ¬¾"/);
-  assert.match(workflow, /ç­‰å¾…äº¤ä»˜ç¢ºèª: "å®Œæˆä¸¦çµæ¡ˆ"/);
-  assert.match(workflow, /followUpDays: 14/);
-  assert.match(workflow, /followUpDays: null/);
-  assert.match(workflow, /\{ value: "5", label: "5 å¤©å¾Œ", days: 5 \}/);
-  assert.match(workflow, /replyStatus: "waiting_client"/);
-  assert.match(css, /\.response-table \{[^}]*font-size: \.875rem/);
-  assert.match(css, /\.quick-detail-summary li \{[^}]*font-size: \.875rem/);
-  assert.match(css, /\.follow-up-board \{/);
-  assert.match(css, /\.reply-needs_reply \{/);
-  assert.match(css, /\.workflow-action-options \{/);
-  assert.match(css, /\.workflow-stage-picker \{/);
-  assert.match(css, /\.quick-other-workflow-actions \{/);
-  assert.match(css, /\.quick-workflow-auto-note \{/);
-  assert.match(css, /\.follow-up-preset-options \{/);
-});
-
-test("inquiry backend stores reply tracking and follow-up schedule fields", async () => {
-  const [database, schema, listApi, detailApi] = await Promise.all([
-    readFile(new URL("../db/index.ts", import.meta.url), "utf8"),
-    readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/api/inquiries/[id]/route.ts", import.meta.url), "utf8"),
-  ]);
-
-  for (const field of ["reply_status", "last_contact_at", "next_follow_up_at", "next_action"]) {
-    assert.match(database, new RegExp(field));
-    assert.match(schema, new RegExp(field));
-    assert.match(listApi, new RegExp(field));
-    assert.match(detailApi, new RegExp(field));
-  }
-  assert.match(detailApi, /allowedReplyStatuses/);
-  assert.match(detailApi, /reply_status = \?/);
-  assert.match(detailApi, /next_follow_up_at = \?/);
-});
-
-test("admin can manually add a customer without sending a public quote notification", async () => {
-  const [dashboard, api, css] = await Promise.all([
-    readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/inquiries.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(dashboard, />æ–°å¢å®¢æˆ¶<\/button>/);
-  assert.match(dashboard, /id="create-customer-title">æ–°å¢å®¢æˆ¶<\/h2>/);
-  assert.match(dashboard, /source: "admin"/);
-  assert.match(dashboard, /clientName: String\(formData\.get\("clientName"\)/);
-  assert.match(dashboard, /contact: String\(formData\.get\("contact"\)/);
-  assert.match(dashboard, /name="estimateLow" type="number"/);
-  assert.match(dashboard, /name="estimateHigh" type="number"/);
-  assert.match(dashboard, /name="budget" type="number"/);
-  assert.match(dashboard, /estimateLow,/);
-  assert.match(dashboard, /estimateHigh,/);
-  assert.match(dashboard, /budget,/);
-  assert.match(dashboard, /åˆä¼°æœ€é«˜é‡‘é¡ä¸å¯ä½æ–¼æœ€ä½é‡‘é¡/);
-  assert.match(dashboard, /setInquiries\(\(current\) => \[createdInquiry, \.\.\.current\]\)/);
-  assert.match(dashboard, /setDetailInquiryId\(createdInquiry\.id\)/);
-  assert.match(dashboard, /å°šæœªä¼°åƒ¹/);
-  assert.match(api, /isManualEntry && !\(await canManageInquiries\(\)\)/);
-  assert.match(api, /if \(!isManualEntry\) \{\s*scheduleInquiryNotification/);
-  assert.match(api, /isManualEntry \? "è¯çµ¡å®¢æˆ¶ç¢ºèªéœ€æ±‚" : ""/);
-  assert.match(api, /replyStatus: "needs_reply"/);
-  assert.match(css, /\.create-customer-layer \{/);
-  assert.match(css, /\.create-customer-dialog \{/);
-  assert.match(css, /\.create-customer-money-fields \{/);
-});
-
-test("manual customer creation receives the signed-in admin identity", async () => {
-  const [worker, api] = await Promise.all([
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(worker, /url\.pathname === "\/api\/inquiries" && request\.method === "POST"/);
-  assert.match(worker, /const authenticatedRequest = requestWithAdminIdentity\(request, env\);[\s\S]*?if \(authenticatedRequest\) request = authenticatedRequest;/);
-  assert.match(worker, /return !\(pathname === "\/api\/inquiries" && \["POST", "OPTIONS"\]\.includes\(request\.method\)\)/);
-  assert.match(api, /isManualEntry && !\(await canManageInquiries\(\)\)/);
-});
-
-test("new inquiries default the next follow-up date to five days later", async () => {
-  const [listApi, dashboard, record] = await Promise.all([
-    readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/[id]/inquiry-record.tsx", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(listApi, /defaultNextFollowUpAt = new Date\(new Date\(submittedAt\)\.getTime\(\) \+ 5 \* 24 \* 60 \* 60 \* 1000\)\.toISOString\(\)/);
-  assert.match(listApi, /assignee, next_follow_up_at, next_action, note/);
-  assert.match(listApi, /defaultNextFollowUpAt,/);
-  assert.match(dashboard, /detailInquiry\.nextFollowUpAt \|\| defaultFollowUpAt/);
-  assert.match(record, /inquiry\.nextFollowUpAt \|\| defaultFollowUpAt/);
-});
-
-test("new inquiry submissions schedule a private Gmail notification without blocking storage", async () => {
-  const [listApi, notification, appsScript, worker] = await Promise.all([
-    readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/inquiry-notifications.ts", import.meta.url), "utf8"),
-    readFile(new URL("../integrations/gmail-notification/Code.gs", import.meta.url), "utf8"),
-    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(listApi, /scheduleInquiryNotification\(\{/);
-  assert.ok(listApi.indexOf(".run();") < listApi.indexOf("scheduleInquiryNotification({"));
-  assert.match(notification, /import \{ env, waitUntil \} from "cloudflare:workers"/);
-  assert.match(notification, /GMAIL_NOTIFICATION_WEBHOOK_URL/);
-  assert.match(notification, /waitUntil\(sendInquiryNotification/);
-  assert.match(notification, /console\.error\("Unable to send inquiry notification\.", error\)/);
-  assert.match(appsScript, /NOTIFICATION_RECIPIENT/);
-  assert.match(appsScript, /PropertiesService\.getScriptProperties\(\)/);
-  assert.match(appsScript, /MailApp\.sendEmail/);
-  assert.match(appsScript, /è¯çµ¡æ–¹å¼èˆ‡å®Œæ•´éœ€æ±‚è«‹è‡³ç§äººå¾Œå°æŸ¥çœ‹/);
-  assert.match(worker, /GMAIL_NOTIFICATION_WEBHOOK_URL\?: string/);
-});
-
-test("inquiry backend presents compact and complete answers in readable language", async () => {
-  const [compactSummary, dashboard, record, css] = await Promise.all([
-    readFile(new URL("../app/admin/inquiries/compact-summary.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/[id]/inquiry-record.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/inquiries.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(compactSummary, /æ–¹æ¡ˆè¦å‰‡ï¼š/);
-  assert.match(compactSummary, /åˆä½œé‡é»ï¼š/);
-  assert.match(compactSummary, /planParts\.join\("ï½œ"\)/);
-  assert.match(compactSummary, /replaceAll\("è¦–è¦ºï¼æ’ç¨‹ï¼š", "æ’ç¨‹ï¼š"\)/);
-  assert.match(dashboard, /compactInquirySummary\(safeStringArray\(row\.summaryJson\)\)/);
-  assert.match(record, /compactInquirySummary\(parseStringArray\(inquiry\.summaryJson\)\)/);
-  assert.match(record, /parseReadableAnswers\(inquiry\.summaryJson\)/);
-  assert.match(record, /æŸ¥çœ‹æ‰€æœ‰å¡«å¯«å…§å®¹/);
-  assert.match(record, /className="full-answer-list"/);
-  assert.doesNotMatch(record, /prettyAnswers|<pre>/);
-  assert.match(css, /\.full-answer-row/);
-});
-
-test("inquiry contact details support one-click copy with visible feedback", async () => {
-  const [dashboard, record, css] = await Promise.all([
-    readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/[id]/inquiry-record.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/inquiries/inquiries.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(dashboard, /className=\{`quick-contact-copy/);
-  assert.match(dashboard, /navigator\.clipboard\.writeText\(inquiry\.contact\)/);
-  assert.match(record, /className=\{`record-contact-copy/);
-  assert.match(record, /navigator\.clipboard\.writeText\(contactValue\)/);
-  assert.match(dashboard, /å·²è¤‡è£½/);
-  assert.match(record, /å·²è¤‡è£½/);
-  assert.match(css, /\.quick-contact-copy\.is-copied small/);
-  assert.match(css, /\.record-contact-copy\.is-copied small/);
-});
-
-test("live summary abbreviates services and keeps every item inside its panel", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(source, /const summaryServiceNames: Record<string, string>/);
-  assert.match(source, /banner: "Banner"/);
-  assert.match(source, /reel: "Reel å°é¢"/);
-  assert.match(source, /resize: "Resize"/);
-  assert.match(source, /card: "åç‰‡ï¼å¡"/);
-  assert.match(source, /slides: "ç°¡å ±æ¨¡æ¿"/);
-  assert.match(source, /className=\{selectedServices\.length > 0 \? "summary-services-row"/);
-  assert.match(source, /className=\{selectedServices\.length > 0 \? "summary-service-items"/);
-  assert.match(source, /className="live-breakdown-primary"/);
-  assert.match(css, /\.summary-service-items \{[\s\S]*?white-space: normal !important;[\s\S]*?scrollbar-width: thin;/);
-  assert.match(css, /\.summary-service-items span \{[\s\S]*?overflow-wrap: anywhere;/);
-  assert.match(css, /\.live-breakdown-primary \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) auto;/);
-  assert.match(css, /\.live-breakdown-row > small \{[\s\S]*?overflow-wrap: anywhere;/);
-});
-
-test("live estimate appears after service selection and multi-service specifications can switch directly", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(source, /const hasVisibleEstimate = answers\.projectType === "monthly"[\s\S]*?: selectedServices\.length > 0/);
-  assert.match(source, /\{step !== "result" && hasVisibleEstimate && quote\.low > 0 && \(/);
-  assert.match(source, /\{hasVisibleEstimate && quote\.low > 0 \? \(/);
-  assert.match(source, /å°šæœªå®Œæˆçš„é …ç›®æš«ä»¥ 1 å–®ä½ä¼°ç®—/);
-  assert.match(source, /éœ€æ±‚å·²æ•´ç†å®Œæˆ/);
-  assert.match(css, /\.estimate-complete \.chat-body > \.message-row \{[\s\S]*?display: none;/);
-  assert.match(css, /\.estimate-complete \.result-history-summary \{[\s\S]*?display: flex;/);
-  assert.ok(css.indexOf(".estimate-complete .chat-body > .message-row") < css.indexOf("@media (max-width: 760px)"));
-  assert.ok(css.indexOf(".estimate-complete .result-history-summary") < css.indexOf("@media (max-width: 760px)"));
-  assert.match(source, /é¸æ“‡æœå‹™å¾Œé¡¯ç¤º/);
-  assert.match(source, /formatLiveSummaryServiceQuantity\(item, quantity, answers\)/);
-  assert.match(source, /formatMonthlyServiceQuantity\(service, quantity, true, answers\)/);
-  assert.match(source, /function switchSpecificationService\(serviceId: string\)/);
-  assert.match(source, /targetStep = "ecommerceDetails"[\s\S]*?targetStep = "printDetails"[\s\S]*?targetStep = "serviceDetails"/);
-  assert.match(source, /function renderSpecificationServiceSwitcher\(activeServiceId\?: string\)/);
-  assert.match(source, /const getSpecificationPositionLabel = \(serviceId: string\)/);
-  assert.match(source, /ç¬¬ \$\{index \+ 1\} é …ï¼å…± \$\{specificationServices\.length\} é …/);
-  assert.equal(source.match(/getSpecificationPositionLabel\(active(?:EcommerceService|DetailedService|ServiceDetailService)\.id\)/g)?.length, 3);
-  assert.match(source, /aria-label="é¸æ“‡è¦èª¿æ•´çš„æœå‹™é …ç›®"/);
-  assert.match(source, /renderSpecificationServiceSwitcher\(activeEcommerceService\.id\)/);
-  assert.match(source, /renderSpecificationServiceSwitcher\(activeDetailedService\.id\)/);
-  assert.match(source, /renderSpecificationServiceSwitcher\(activeServiceDetailService\.id\)/);
-  assert.match(source, /\{renderSpecificationServiceSwitcher\(\)\}/);
-  assert.match(css, /\.specification-switcher-list \{[\s\S]*?overflow-x: auto;/);
-  assert.match(css, /\.specification-switcher-list button\.is-active \{/);
-});
-
-test("calculator motion communicates navigation direction and quote updates", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(source, /const \[transitionDirection, setTransitionDirection\]/);
-  assert.match(source, /function runStepTransition\(direction: "forward" \| "back", update: \(\) => void\)/);
-  assert.match(source, /runStepTransition\("forward"/);
-  assert.match(source, /runStepTransition\("back"/);
-  assert.match(source, /const \[isStepExiting, setIsStepExiting\]/);
-  assert.match(source, /const stepMotionKey =/);
-  assert.match(source, /step-transition is-\$\{transitionDirection\}/);
-  assert.match(css, /@keyframes stage-step-forward/);
-  assert.match(css, /@keyframes stage-step-back/);
-  assert.match(css, /@keyframes category-content-drop/);
-  assert.match(css, /--motion-standard: 480ms/);
-  assert.match(css, /\.step-transition\.is-forward \{[\s\S]*?transform-origin: top center;[\s\S]*?animation: stage-step-forward 0\.32s var\(--motion-ease\)/);
-  const forwardKeyframes = css.match(/@keyframes stage-step-forward \{([\s\S]*?)\n\}/)?.[1] ?? "";
-  assert.match(forwardKeyframes, /translate3d\(0, -8px, 0\)[\s\S]*?translate3d\(0, 2px, 0\)[\s\S]*?translate3d\(0, 0, 0\)/);
-  assert.doesNotMatch(forwardKeyframes, /opacity|filter|scale/);
-  assert.match(css, /\.step-transition\.is-forward\.is-leaving \{[\s\S]*?opacity: 1;[\s\S]*?filter: none;[\s\S]*?translate3d\(0, -8px, 0\) scaleY\(0\.04\)[\s\S]*?transition: transform 0\.1s/);
-  assert.match(css, /\.response-area\.step-transition \{[\s\S]*?animation-delay: 0s/);
-  assert.match(css, /\.step-transition\.is-leaving \{[\s\S]*?opacity 0\.26s ease,[\s\S]*?transform 0\.26s/);
-  assert.match(css, /\.journey-nav-button\.is-current \{[\s\S]*?animation: journey-step-pop/);
-  assert.match(css, /\.choice\.selected \{[\s\S]*?animation: selection-pop/);
-  assert.match(source, /const \[isConfirming, setIsConfirming\] = useState\(false\)/);
-  assert.match(source, /window\.setTimeout\(onClick, 40\)/);
-  assert.match(source, /const exitDuration = direction === "forward" \? 100 : 260/);
-  assert.match(source, /isConfirming \? "âœ“" : "â†’"/);
-  assert.match(css, /\.chat-panel button:not\(:disabled\):active,[\s\S]*?scale\(0\.985\)/);
-  assert.match(source, /const \[showQuoteUpdated, setShowQuoteUpdated\]/);
-  assert.match(source, /quote-update-badge/);
-  assert.match(source, /aria-live="polite"/);
-  assert.match(source, /key=\{`\$\{item\.label\}-\$\{item\.detail\}`\}/);
-  assert.match(css, /\.live-breakdown-row \{[\s\S]*?animation: price-row-update/);
-  assert.match(source, /--price-row-index/);
-  assert.match(css, /animation-delay: calc\(var\(--price-row-index, 0\) \* 24ms\)/);
-  assert.match(source, /const isVisible = targetRect\.top >= chatRect\.top \+ inset && targetRect\.bottom <= chatRect\.bottom - inset/);
-  assert.match(css, /\.live-total\.is-updated::before/);
-  assert.match(css, /@keyframes quote-highlight/);
-  assert.match(css, /@keyframes price-roll-in/);
-  assert.match(css, /@keyframes receipt-unfold/);
-  assert.match(css, /@keyframes summary-content-reveal/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
-});
-
-test("single-service flow reveals quantity early and collapses directly to the next specification", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-  const collapseRule = css.match(/\.single-specification-card\.is-collapsing \{([\s\S]*?)\n\}/)?.[1] ?? "";
-  const arriveKeyframes = css.match(/@keyframes monthly-specification-arrive \{([\s\S]*?)\n\}/)?.[1] ?? "";
-
-  assert.match(source, /getSingleInlineQuantityConfig/);
-  assert.match(source, /singleSelectionReady/);
-  assert.match(source, /disabled=\{!singleSelectionReady\}/);
-  assert.match(source, /single-specification-card\$\{isSingleSpecificationAdvancing \? " is-collapsing" : ""\}/);
-  assert.match(source, /window\.setTimeout\(applyDestination, 170\)/);
-  assert.match(source, /å®Œæˆé€™é …ï¼Œä¸‹ä¸€é … â†’/);
-  assert.match(source, /ç¢ºèªè¦æ ¼èˆ‡åŠ è³¼ â†’/);
-  assert.match(collapseRule, /translateY\(-7px\) scaleY\(0\.025\)/);
-  assert.doesNotMatch(collapseRule, /opacity|filter/);
-  assert.doesNotMatch(arriveKeyframes, /opacity|filter/);
-});
-
-test("calculator uses compact conversation history with switchable specification progress", async () => {
-  const [source, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(source, /const completedConversationAnswers = messages\.filter/);
-  assert.match(source, /<details className="conversation-history-collapse">/);
-  assert.match(source, /å·²å®Œæˆ \{completedConversationAnswers\.length\} å€‹æ­¥é©Ÿ/);
-  assert.match(source, /className="conversation-history-answers"/);
-  assert.match(css, /\.conversation-history-collapse summary \{[\s\S]*?grid-template-columns: 20px auto minmax\(0, 1fr\) auto;/);
-  assert.match(css, /\.conversation-history-answers \{[\s\S]*?max-height: 150px;/);
-  assert.match(source, /const completedCount = specificationServices\.filter\(isSpecificationServiceComplete\)\.length/);
-  assert.match(source, /\{completedCount\}ï¼\{specificationServices\.length\} é …å·²å®Œæˆ/);
-  assert.match(source, /\{isComplete \? "âœ“ å·²å®Œæˆ" : "å¾…å¡«å¯«"\}/);
-  assert.match(css, /\.specification-switcher-list button\.is-complete:not\(\.is-active\)/);
-  assert.match(source, /const centeredLeft = currentStep\.offsetLeft - \(list\.clientWidth - currentStep\.offsetWidth\) \/ 2/);
-  assert.match(source, /list\.scrollTo\(\{[\s\S]*?left: Math\.max\(0, centeredLeft\)/);
-  assert.ok(source.indexOf('className={`live-total') < source.indexOf('<dl className="summary-list">'));
-});
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíçM9á:-jZ.¶›­–)Ş³V–×÷'B76W'Bg&öÒ&æöFS¦76W'B÷7G&–7B#°¦–×÷'B²&VDf–ÆRÒg&öÒ&æöFS¦g2÷&öÖ—6W2#°¦–×÷'BFW7Bg&öÒ&æöFS§FW7B#° §FW7B‚&FÖ–â6öç6öÆRöæÇ’W‡÷6W27W7FöÖW"–çV—&–W2"Â7–æ2‚’Óâ°¢6öç7B¶F6†&ö&BÂf÷&ÖW%VW7F–öææ—&UvRÂ–çV—'•vRÂ–çV—'•&V6÷&EvUÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2ö–çV—'’ÖF6†&ö&BçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âöf÷&×2÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2õ¶–EÒ÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚†F6†&ö&BÂö‡&VcÒ%ÂöFÖ–åÂö–çV—&–W2"ò“°¢76W'BæÖF6‚†F6†&ö&BÂóâZê.h‹n™Èk"Æ#âò“°¢76W'BæFöW4æ÷DÖF6‚†F6†&ö&BÂö‡&VcÒ%ÂöFÖ–åÂöf÷&×2'ÎYXşXÛ~zêybò“°¢76W'BæÖF6‚†f÷&ÖW%VW7F–öææ—&UvRÂ÷&VF—&V7EÂ‚%ÂöFÖ–åÂö–çV—&–W2%Â’ò“°¢76W'BæFöW4æ÷DÖF6‚†f÷&ÖW%VW7F–öææ—&UvRÂõVW7F–öææ—&TF6†&ö&Bò“°¢76W'BæÖF6‚†–çV—'•vRÂ÷F—FÆS¢.Zê.h‹n™Èk.zêynûÙÅ6ÒFW6–vâ7GVF–ò"ò“°¢76W'BæÖF6‚†–çV—'•&V6÷&EvRÂ÷F—FÆS¢.™Èk.XZ~ZëûÙÎZê.h‹n™Èk.zêyb"ò“°§Ò“° §FW7B‚'&–6R6—FR¶VW2&–çBwV–Fæ6R–ç6–FRöæRæ÷FW26V7F–öâ"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââ÷V&Æ–2ö–æFW‚æ‡FÖÂ"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢6öç7Bæ÷FW56V7F–öâÒ6÷W&6RæÖF6‚‚óÆF—b6Æ73Ò&6FVv÷'’Öæ÷FR&WfVÂ"FFÖ6FVv÷'“Ò&V6öÖÖW&6R&–çB÷F†W"%µÇ5Å5Ò£óÅÂ÷VÃåÇ2£ÅÂöF—câò“òå³Òóò"#° ¢76W'BæÖF6‚†æ÷FW56V7F–öâÂóîk:hHşK¨¾šSÅÂöƒ3âò“°¢76W'BæÖF6‚†æ÷FW56V7F–öâÂşKº^Kˆ®ZX;X8^x+®X‰ŞKËûÈÎZún™©¾iKn‹+¾Kº^K¨nŠz>™Èk.[èÎK˜¾jÚ>[ÈşZX;Yjîx+®k©bò“°¢76W'BæÖF6‚†æ÷FW56V7F–öâÂşYjîjÊŠŠŞŠˆjøşjXÈ^Y
+²2jÊ{KzøKúîiK’ò“°¢76W'BæÖF6‚†æ÷FW56V7F–öâÂşZh.™ÈXÙNXªi[Nynih~j8‰™^ynYÉnx˜~h‰nk©nX){JiÙûÈÎy»™yÎ‹+¾yJ[~ikÎjÚ>[ÈşZX;X˜Şz+®Š¨Òò“°¢76W'BæÖF6‚†æ÷FW56V7F–öâÂşKéŞYû®iÊÎŠŠŞŠˆ‹+¾y¨BSRŠˆ‹+¾ûÈÎ{k.z¹K‹¾ŠinŠk®[»nKËKˆŞŠˆXZ^XéşZx¾j©N‹+¾yJ‚ò“°¢76W'BæÖF6‚†æ÷FW56V7F–öâÂşyJ.Y8YÉnjny¨NXéşZx¾j©NX;jÎX8^Y
+¾zÊÎKˆx˜ûÈKˆŞY
+¾‹ûŞXªyJ.Y8ûÈ’ò“°¢76W'BæÖF6‚†æ÷FW56V7F–öâÂşZh.™ÈKº>‹ênXÛX‹~ûÈÎKº>‹êniÈŞX¹‹+¾x+®Š›.š^ŠŠŞŠˆ‹+²RRò“°¢76W'BæÖF6‚†æ÷FW56V7F–öâÂşXÛX‹~Y8Xø®˜¾˜yJ.yIşy¨N‹+¾yJhêZúnZZún˜«rò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşX[YÎk:hHşK¨¾šWÃîXÛX‹~y»™yÃÅÂöƒ3âò“°¢76W'BæÖF6‚‡6÷W&6RÂşŠšnzé~i˜.XX˜i8~KªNK¹zøZXşûÈÎZún™©¾KªNK¹iz^iÉşikÎYKÙÎi˜.z+®Š¨Òò“°¢76W'BæÖF6‚‡6÷W&6RÂşYjîjÊiÈŞX¹KéŞš^yºî{HB.ûÙãX¾[z^KÙÎZJûÈÎKº^Ššnzé~ššşzK®y¨Ni˜.™i>x+®k©bò“°¢76W'BæÖF6‚‡6÷W&6RÂşYjîjÊiÈŞX¹jøşj8iÈikjjøş{XNy¨nXÈ^Y
+²2jÊ{KzøKúîiK’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşKˆ¾KˆjÊXúnŠÎZyNŠ‰~y¨N[»nKËŠŠŞŠˆXúşŠˆîŠ¹nKºR‚h©ZX;’ò“°¢76W'BæWVÂ‚‡6÷W&6RæÖF6‚‚ö6Æ73Ò&6FVv÷'’Öæ÷FR&WfVÂ"ör’óòµÒ’æÆVæwF‚Â“°§Ò“° ¦7–æ2gVæ7F–öâ&VæFW"‚’°¢6öç7Bv÷&¶W%W&ÂÒæWrU$Â‚"ââöF—7B÷6W'fW"ö–æFW‚æ§2"Â–×÷'BæÖWFçW&Â“°¢v÷&¶W%W&Âç6V&6…&×2ç6WB‚'FW7B"ÂG·&ö6W72ç–GÒÒG´FFRææ÷r‚—Ö“°¢6öç7B²FVfVÇC¢v÷&¶W"ÒÒv—B–×÷'B‡v÷&¶W%W&Âæ‡&Vb“° ¢&WGW&âv÷&¶W"æfWF6‚€¢æWr&WVW7B‚&‡GG¢òöÆö6Æ†÷7Bö6Æ7VÆF÷""Â°¢†VFW'3¢²66WC¢'FW‡Bö‡FÖÂ"ÒÀ¢Ò’À¢°¢54UE3¢°¢fWF6ƒ¢7–æ2‚’ÓâæWr&W7öç6R‚$æ÷Bf÷VæB"Â²7FGW3¢CBÒ’À¢ÒÀ¢ÒÀ¢°¢v—EVçF–Â‚’·ÒÀ¢75F‡&÷Vv„öäW†6WF–öâ‚’·ÒÀ¢ÒÀ¢“°§Ğ §FW7B‚'6W'f–6RæÖW2æB7V6–f–6F–öâ&ö×G2W6RÆ–â&öw&W76—fRÆæwVvR"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢f÷"†6öç7BÆ&VÂöb°¢.{k.z¹jš¾[˜^ûÈşkK¾X¹^K‹¾ŠinŠk¢"À¢$”~ûÈôd"zKî{êNYÉnihr"À¢.[Ûx˜~[™Ú.ûÈõ–÷UGV&R{ŠîYÉb"À¢.YXnY8K‹¾YÉnZY~x˜‚"À¢%&W6—¦R"À¢.kK¾X¹^ûÈşKø>˜«~k[~Z"À¢.X+>YjîûÈşZê>X+>Yjâ"À¢.ˆùÎYjîŠŠŞŠˆ‚"À¢.KúîYÉnûÈşXë¾ˆ8Â"À¢.{
+ZûÈşx˜Yè¾jŠiÛò"À¢Ò’°¢76W'BæÖF6‚‡6÷W&6RÂæWr&VtW‡†Æ&VÂ’“°¢Ğ ¢76W'BæÖF6‚‡6÷W&6RÂóÆÆVvVæCîXXz+®Š¨Ş˜	K©³ÅÂöÆVvVæCâò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşiÈ>[Û™ûşKËX;’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşX[nK¹n{KzøXúşzˆŞ[èÎz+®Š¨Òò“°¢76W'BæÖF6‚‡6÷W&6RÂşKˆŞz+®Zé®ûÈÎŠ¸¾XÙNXª[»®ŠÛò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşXúşKº^K˜¾[èÎXhŞŠª§ÎK˜¾[èÎXhŞŠª¢ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşŠŠŞŠˆ[Š²ò“°¢76W'BæÖF6‚‡6÷W&6RÂş˜	[Ë^YÉnŠhiKîYÊY:®Š:ûÉòò“°¢76W'BæÖF6‚‡6÷W&6RÂşih~ZÙ~XZ~Zëk©nX)Z[ŞK¨nYxîûÉòò“°¢76W'BæÖF6‚‡6÷W&6RÂôÆövòY(ÎYÉnx˜~k©nX)Z[ŞK¨nYxîûÉòò“°¢76W'BæÖF6‚†772ÂõÂæ÷F–öæÂÖFWF–Ç5Å¶÷VåÅÒÂæ÷F–öæÂÖFWF–Ç2Ö&öG’ò“°¢76W'BæÖF6‚†772Âô¶W–g&ÖW2÷F–öæÂÖFWF–Ç2×&WfVÂò“°§Ò“° §FW7B‚'7V6–f–6F–öâ6&G2W6RF†R6ÖRæ÷Fò6W&–bD2F—FÆRföçB"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'Bæö²‚‡6÷W&6RæÖF6‚‚÷7V6–f–6F–öâÖ6&Bör“òæÆVæwF‚óò’ãÒB“°¢76W'BæÖF6‚†772ÂòÒ×F—FÆR×6W&–c¢$æ÷Fò6W&–bD2"Â%6öæwF’D2"Â6W&–bò“°¢76W'BæÖF6‚†772ÂõÂç7V6–f–6F–öâÖ6&BÅµÇ5Å5Ò£õÂç7V6–f–6F–öâÖ6&B6VÆV7BÅµÇ5Å5Ò£öföçBÖfÖ–Ç“¢f%Â‚Ò×F—FÆR×6W&–eÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ&×VÇF’×6VÆV7B×w&&–çB×&öGV7F–öâ×6VÆV7F÷""ò“°¢76W'BæÖF6‚†772ÂõÂç&–çB×&öGV7F–öâ×6VÆV7F÷"ÅµÇ5Å5Ò£õÂç&–çB×&öGV7F–öâÖFWF–Ç26VÆV7BÅµÇ5Å5Ò£öföçBÖfÖ–Ç“¢f%Â‚Ò×F—FÆR×6W&–eÂ’ò“°§Ò“° §FW7B‚'6W'f–6RÖ—FVÒ7W÷'F–ærFW‡BÆöG2æ÷Fò6ç2D2BöæR6öç6—7FVçB6—¦R"Â7–æ2‚’Óâ°¢6öç7B¶Æ–÷WBÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââööÆ–÷WBçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚†Æ–÷WBÂöfÖ–Ç“Ôæ÷FõÂµ6ç5ÂµD3§vv‡DC³S³c³sffÖ–Ç“Ôæ÷FõÂµ6W&–eÂµD2ò“°¢76W'BæÖF6‚†772ÂòÒ×6W'f–6R×6ÖÆÂ×6ç3¢$æ÷Fò6ç2D2"Â%–ætfærD2"Â$Ö–7&÷6ögB¦†Væt†V’"Â6ç2×6W&–bò“°¢76W'BæÖF6‚†772ÂõÂç6W'f–6RÖ6FVv÷'’Ö6÷’6ÖÆÂÅµÇ5Å5Ò£õÂç6W'f–6RÖ6†ö–6W2Âæ6†ö–6RÂæ6†ö–6R×66†VGVÆRÅµÇ5Å5Ò£õÂæÖöçF†Ç’×6W'f–6RÖ6†ö–6RÂæ6†ö–6R×&–6RÅµÇ5Å5Ò£öföçBÖfÖ–Ç“¢f%Â‚Ò×6W'f–6R×6ÖÆÂ×6ç5Â“µµÇ5Å5Ò£öföçB×6—¦S¢Âãc‡&VÒò“°§Ò“° §FW7B‚'7V6–f–6F–öâ7W÷'F–ærFW‡BÖF6†W2F†R6W'f–6RÖ—FVÒföçBæB6—¦R"Â7–æ2‚’Óâ°¢6öç7B772Òv—B&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“° ¢76W'BæÖF6‚†772ÂöF—eÂç7V6–f–6F–öâÖ6&B6ÖÆÂÅµÇ5Å5Ò£õÂç7V6–f–6F–öâÖ6&BÂæ6ö×7BÖf–VÆBâ7âÅµÇ5Å5Ò£õÂç7V6–f–6F–öâÖ6&BÂæ÷F–öæÂÖFWF–Ç2Ö–çG&òÅµÇ5Å5Ò£öföçBÖfÖ–Ç“¢f%Â‚Ò×6W'f–6R×6ÖÆÂ×6ç5Â“µµÇ5Å5Ò£öföçB×6—¦S¢Âãc‡&VÒò“°§Ò“° §FW7B‚'7V6–f–6F–öâf–VÆG2W6RöæR7&÷72×ÆFf÷&Ò–ætfærÖÆ–¶RföçBv—F‚6ögFW"V×G’fÇVW2"Â7–æ2‚’Óâ°¢6öç7B772Òv—B&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“° ¢76W'BæÖF6‚†772ÂòÒ×7V6–f–6F–öâ×V’×6ç3¢$æ÷Fò6ç2D2"Â%–ætfærD2"Â$Ö–7&÷6ögB¦†Væt†V’"Â6ç2×6W&–bò“°¢76W'BæÖF6‚†772ÂòÒ×7V6–f–6F–öâ×Æ6V†öÆFW"Ö–æ³¢&v&ÂƒC‚ÂCÂ32ÂÂãS%Â’ò“°¢76W'BæÖF6‚†772ÂõÂç7V6–f–6F–öâÖ6&B–çWBÅµÇ5Å5Ò£õÂç7V6–f–6F–öâÖ6&B6VÆV7BÅµÇ5Å5Ò£õÂç7V6–f–6F–öâÖ6&BFW‡F&VÅµÇ5Å5Ò£õÂç7V6–f–6F–öâÖ6&B÷F–öâÇµµÇ5Å5Ò£öföçBÖfÖ–Ç“¢f%Â‚Ò×7V6–f–6F–öâ×V’×6ç5Â“µµÇ5Å5Ò£öföçB×vV–v‡C¢Sò“°¢76W'BæÖF6‚†772ÂõÂç7V6–f–6F–öâÖ6&BÂæ÷F–öæÂÖFWF–Ç2â7VÖÖ'’6ÖÆÂÇµµÇ5Å5Ò£öföçBÖfÖ–Ç“¢f%Â‚Ò×7V6–f–6F–öâ×V’×6ç5Â“µµÇ5Å5Ò£öföçB×vV–v‡C¢Cò“°¢76W'BæÖF6‚†772ÂõÂç7V6–f–6F–öâÖ6&B6VÆV7C¦†5Â†÷F–öã¦6†V6¶VEÅ·fÇVSÒ"%ÅÕÂ’ÅµÇ5Å5Ò£õÂç7V6–f–6F–öâÖ6&BFW‡F&V£§Æ6V†öÆFW"ÇµµÇ5Å5Ò£ö6öÆ÷#¢f%Â‚Ò×7V6–f–6F–öâ×Æ6V†öÆFW"Ö–æµÂ’ò“°§Ò“° §FW7B‚'6W'fW"×&VæFW'2F†R6öçfW'6F–öæÂV÷FR6Æ7VÆF÷"vR"Â7–æ2‚’Óâ°¢6öç7B&W7öç6RÒv—B&VæFW"‚“°¢76W'BæWVÂ‡&W7öç6Rç7FGW2Â#“°¢76W'BæÖF6‚‡&W7öç6Ræ†VFW'2ævWB‚&6öçFVçB×G—R"’óò""ÂõçFW‡EÂö‡FÖÅÆ"ö’“° ¢6öç7B‡FÖÂÒv—B&W7öç6RçFW‡B‚“°¢76W'BæÖF6‚†‡FÖÂÂóÇF—FÆSîŠŠŞŠˆZX;Ššnzé~ûÙÅ6ÒFW6–vâ7GVF–óÅÂ÷F—FÆSâò“°¢76W'BæÖF6‚†‡FÖÂÂşh›îX‹˜YKÚy¨NŠŠŞŠˆš	zérò“°¢76W'BæÖF6‚†‡FÖÂÂõ6ÒŠŠŞŠˆš~YXòò“°¢76W'BæÖF6‚†‡FÖÂÂö6Æ73Ò&fF"#å3ÅÂ÷7ãâò“°¢76W'BæÖF6‚†‡FÖÂÂö6Æ73Ò&Ö–æ’ÖfF"#å3ÅÂ÷7ãâò“°¢76W'BæÖF6‚†‡FÖÂÂş‹ùNY¹îŠŠŞŠˆiÈŞX¹X;yºâò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂô&öæ÷Ä$ôä÷ÎXJ®XXhé.zˆ·Î‹ùiÉşKÙÎY8ò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂö6öFW‚×&Wf–WwÄ'V–ÆF–ær–÷W"6—FWÇ&V7BÖÆöF–ær×6¶VÆWFöâö’“°§Ò“° §FW7B‚&÷&–v–æÂ&–6–ær†öÖWvRÆ–æ·2FòF†R6Æ7VÆF÷"vR"Â7–æ2‚’Óâ°¢6öç7B¶‡FÖÂÂ÷'FföÆ–õvUÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââ÷V&Æ–2ö–æFW‚æ‡FÖÂ"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââ÷V&Æ–2şKÙÎY8jKè²æ‡FÖÂ"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢6öç7BÖöçF†Ç•6V7F–öâÒ‡FÖÂæÖF6‚‚óÇ6V7F–öâ–CÒ&ÖöçF†Ç’%µÇ5Å5Ò£óÂÒÒ&ö6W72ÒÓâò“òå³Òóò"#°¢76W'BæÖF6‚†‡FÖÂÂşŠŠŞŠˆiÈŞX¹X;yºâ+rFW6–vâ7GVF–òò“°¢76W'BæÖF6‚†‡FÖÂÂö‡&VcÒ%Âö6Æ7VÆF÷""6Æ73Ò&'Fâ'Fâ×&–Ö'’#îz¸¾XÛ>ŠšnzésÅÂöâò“°¢76W'BæÖF6‚†‡FÖÂÂö–CÒ'&–6–ær"ò“°¢76W'BæÖF6‚†‡FÖÂÂö–CÒ&ÖöçF†Ç’"ò“°¢76W'BæÖF6‚†‡FÖÂÂö–CÒ&f"ò“°¢76W'BæÖF6‚†‡FÖÂÂş{JiÙˆˆ~hèjÈ®™ÈŠhk:hHşK¸›«ÎûÉõµÇ5Å5Ò£şXúşKº^hê^h
+^K»nYxîûÉõµÇ5Å5Ò£şyºîX˜ŞKˆŞhê^Xù~h
+^K»n8.YjîjÊiÈŞX¹KéŞš^yºî{HB.ûÙãX¾[z^KÙÎZJ’ò“°¢76W'BæÖF6‚†‡FÖÂÂşXúşKº^hê^h
+^K»nYxîûÉõµÇ5Å5Ò£şiÈikjKéŞ˜i8~y¨NKªNK¹zøZXşZèhé.ûÈÎZún™©¾iz^iÉşikÎYKÙÎi˜.z+®Š¨Òò“°¢76W'BæÖF6‚†ÖöçF†Ç•6V7F–öâÂóÆF—b6Æ73Ò'6V7F–öâÖ†VFW"&WfVÂ#âò“°¢76W'BæÖF6‚†ÖöçF†Ç•6V7F–öâÂóÆF—b6Æ73Ò&ÖöçF†Ç’Ö6ö÷W&F–öâÖæ÷FR&WfVÂ"ò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂò6ÖöçF†Ç’Âæ6öçF–æW"âÂç&WfVÅÅ·7G–ÆUÅÒò“°¢76W'BæÖF6‚†ÖöçF†Ç•6V7F–öâÂş˜Y™ÈŠhhÈ{¨ÎyJ.X{®y¨NY8x˜Îˆˆ~X›^KÙÎˆ^ûÈÎKéŞ™Èk.Šˆ.Š;Şh*y¨N[[Îikj‚ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6V7F–öâÂşiÈikjhùKé¾™»¾YXnûÈş[›>™Ú.ŠŠŞŠˆiÈŞX¹ûÈÎjøşiÈˆ{>[	2{XN8iÈZI¢{XNûÈÎKéŞYjîjÊŠŠŞŠˆ‹+¾YŠˆˆˆ~{XNi[ZY~yJ‚•ÂãRh©ˆ{2…Âã‚h©8.jøşš^iÈŞX¹i[˜xşŠˆ‚{XNûÈÄ”~ûÈôd"zKî{êNYÉnih~Kº^jøşzø~Šˆ‚{XNûÉ¾[›>™Ú.ŠŠŞŠˆjøşiÈYŠˆ™™"{XNûÈÎiÊ®KÛşyJ{XNi[KˆŞ{Jşz˜Òò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6V7F–öâÂşiÈikj{XNi[Kº^y[niÈKÛşyJx+®K‹·Å&W6—¦^8xZ~x˜~[èÎŠ;Şˆˆ~jŠiÛşŠŠŞŠˆŠ¸¾KÛşyJYjîjÊKËX;’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6V7F–öâÂş{k.z¹K‹¾ŠinŠk®[»nKËˆˆ~Zê>X+>YjîûÈşˆùÎYjîZI®šKéŞXªX;Šˆzé~KŠnZY~yJiÈikjXJ®h:ûÉ¾YXnY8K‹¾YÉnZY~x˜‹ûŞXªyJ.Y8hÈYjîjÊX;jÎXúnŠˆK‰NKˆŞZY~yJiÈikjh©hš>ûÉ´”~ûÈôd"zKî{êNYÉnih~{‹ŞYÉnk»ò[Ë^y¨BRRXJ®h:X8^˜yJYjîjÊiÈŞX¹ûÈÎiÈikjKˆŞ˜yJ‚ò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6V7F–öâÂşiÈikjKéŞh˜˜iÈŞX¹y¨NYjîjÊŠŠŞŠˆ‹+¾YŠˆZY~yJ‚…ÂãûÙã•ÂãRh©‚ò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6V7F–öâÂõ&W6—¦R"[Ë^XÚ{XGÎiÈikjhùKéµµî8%Ò¥&W6—¦RiÈŞX¹’ò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂşjøş[Ë^ûÈşx˜XÚÎjøş[Ë^ûÈşš^XÚò“°¢76W'BæÖF6‚†ÖöçF†Ç•6V7F–öâÂö6Æ73Ò&fVGW&RÖÆ&VÂ#î{XNi[ûÙÃÅÂ÷7G&öæsã.ûÙã2{XNŠŠŞŠˆ…µÇ5Å5Ò£ö6Æ73Ò&fVGW&RÖÆ&VÂ#î{XNi[ûÙÃÅÂ÷7G&öæsãûÙã{XNŠŠŞŠˆ‚ò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6V7F–öâÂö6Æ73Ò&fVGW&RÖÆ&VÂ#îiÈŞX¹ûÙÃÅÂ÷7G&öæsâò“°¢76W'BæÖF6‚†ÖöçF†Ç•6V7F–öâÂö6Æ73Ò&fVGW&RÖÆ&VÂ#îKúîiKûÙÃÅÂ÷7G&öæsîjøş{XNY
+²2jÊ{KzøKúîiK’ò“°¢76W'BæÖF6‚†‡FÖÂÂõÂæÖöçF†Ç’Öw&–BÇ²w&–B×FV×ÆFRÖ6öÇVÖç3¢&WVEÂƒBÂÖ–æÖ…ÂƒÂg%Â•Â“²ÇÒò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6V7F–öâÂöÖöçF†Ç’×Æâ×–6¶W'ÆFFÖÖöçF†Ç’×ÆçÆÖöçF†Ç’×&–6RÖ'&V¶F÷vçÆÖöçF†Ç’Ö6&BÖ7Fò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂöÖöçF†Ç•&–6T'”w&÷WÆÖöçF†Ç•ÆäæÖW7ÆFFÖÖöçF†Ç’Öw&÷W2ò“°¢76W'BæÖF6‚†‡FÖÂÂö–CÒ'&V6VçB×v÷&²×F—FÆR#î‹ùiÉşKÙÎY8ò“°¢76W'BæÖF6‚†‡FÖÂÂö‡&VcÒ.KÙÎY8jKèµÂæ‡FÖÂ"6Æ73Ò&'Fâ'FâÖ÷WFÆ–æR#îKÙÎY8jKè²ò“°¢76W'BæÖF6‚‡÷'FföÆ–õvRÂö‡&VcÒ&–æFW…Âæ‡FÖÂ#î(i‹ùNY¹îiÈŞX¹X;yºâò“°¢76W'BæÖF6‚‡÷'FföÆ–õvRÂö76WG5Âö–ç7Fw&ÕÂöVÆ&÷vFòÖ&öæò×&öf–ÆUÂæ§rò“°¢76W'BæÖF6‚†‡FÖÂÂö6Æ73Ò&Ö'VVR×G&6²"ò“°¢76W'BæÖF6‚†‡FÖÂÂö76WG5Â÷÷'FföÆ–õÂöf6†–öâ×6ÆRÖÇW†UÂçvV'ò“°¢76W'BæÖF6‚†‡FÖÂÂ÷&WVW7Dæ–ÖF–öäg&ÖUÂ†æ–ÖFTÖ'VVUÂ’ò“°¢76W'BæÖF6‚†‡FÖÂÂö6Æ73Ò&†W&ò×6V6öæF'’ÖÆ–æ·2"ò“°¢76W'BæÖF6‚†‡FÖÂÂö6Æ73Ò&†W&ò×6V6öæF'’ÖÆ–æ·2%µÇ5Å5Ò£ö‡&VcÒ"7&–6–ær"6Æ73Ò&'Fâ'FâÖ÷WFÆ–æR#îiú^yÈ¾iÈŞX¹•µÇ5Å5Ò£ö‡&VcÒ"6ÖöçF†Ç’"ò“°¢76W'BæÖF6‚†‡FÖÂÂö6Æ73Ò&†W&ò×6V6öæF'’ÖÆ–æ·2%µÇ5Å5Ò£ö‡&VcÒ"66öçF7B"6Æ73Ò&'Fâ'FâÖ÷WFÆ–æR#îˆˆ~h‰ˆş{ZÅÂöåµÇ5Å5Ò£ö‡&VcÒ%Âö6Æ7VÆF÷""6Æ73Ò&'Fâ'Fâ×&–Ö'’#îz¸¾XÛ>ŠšnzésÅÂöåµÇ5Å5Ò£óÅÂöæcâò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂö6Æ73Ò&7FÖ'WGFöç2†W&ò×&–Ö'’Ö7F–öç2"ò“°¢76W'BæÖF6‚†‡FÖÂÂõÂæ†W&ò×6V6öæF'’ÖÆ–æ·2ÇµµÇ5Å5Ò£öÖ&v–â×F÷¢µµÇ5Å5Ò£öv¢Âã‡&VÓ²ò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂõÂæ†W&ò×6V6öæF'’ÖÆ–æ·2Âæ'FâÇµµçÕÒ¦&÷&FW#¢²ò“°¢76W'BæÖF6‚†‡FÖÂÂö6Æ73Ò&7FÖ'WGFöç26öçF7BÖ'WGFöç2#åµÇ5Å5Ò£ö‡&VcÒ%Âö6Æ7VÆF÷""6Æ73Ò&'Fâ'Fâ×&–Ö'’#îz¸¾XÛ>Ššnzérò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂöFö75ÂævöövÆUÂæ6öÕÂöf÷&×7ÃîZ¾Zú¾ŠYjãÂò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂşXÈ^iÈ[Ë^i[‚ò“°¢76W'BæÖF6‚†‡FÖÂÂóÆƒ3î[Ûx˜~ûÈõ&VVÂ[™Ú#ÅÂöƒ3âò“°¢76W'BæÖF6‚†‡FÖÂÂöFFÖ6FVv÷'“Ò&÷F†W"#åµÇ5Å5Ò£óÆƒ3å&W6—¦R[®Zû[»nKËƒÅÂöƒ3âò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂöFFÖ6FVv÷'“Ò&V6öÖÖW&6R#åµÇ5Å5×³ÃƒÓÆƒ3å&W6—¦R[®Zû[»nKËƒÅÂöƒ3âò“°¢76W'BæÖF6‚†‡FÖÂÂş{k.z¹K‹¾ŠinŠk®[»nKËˆˆ~Zê>X+>YjîûÈşˆùÎYjîZI®šKéŞXªX;Šˆzé~KŠnZY~yJiÈikjXJ®h:ûÉ¾YXnY8K‹¾YÉnZY~x˜‹ûŞXªyJ.Y8hÈYjîjÊX;jÎXúnŠˆK‰NKˆŞZY~yJiÈikjh©hš>ûÈÎiÊ®KÛşyJ{XNi[KˆŞ{Jşz˜Òò“°¢76W'BæÖF6‚†‡FÖÂÂşYjîjÊiÈŞX¹KéŞš^yºî{HB.ûÙãX¾[z^KÙÎZJûÈÎKº^Ššnzé~ššşzK®y¨Ni˜.™i>x+®k©bò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂşXJ®XX{HB>ûÙãRX¾[z^KÙÎZJ—ÎŠŠŞŠˆ‹+²Â³#Rò“°¢76W'BæÖF6‚†‡FÖÂÂşZún™©¾i˜.™i>K¸ŞiÈ>Xù~X‹y[ni˜.hé.zˆ¾8{JiÙZèÎi[N[ªnˆˆ~ŠŠŞŠˆŠH~™¹Î[ªn[Û™ûòò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂşY¹îŠhn˜	ş[ªbò“°¢76W'BæÖF6‚†‡FÖÂÂşˆº^[ø^Šh{JiÙ[»n˜.hùKé¾ûÈÎKªNiÉş[~šn[»bò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂşˆº^[»n˜.hùKé¾{JiÙh‰nY¹îŠhnûÈÎKªNiÉş[~šn[»bò“°¢76W'BæÖF6‚†‡FÖÂÂşiÈikjXéşZx¾j©NXúşKéŞiÈŞX¹ˆˆ~i[˜xş[Øh
+~Xª‹;ÎûÈÎ‹+¾yJXúnŠÎz+®Š¨ŞûÈÎiª¾KˆŞŠˆXZ^{k.z¹X‰ŞKËò“°¢76W'BæÖF6‚†‡FÖÂÂó#RŠˆ.˜yKÙÎx+®[{.hé.Zé®[z^i˜.‹+¾yJKˆŞ˜ò“°¢76W'BæÖF6‚†‡FÖÂÂó#RŠˆ.˜y8ƒR[îjËâò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂóCRŠˆ.˜yÃcR[îjËâò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂöFFÖ6FVv÷'“Ò&V6öÖÖW&6R&–çB÷F†W""ò“°¢76W'BæÖF6‚†‡FÖÂÂôÖVF–Â†Ö–â×v–GFƒ¢sc—…Â•µÇ5Å5Ò£õÂæ†W&òÂæ6öçF–æW"Ç²FW‡BÖÆ–vã¢6VçFW#²ÇÒò“°¢76W'BæÖF6‚†‡FÖÂÂõÂæ†W&òƒÇ²F—7Æ“¢&Æö6³²v–GFƒ¢f—BÖ6öçFVçC²Ö&v–âÖÆVgC¢WFó²Ö&v–â×&–v‡C¢WFó²ÇÒò“°¢76W'BæÖF6‚†‡FÖÂÂõÂæ†W&òÂæ7FÖ'WGFöç2Ç²§W7F–g’Ö6öçFVçC¢6VçFW#²ÇÒò“°¢76W'BæÖF6‚†‡FÖÂÂşxZ~x˜~[èÎŠ;ÕµÇ5Å5Ò£õÂCÅÂ÷7ããSûÙãsSµÇ5Å5Ò£õÂò[ËRò“°¢76W'BæÖF6‚†‡FÖÂÂşYû®zHîŠ«şˆ›.8Xë¾ˆ8Îˆˆ~{KzøKúîi[Bò“°¢76W'BæÖF6‚†‡FÖÂÂö6Æ73Ò&fVGW&RÖÆ&VÂ#îKËX;ûÙÃÅÂ÷7G&öæsîKéŞxZ~x˜~x¸k8ˆˆ~Yh‰™º>[ªbò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6V7F–öâÂó"{XBÂCÃSûÙã"ÃÃ2{XBÂC"ÃûÙã"ÃsÃb{XBÂCBÃ#ûÙãRÃ#Ã‚{XBÂCRÃcûÙãrÃò“°¢76W'BæÖF6‚†ÖöçF†Ç•6V7F–öâÂó•ÂãRh©…µÇ5Å5Ò£ó•Âã.ûÙã•ÂãRh©…µÇ5Å5Ò£ó’h©…µÇ5Å5Ò£ó…Âã‚h©‚ò“°¢76W'BæÖF6‚†‡FÖÂÂş™»¾YXnYXnY8YÉnjnˆˆ~Kø>˜«~‹8~Šˆ®ZY~x˜‚ò“°¢76W'BæÖF6‚†‡FÖÂÂö6Æ73Ò&fVGW&RÖÆ&VÂ#î‹ûŞXªûÙÃÅÂ÷7G&öæsîjøşZ)îXªš^yJ.Y8ÂµÂCsò“°¢76W'BæÖF6‚†‡FÖÂÂö6Æ73Ò&fVGW&RÖÆ&VÂ#î[®ZûûÙÃÅÂ÷7G&öæsã’9rUÂãB6ŞûÈj‰k©nûÈ’ò“°¢76W'BæÖF6‚†‡FÖÂÂóÆƒ3îjŠiÛşŠŠŞŠˆƒÅÂöƒ3åµÇ5Å5Ò£şjZŞX¹{
+Z8ŠÉ¾[ª~iYiÙˆˆ~iÈ>ŠÛx˜YèµµÇ5Å5Ò£õÂCÅÂ÷7ããÃûÙã2ÃµÇ5Å5Ò£õÂòx˜‚ò“°¢76W'BæÖF6‚†‡FÖÂÂóÆƒ3îZJ~Yè¾k[~ZÅÂöƒ3åµÇ5Å5Ò£õÂCÅÂ÷7ããÃƒûÙã2ÃµÇ5Å5Ò£õÂòjËåµÇ5Å5Ò£ö6Æ73Ò&fVGW&RÖÆ&VÂ#î[®ZûûÙÃÅÂ÷7G&öæsä2Kº^Kˆ¢ò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂô2k[~ZÄ2[®Zû…Âƒ#“wƒC#ÖÕÂ’ò“°¢76W'BæÖF6‚†‡FÖÂÂóÆƒ3îzKî{êNYÉcÅÂöƒ3åµÇ5Å5Ò£óÇ6Æ73Ò'7V'F—FÆR#äd.ûÈô”r‹+Îih~8kK¾X¹^ˆˆ~Y8x˜ÎZê>X+>ŠinŠk£ÅÂ÷âò“°¢76W'BæÖF6‚†‡FÖÂÂóÆƒ3î{k.š&ææW#ÅÂöƒ3åµÇ5Å5Ò£õÂCÅÂ÷7ããÃûÙã"ÃSµÇ5Å5Ò£õÂòx˜…µÇ5Å5Ò£şXª‹;ÎûÙÃÅÂ÷7G&öæsîK‹¾ŠinŠk®[»nKË‚ÂCƒûÙãÃ#Âò[ËRò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂóÆƒ3îK‹¾ŠinŠk®[»nKËŠŠŞŠˆƒÅÂöƒ3çÇ6W'f–6SÖ¶W’×f—7VÂÖW‡FVç6–öâò“°¢76W'BæÖF6‚†‡FÖÂÂóÆƒ3î[Ûx˜~ûÈõ&VVÂ[™Ú#ÅÂöƒ3åµÇ5Å5Ò£ş™ÈhùKé¾j‰šÎh‰nK‹¾ŠinŠk®{JiÙò“°¢76W'BæÖF6‚†‡FÖÂÂş™ÈhùKé¾Zé®z‹şih~jh‰nYÉnx˜rò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂş™ÈhùKé¾Zé®z‹şih~jˆˆ~YÉnx˜wÎ™ÈhùKé¾j‰šÎˆˆ~K‹¾ŠinŠk®{JiÙò“°¢76W'BæÖF6‚†‡FÖÂÂóÆƒ3îzKî{êNYÉcÅÂöƒ3åµÇ5Å5Ò£ö6Æ73Ò&fVGW&RÖÆ&VÂ#î[»nKËûÙÃÅÂ÷7G&öæsîYÎzø~zÊÂ"[Ë^‹[~ûÈÎjøş[ËRÂµÂC#SûÙåÂCSò“°¢76W'BæÖF6‚†‡FÖÂÂóÆƒ3îzKî{êNYÉcÅÂöƒ3åµÇ5Å5Ò£ö6Æ73Ò&fVGW&RÖÆ&VÂ#î™™X‹nûÙÃÅÂ÷7G&öæsîjøşzø~‹+Îih~iÈZI¢[Ë^YÉbò“°¢76W'BæÖF6‚†‡FÖÂÂşYjîjÊZyNŠ‰~{JşŠˆ‚[Ë^Kº^Kˆ®Kª²•ÂãRh©XJ®h:ûÈÎXúşXÈ^Y
+¾ZI®zø~‹+Îihrò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂşYÎzø~‹+Îih~YÎš*jÎ[»nKË…µÇ5Å5Ò£õÂµÂCSûÙåÂC3ò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂôd%Ç2¥¾ûÈòõÕÇ2¤”rzKî{êNYÉbò“°¢76W'BæÖF6‚†‡FÖÂÂóÆƒ3îX+>YjîûÈôDÓÅÂöƒ3åµÇ5Å5Ò£óÃ#ûÙã2ÃµÇ5Å5Ò£şYû®iÊÎŠŠŞŠˆûÈzÊÂ™Ú.ûÈşšûÈ’ò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂóÆƒ3îX+>YjãÅÂöƒ3çÃÆƒ3äDÓÅÂöƒ3âò“°¢76W'BæÖF6‚†‡FÖÂÂóÆƒ3îYŞx˜~ûÈşiÈ>Y:XÚÅÂöƒ3åµÇ5Å5Ò£şX¾K«®YŞx˜~8Y8x˜ÎYŞx˜~ˆˆ~iÈ>Y:XÚò“°¢76W'BæÖF6‚†‡FÖÂÂşKéŞxûîiÈŠŠŞŠˆ[»nKËKˆŞYÎKÛşyJ[®Zû‚ò“°¢76W'BæWVÂ†‡FÖÂæÖF6‚‚şXúş{z‹ÊşXéşZx¾j©Nx+®iÈX;yJ.Y8ör“òæÆVæwF‚Â"“°¢76W'BæWVÂ†‡FÖÂæÖF6‚‚şKéŞŠ›.š^ŠŠŞŠˆ‹+¾[şŠˆ‚SRŠˆ‹+¾ûÉ¾yJ.Y8YÉnjnKˆŞY
+¾‹ûŞXªyJ.Y8‹+²ör“òæÆVæwF‚Â"“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂşXéşZx¾{z‹Êşj©Bò“°¢76W'BæÖF6‚†‡FÖÂÂóÆƒ3îX+>YjîûÈôDÓÅÂöƒ3åµÇ5Å5Ò£şzÊÂ"š‹[uµÇ5Å5Ò£ócûÙãƒµÇ5Å5Ò£õÂòšò“°¢76W'BæÖF6‚†‡FÖÂÂóÆƒ3îˆùÎYjãÅÂöƒ3åµÇ5Å5Ò£şzÊÂ"š‹[uµÇ5Å5Ò£ócûÙãƒµÇ5Å5Ò£õÂòšò“°¢76W'BæWVÂ†‡FÖÂæÖF6‚‚şšinx˜ûÈzÊÂšûÈ’ör“òæÆVæwF‚Â“°¢76W'BæWVÂ†‡FÖÂæÖF6‚‚şYû®iÊÎŠŠŞŠˆûÈzÊÂ™Ú.ûÈşšûÈ’ör“òæÆVæwF‚Â“°¢76W'BæWVÂ†‡FÖÂæÖF6‚‚şzÊÂ"š‹[rör“òæÆVæwF‚Â"“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂşX+>YjåÂôDÕÂşˆùÎYjçÎYÎ{;¾X‰~zÊÎK¨Î[Ë^‹[rò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂşh
+^K»eµî8%Ò®XªX;—Ã"X¾[z^KÙÎZJXZrò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂó#ÓSRò“°¢76W'BæÖF6‚†‡FÖÂÂşiÊÎjÊYjîjÊiÈŞX¹ZèÎh‰[èÎûÈÎKˆ¾KˆjÊXúnŠÎZyNŠ‰~y¨N[»nKËŠŠŞŠˆXúşŠˆîŠ¹nKºR‚h©ZX;ûÉ¾iÈikjKˆŞ˜yJ‚ò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂşjøş{XNŠŠŞŠˆ‹H˜&W6—¦R[ËWÎ‹É^˜xşˆˆ~j‰k©nikjjøş{XNŠŠŞŠˆ‹H˜&W6—¦R[ËRò“°¢6öç7B6Æ7VÆF÷%6W'f–6T–G2Ò°¢&&ææW""À¢'6ö6–Â"À¢'&VVÂ"À¢'&öGV7BÖg&ÖR"À¢'÷7FW""À¢&FÒ"À¢&ÖVçR"À¢&6&B"À¢'&W6—¦R"À¢'†÷Fò"À¢'6Æ–FW2"À¢Ó°¢6Æ7VÆF÷%6W'f–6T–G2æf÷$V6‚‚‡6W'f–6T–B’Óâ°¢76W'BæÖF6‚†‡FÖÂÂæWr&VtW‡†6Æ73Ò'6W'f–6RÖ6&BÖ7F"‡&VcÒ"ö6Æ7VÆF÷%ÅÃ÷6W'f–6SÒG·6W'f–6T–GÒ&’“°¢Ò“°¢76W'BæWVÂ†‡FÖÂæÖF6‚‚ö6Æ73Ò'6W'f–6RÖ6&BÖ7F"ör“òæÆVæwF‚Â6Æ7VÆF÷%6W'f–6T–G2æÆVæwF‚²B“°¢76W'BæWVÂ†ÖöçF†Ç•6V7F–öâæÖF6‚‚ö6Æ73Ò'6W'f–6RÖ6&BÖ7F"‡&VcÒ%Âö6Æ7VÆF÷%ÃöÖöFSÖÖöçF†Ç’#îX˜Ş[èŠšnzérör“òæÆVæwF‚ÂB“°¢76W'BæÖF6‚†‡FÖÂÂõÂç6W'f–6RÖ6&BÖ7FÇµµçÕÒ¦Æ–vâ×6VÆc¢fÆW‚ÖVæCµµçÕÒ¦§W7F–g’Ö6öçFVçC¢fÆW‚×7F'CµµçÕÒ¦v¢ÂãCW&VÓµµçÕÒ§v–GFƒ¢f—BÖ6öçFVçCµµçÕÒ¦&÷&FW#¢µµçÕÒ¦&6¶w&÷VæC¢G&ç7&VçC²ò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂõÂç6W'f–6RÖ6&BÖ7FÇµµçÕÒ¦§W7F–g’Ö6öçFVçC¢76RÖ&WGvVVã²ò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂõÂç6W'f–6RÖ6&BÖ7FÇµµçÕÒ¦§W7F–g’Ö6öçFVçC¢6VçFW#²ò“°§Ò“° §FW7B‚&ÖöçF†Ç’6Æ7VÆF÷"Ö—'&÷'2F†R†öÖWvR6ö÷W&F–öâæ÷FW2"Â7–æ2‚’Óâ°¢6öç7B¶‡FÖÂÂ6÷W&6UÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââ÷V&Æ–2ö–æFW‚æ‡FÖÂ"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢6öç7B6ö÷W&F–öäæ÷FW2Ò°¢.iÈikjhùKé¾™»¾YXnûÈş[›>™Ú.ŠŠŞŠˆiÈŞX¹ûÈÎjøşiÈˆ{>[	2{XN8iÈZI¢{XNûÈÎKéŞYjîjÊŠŠŞŠˆ‹+¾YŠˆˆˆ~{XNi[ZY~yJ‚’ãRh©ˆ{2‚ã‚h©8.jøşš^iÈŞX¹i[˜xşŠˆ‚{XNûÈÄ”~ûÈôd"zKî{êNYÉnih~Kº^jøşzø~Šˆ‚{XNûÉ¾[›>™Ú.ŠŠŞŠˆjøşiÈYŠˆ™™"{XNûÈÎiÊ®KÛşyJ{XNi[KˆŞ{Jşz˜Ò"À¢.{k.z¹K‹¾ŠinŠk®[»nKËˆˆ~Zê>X+>YjîûÈşˆùÎYjîZI®šKéŞXªX;Šˆzé~KŠnZY~yJiÈikjXJ®h:ûÉ¾YXnY8K‹¾YÉnZY~x˜‹ûŞXªyJ.Y8hÈYjîjÊX;jÎXúnŠˆK‰NKˆŞZY~yJiÈikjh©hš>ûÉ´”~ûÈôd"zKî{êNYÉnih~{‹ŞYÉnk»ò[Ë^y¨BRRXJ®h:X8^˜yJYjîjÊiÈŞX¹ûÈÎiÈikjKˆŞ˜yJ‚"À¢.jÚ>[Èş˜yšŞKéŞŠŠŞŠˆš^yºî8XZ~ZëŠH~™¹Î[ªnˆˆ~{JiÙx¸k8z+®Š¨ŞûÉ¾Ššnzé~i˜.XX˜i8~KªNK¹zøZXşûÈÎZún™©¾KªNK¹iz^iÉşikÎYKÙÎi˜.z+®Š¨Ò"À¢.iÈikjZh.™ÈXùnkhh‰nŠ«şi[NûÈÎiÈi™®ikÎŠ;ŞKÙÎX˜Ò"iz^Y®yú^8.[{.™h¾Zx¾Š;ŞKÙÎy¨N˜:XˆnKˆŞK¨˜jËîûÉ¾X8^[	®iÊ®™h¾Zx¾Š;ŞKÙÎy¨N˜:XˆnXúşKéŞZún™©¾˜.[ªnŠ™^KË˜jËî8##RŠˆ.˜yKÙÎx+®[{.hé.Zé®[z^i˜.‹+¾yJKˆŞ˜ûÈÃƒR[îjËîikÎKªNK¹X˜ŞK¹kˆR"À¢.iÈikjXéşZx¾j©NXúşKéŞiÈŞX¹ˆˆ~i[˜xş[Øh
+~Xª‹;ÎûÈÎ‹+¾yJXúnŠÎz+®Š¨ŞûÈÎiª¾KˆŞŠˆXZ^{k.z¹X‰ŞKË8.ˆº^™ÈKº>‹ênXÛX‹~ûÈÎ[~ikÎYKÙÎz+®Š¨Şi˜.XúnŠÎKËX;ûÈÎiª¾KˆŞŠˆXZ^{k.z¹X‰ŞKË"À¢Ó° ¢6ö÷W&F–öäæ÷FW2æf÷$V6‚‚†æ÷FR’Óâ°¢76W'Bæö²†‡FÖÂæ–æ6ÇVFW2†æ÷FR’“°¢76W'Bæö²‡6÷W&6Ræ–æ6ÇVFW2†æ÷FR’“°¢Ò“°¢76W'BæÖF6‚‡6÷W&6RÂşikjŠhşX˜~ûÉ¥ÂEÇ¶ÖöçF†Ç”6ö÷W&F–öäæ÷FW5Å³ÅÕÇÒò“°§Ò“° §FW7B‚&6Æ7VÆF÷"6W'f–6RÆ–æ·2&W6VÆV7BöæR6W'f–6RæB÷Vâ—G27V6–f–6F–öâ7FW"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6V&6…&×2ÒæWrU$Å6V&6…&×5Â‡v–æF÷uÂæÆö6F–öåÂç6V&6…Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6W'f–6T–BÒ6V&6…&×5ÂævWEÂ‚'6W'f–6R%Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&WVW7FVDÖöFRÒ6V&6…&×5ÂævWEÂ‚&ÖöFR%Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6T–G3¢Å·6W'f–6UÂæ–EÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷7V6–f–6F–öå7FWÒ&V6öÖÖW&6TFWF–Ç2"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷7V6–f–6F–öå7FWÒ'&–çDFWF–Ç2"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷7V6–f–6F–öå7FWÒ'6W'f–6TFWF–Ç2"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6WD¦÷W&æW•F–ÖVÆ–æUÂ…Å¶6ö÷W&F–öäVçG'’Â6W'f–6TVçG'’Â7V6–f–6F–öäVçG'•ÅÕÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6WDW‡æFVE6W'f–6T6FVv÷'•Â‡6W'f–6UÂæ6FVv÷'•Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–bÂ‡&WVW7FVDÖöFRÓÓÒ&ÖöçF†Ç’%Â•µÇ5Å5Ò£÷6WE7FWÂ‚&ÖöçF†Ç•6W'f–6W2%Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6WD¦÷W&æW•F–ÖVÆ–æUÂ…Å¶6ö÷W&F–öäVçG'’ÂÖöçF†Ç”VçG'•ÅÕÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BVW7F–öâÒ7W'&VçEVW7F–öå&VeÂæ7W'&VçCµµÇ5Å5Ò£ö–bÂ†—5f—6–&ÆUÂ’&WGW&ãµµÇ5Å5Ò£÷VW7F–öåÂç67&öÆÄ–çFõf–WuÂ…ÇµµÇ5Å5Ò£ö&Æö6³¢&6VçFW""ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VfW'2×&VGV6VBÖÖ÷F–öã¢&VGV6Rò“°§Ò“° §FW7B‚&†öÖWvR–çFW&7F–öâöÆ—6‚7F—26ö×7BæBÖ÷F–öâÖv&R"Â7–æ2‚’Óâ°¢6öç7B‡FÖÂÒv—B&VDf–ÆR†æWrU$Â‚"ââ÷V&Æ–2ö–æFW‚æ‡FÖÂ"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚†‡FÖÂÂö6Æ73Ò&Ö'VVR×w&W""&–ÖÆ&VÃÒ.‹ùiÉşKÙÎY8‹Ê®i*ŞûÈÎXúş[znXû>h¹ni»2"ò“°¢76W'BæÖF6‚†‡FÖÂÂóÆæb6Æ73Ò&†W&ò×6V6öæF'’ÖÆ–æ·2%µÇ5Å5Ò£óÅÂöæcåÇ2£ÆF—b6Æ73Ò&†W&ò×67&öÆÂÖ7VR"&–Ö†–FFVãÒ'G'VR#ãÇ7ããÅÂ÷7ãå67&öÆÃÅÂöF—câò“°¢76W'BæÖF6‚†‡FÖÂÂõÂæ†W&ò×67&öÆÂÖ7VRÇµµÇ5Å5Ò£÷÷6—F–öã¢&VÆF—fSµµÇ5Å5Ò£÷v–GFƒ¢f—BÖ6öçFVçCµµÇ5Å5Ò£öÖ&v–ã¢ÂãG&VÒWFò²ò“°¢76W'BæÖF6‚†‡FÖÂÂö6öç7Bæ÷&ÖÅ7VVBÒÓ3"ò“°¢76W'BæÖF6‚†‡FÖÂÂ÷&VfW'2×&VGV6VBÖÖ÷F–öã¢&VGV6Rò“°¢76W'BæÖF6‚†‡FÖÂÂ÷ö–çFW&F÷vçÇö–çFW&Ö÷fWÇö–çFW'Wò“°¢76W'BæÖF6‚†‡FÖÂÂõÂç&–6–ærÖw&–BÇµµÇ5Å5Ò£ö÷fW&fÆ÷s¢f—6–&ÆRò“°¢76W'BæÖF6‚†‡FÖÂÂõÂç&–6–ærÖw&–EÂæ—2Öf–ÇFW&–ærÅµÇ5Å5Ò£õÂç&–6–ærÖw&–EÂæ—2×6WGFÆ–ærÇ²÷fW&fÆ÷s¢6Æ—²ÇÒò“°¢76W'BæÖF6‚†‡FÖÂÂõÂç&–6–ærÖ6&C¦†÷fW"ÅµÇ5Å5Ò£õÂç&–6–ærÖ6&C¦fö7W2×v—F†–âÇµµÇ5Å5Ò£÷G&ç6f÷&Ó¢æöæSµµÇ5Å5Ò£ö&÷‚×6†F÷s¢f%Â‚Ò×6†F÷r×6ÕÂ’ò“°¢76W'BæÖF6‚†‡FÖÂÂõÂç&–6–ærÖ6&C¦†÷fW"Âç&–6–ærÖ6&BÖ†VFW"ÅµÇ5Å5Ò£õÂç&–6–ærÖ6&C¦fö7W2×v—F†–âÂç6W'f–6RÖ6&BÖ7FÇ²G&ç6f÷&Ó¢æöæS²ÇÒò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂ÷6WE&÷W'G•Â‚rÒ×F–ÇBÕ·‡•Òrò“°¢76W'BæÖF6‚†‡FÖÂÂòÒÖÖ÷F–öâ×7FæF&C¢Cc×2ò“°¢76W'BæÖF6‚†‡FÖÂÂ÷G&ç6—F–öâÖFVÆ“¢f%Â‚Ò×&WfVÂÖFVÆ’Â×5Â’ò“°¢76W'BæÖF6‚†‡FÖÂÂôÖF…ÂæÖ–åÂ†–æFW‚ÂUÂ’Â¢SRò“°¢76W'BæÖF6‚†‡FÖÂÂ÷&–6–ætw&–EÂæ6Æ74Æ—7EÂæFEÂ‚v—2Öf–ÇFW&–æruÂ’ò“°¢76W'BæÖF6‚†‡FÖÂÂö†V–v‡Bf%Â‚ÒÖÖ÷F–öâ×7FæF&EÂ’f%Â‚ÒÖÖ÷F–öâÖV6UÂ’ò“°¢76W'BæÖF6‚†‡FÖÂÂö6öç7B&Wf–÷W4†V–v‡BÒ&–6–ætw&–EÂævWD&÷VæF–æt6Æ–VçE&V7EÂ…Â•Âæ†V–v‡Bò“°¢76W'BæÖF6‚†‡FÖÂÂö6öç7BæW‡D†V–v‡BÒ&–6–ætw&–EÂævWD&÷VæF–æt6Æ–VçE&V7EÂ…Â•Âæ†V–v‡Bò“°¢76W'BæÖF6‚†‡FÖÂÂ÷&–6–ætw&–EÂæ6Æ74Æ—7EÂæFEÂ‚v—2×6WGFÆ–æruÂ’ò“°¢76W'BæÖF6‚†‡FÖÂÂô¶W–g&ÖW2&–6–ærÖ6&B×6WGFÆRò“°¢76W'BæÖF6‚†‡FÖÂÂöf–ÇFW%&–6–æt6&G5Â‡F%ÂæFF6WEÂæ6FVv÷'’ÂG'VUÂ’ò“°¢76W'BæÖF6‚†‡FÖÂÂöÖ'VVUw&W%Âæ6Æ74Æ—7EÂæFEÂ‚v—2×'Vææ–æruÂ’ò“°¢76W'BæÖF6‚†‡FÖÂÂöFö7VÖVçEÂæFDWfVçDÆ—7FVæW%Â‚wf—6–&–Æ—G–6†ævRrò“°¢76W'BæÖF6‚†‡FÖÂÂö6öç7BÖ'VVTö'6W'fW"ÒæWr–çFW'6V7F–öäö'6W'fW"ò“°¢76W'BæÖF6‚†‡FÖÂÂõÂæ†W&òÂæ6öçF–æW%Âç&WfVÂâÂ¢ÇµµÇ5Å5Ò£÷f%Â‚ÒÖÖ÷F–öâ×7FæF&EÂ’ò“°¢76W'BæÖF6‚†‡FÖÂÂõÂæfÖç7vW"Ç²F—7Æ“¢w&–C²w&–B×FV×ÆFR×&÷w3¢g#²ò“°¢76W'BæÖF6‚†‡FÖÂÂõÂæ†W&òÇ²Ö–âÖ†V–v‡C¢WFó²FF–æs¢5ÂãsW&VÒ5ÂãW&VÓ²ò“°¢76W'BæÖF6‚†‡FÖÂÂöföçB×6—¦S¢6Æ×Âƒ%ÂãƒW&VÒÂ7grÂ5Âã‡&VÕÂ’ò“°§Ò“° §FW7B‚'6W'f–6RF'2öæÇ’f–ÇFW"öæR×F–ÖR&–6–ær6&G2"Â7–æ2‚’Óâ°¢6öç7B‡FÖÂÒv—B&VDf–ÆR†æWrU$Â‚"ââ÷V&Æ–2ö–æFW‚æ‡FÖÂ"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚†‡FÖÂÂö6Æ73Ò&6FVv÷'’Öæ÷FR&WfVÂ"FFÖ6FVv÷'“Ò&V6öÖÖW&6R÷F†W""ò“°¢76W'BæÖF6‚†‡FÖÂÂş™ÈŠ¸¾h*hùKé¾ih~ZÙ~j©N8YÉnx˜~ûÈYXnY8xZ~8h8^Z(>YÉnzØûÈXø®X[nK¹n[ø^ŠhY8x˜Î{JiÙò“°¢76W'BæÖF6‚†‡FÖÂÂşKº>‹êniÈŞX¹‹+¾x+®Š›.š^ŠŠŞŠˆ‹+²RRò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂş™ÈŠ¸¾h*hùKé¾ih~ZÙ~8YÉnx˜~8Xúş{z‹ÊşXéşZx¾j©NzØŠ›.š^iÈŞX¹h˜™È{JiÙÎ˜XÎiKnZX;’RRKº>‹ên‹+¾yJ‚ò“°¢76W'BæÖF6‚†‡FÖÂÂöFö7VÖVçEÂçVW'•6VÆV7F÷$ÆÅÂ‚r7&–6–ærÂç&–6–ærÖ6&BuÂ’ò“°¢76W'BæÖF6‚†‡FÖÂÂöFö7VÖVçEÂçVW'•6VÆV7F÷$ÆÅÂ‚r7&–6–ærÂçF"uÂ’ò“°¢76W'BæÖF6‚†‡FÖÂÂöFö7VÖVçEÂçVW'•6VÆV7F÷%Â‚r7&–6–ærÂçF%Âæ7F—fRuÂ’ò“°¢76W'BæFöW4æ÷DÖF6‚†‡FÖÂÂöFö7VÖVçEÂçVW'•6VÆV7F÷$ÆÅÂ‚uÂç&–6–ærÖ6&BuÂ’ò“°§Ò“° §FW7B‚&6Æ7VÆF÷"W6W26W'f–6R×7V6–f–2G&gB66†VGVÆW2v—F‚^(	3F’FVfVÇB"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚‡6÷W&6RÂ÷G—RF–ÖVÆ–æRÒ'&VwVÆ""ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VwVÆ#¢#^ûÙãX¾[z^KÙÎZJûÈZún™©¾i˜.™i>Šiny[ni˜.hé.zˆ¾ˆÎZé®ûÈ’"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VwVÆ#¢#^ûÙãX¾[z^KÙÎZJ’"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UF–ÖVÆ–æU7VÖÖ'”Æ&VÇ5µÇ5Å5Ò£ö&ææW#¢#^ûÙãrX¾[z^KÙÎZJ’%µÇ5Å5Ò£ö6&C¢#>ûÙãRX¾[z^KÙÎZJ’"ò“°¢76W'BæWVÂ‡6÷W&6RæÖF6‚‚õÇ·&VæFW%6†&VE66†VGVÆTæ÷FUÂ†7F—fRƒó¤V6öÖÖW&6U6W'f–6WÄFWF–ÆVE6W'f–6WÅ6W'f–6TFWF–Å6W'f–6R•Âæ–EÂ•ÇÒör“òæÆVæwF‚Â2“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ&VæFW%6†&VE66†VGVÆTæ÷FUÂ‡6W'f–6T–C¢7G&–æuÂ•µÇ5Å5Ò£şjÚNš^iÈŞX¹X‰Şz‹şhé.zˆµµÇ5Å5Ò£övWE6W'f–6UF–ÖVÆ–æU7VÖÖ'•Â‡6W'f–6T–EÂ•µÇ5Å5Ò£şZún™©¾i˜.™i>Šiny[ni˜.hé.zˆ¾ˆÎZé¢ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ&6ö×7BÖf–VÆB66†VGVÆR×&VFöæÇ’"ò“°¢76W'BæÖF6‚‡6÷W&6RÂô÷F–öä'WGFöâÆ&VÃÕÇ¶vWE6W'f–6UF–ÖVÆ–æU7VÖÖ'•Â‡F–ÖVÆ–æU6W'f–6T–EÂ•ÇÒFWF–ÃÒ.Zún™©¾i˜.™i>Šiny[ni˜.hé.zˆ¾ˆÎZé¢"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂò'&–÷&—G’'ÎXJ®XXhé.zˆ·Ã>ûÙãRX¾[z^KÙÎZJ8;¾ŠŠŞŠˆ‹+·ÎŠŠŞŠˆ‹+²Â³#Rò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷'W6‡Îh
+^K»gÃ"X¾[z^KÙÎZJXZwÎ‹ùiÉşKÙÎY8Ä&öæ÷Ä$ôäòò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşzÊÎKˆx˜x+®KˆˆŠÎhé.zˆ·ÎzÊÎKˆx˜Y»®Zé®x+®KˆˆŠÎhé.zˆ²ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWE6–ævÆU66†VGVÆU7VÖÖ'•Â†ç7vW'3¢ç7vW'5Â•µÇ5Å5Ò£övWE6W'f–6UF–ÖVÆ–æU7VÖÖ'•Â‡6W'f–6T–EÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂövWE6W'f–6UF–ÖVÆ–æTÆ&VÅÂ‡6W'f–6UÂæ–EÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöæÖS¢.xZ~x˜~[èÎŠ;Ò"ÅµÇ5Å5Ò£öÆ÷s¢SÅµÇ5Å5Ò£ö†–vƒ¢sSò“°¢76W'BæÖF6‚‡6÷W&6RÂöæÖS¢.jŠiÛşŠŠŞŠˆ‚"ÅµÇ5Å5Ò£öFW67&—F–öã¢.jZŞX¹{
+Z8ŠÉ¾[ª~iYiÙ8iÈ>ŠÛ"ÅµÇ5Å5Ò£öÆ÷s¢ÅµÇ5Å5Ò£ö†–vƒ¢3ÅµÇ5Å5Ò£÷Væ—C¢.x˜‚"ò“°¢76W'BæÖF6‚‡6÷W&6RÂöæÖS¢.ZJ~Yè¾k[~Z"ÅµÇ5Å5Ò£öFW67&—F–öã¢$2Kº^Kˆ®[®Zûy¨NkK¾X¹^Zê>X+>8Kø>˜«~k[~Z"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷7V6–f–6F–öäÆ&VÃ¢.ZJ~Yè¾k[~Z[®Zûˆˆ~ikY	"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöæÖS¢$2k[~Z"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–C¢'6ö6–Â"ÅµÇ5Å5Ò£öæÖS¢.zKî{êNYÉb"ÅµÇ5Å5Ò£öFW67&—F–öã¢$d.ûÈô”r‹+Îih~8kK¾X¹^ˆˆ~Y8x˜ÎŠinŠk¢"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöæÖS¢$d.ûÈô”rzKî{êNYÉb"ò“°§Ò“° §FW7B‚&ÖöçF†Ç’Æâ6·26Æ–VçBÖfö7W6VB&V7W'&–ær×v÷&²VW7F–öç2"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢6öç7BÖöçF†Ç•6W'f–6W2Ò6÷W&6Rç6Æ–6R‡6÷W&6Ræ–æFW„öb‚&gVæ7F–öâ&VæFW$6öçG&öÇ2‚’"’’æÖF6‚‚ö66R&ÖöçF†Ç•6W'f–6W2#¢…µÇ5Å5Ò£ò–66R'6÷W&6Tf–ÆR#¢ò“òå³Òóò"#°¢76W'BæÖF6‚‡6÷W&6RÂş˜	iŠşzÊÎKˆjÊY(Â6ÒFW6–vâ7GVF–òYKÙÎYxâò“°¢76W'BæÖF6‚‡6÷W&6RÂöÖöçF†Ç”f—'7EF–ÖRò“°¢76W'BæÖF6‚‡6÷W&6RÂöÖöçF†Ç”w&÷W6÷VçBò“°¢76W'BæÖF6‚‡6÷W&6RÂövWDÖöçF†Ç•Æäf÷$6÷VçBò“°¢76W'BæÖF6‚‡6÷W&6RÂş{;¾{[iÈ>KéŞYjîjÊŠŠŞŠˆ‹+¾YŠˆˆz®X¹^[‹nXZ^ikjˆˆ~XJ®h:ò“°¢76W'BæÖF6‚‡6÷W&6RÂş[ˆÎiÉ¾jøşiÈy¨NŠŠŞŠˆZh.KÙ^Zèhé.KªNK¹‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂşjøşiÈŠŠŞŠˆy¨N[›>YØ~ŠH~™¹Î[ªbò“°¢76W'BæÖF6‚‡6÷W&6RÂşjøşiÈiÈ>KÛşyJy¨Nih~ZÙrò“°¢76W'BæÖF6‚‡6÷W&6RÂşŠ¸¾z+®Š¨ŞYKÙÎ{H˜ÈNûÈÎXhŞ˜i8~iÊÎiÈ™ÈŠhy¨NiÈŞX¹ˆˆ~i[˜xòò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşK‹¾ŠhŠŠŞŠˆšîYè²ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşzKî{êNYÉn8&VVÂ[™Ú.8yJ.Y8YÉnjnXÚ{XGÄ&ææW.8[›>™Ú.ŠŠŞŠˆXÚ"{XBò“°¢76W'BæÖF6‚‡6÷W&6RÂşjøş˜Y»®Zé®KªNK¹‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂşkK¾X¹^X˜Ş™¸nKŠŞŠ;ŞKÙÂò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W2Âö6Æ74æÖSÒ&ÖöçF†Ç’Öf—'7B×F–ÖRÖ–æÆ–æR"ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W2ÂşiŠşûÈÎzÊÎKˆjÊYKÙÂò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W2ÂşKˆŞiŠşûÈÎK˜¾X˜ŞYKÙÎ˜âò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W2ÂóÆFWF–Ç26Æ74æÖSÒ&÷F–öæÂÖFWF–Ç2ÖöçF†Ç’×&öf–ÆRÖ÷F–öæÂ#âò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W2ÂóÇ7VÖÖ'“îX[nK¹n™Èk.ûÈ˜Z¾ûÈ“ÅÂ÷7VÖÖ'“âò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6W'f–6W2ÂşKˆ¾KˆjÚ^˜i8~jøşiÈ™ÈŠhy¨NiÈŞX¹ˆˆ~i[˜xş[èÂò“°¢76W'BæÖF6‚‡6÷W&6RÂşikjŠhşX˜~ûÉ¥ÂEÇ¶ÖöçF†Ç”6ö÷W&F–öäæ÷FW5Å³ÅÕÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂşXúşXú®Xª‹;Î˜:Xˆnš^yºâò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöÖöçF†Ç•6÷W&6Tf–ÆW2ò“°¢76W'BæÖF6‚‡6÷W&6RÂöÖöçF†Ç•6÷W&6Tf–ÆUVçF—F–W2ò“°¢76W'BæÖF6‚‡6÷W&6RÂşiŠşY
+n™ÈŠhXª‹;ÎXúş{z‹ÊşXéşZx¾j©NûÉşKˆŞ™ÈŠhXúşy»Nhê^ZèÎh‰Ššnzérò“°¢76W'BæÖF6‚‡6÷W&6RÂöF§W7DÖöçF†Ç•6÷W&6Tf–ÆUVçF—G’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWDÖöçF†Ç•6÷W&6Tf–ÆU6VÆV7F–öç2ò“°¢76W'BæÖF6‚‡6÷W&6RÂöç7vW'5Âç6W'f–6T–G5Âæ–æ6ÇVFW5Â‡6W'f–6UÂæ–EÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷VçF—G“¢ÖF…ÂæÖ–åÂ‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂşŠ¸¾y»Nhê^˜i8~™ÈŠhXéşZx¾j©Ny¨NiÈŞX¹ˆˆ~i[˜xòò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşiÊ®˜ûÉŞKˆŞ™ÈŠhXéşZx¾j©Bò“°¢76W'BæÖF6‚‡6÷W&6RÂö†4FDöç2Ãò.z+®Š¨Ş˜i8r(i""¢.XZ˜:KˆŞ™ÈŠh(i""ò“°¢76W'BæÖF6‚‡6÷W&6RÂöç7vW'5Âç&ö¦V7EG—RÓÓÒ&ÖöçF†Ç’%µÇ5Å5Ò£şiŠşY
+n™ÈŠhXª‹;ÎXéşZx¾j©Nh‰nKº>‹ênXÛX‹~ûÉşXúşKéŞš^yºî˜i8rò“°¢76W'BæÖF6‚‡6÷W&6RÂöÖöçF†Ç’×&–çB×7W÷'EµÇ5Å5Ò£óÇ7G&öæsîKº>‹ênXÛX‹sÅÂ÷7G&öæsâò“°¢76W'BæÖF6‚‡6÷W&6RÂşXÛ˜xş8{I[Ë^ˆˆ~Xª[z^ikÎjÚ>[ÈşYKÙÎi˜.z+®Š¨ŞûÈÎ‹+¾yJXúnŠÎKËX;ûÈÎiª¾KˆŞŠˆXZ^{k.z¹X‰ŞKËò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ6öæf—&ÔÖöçF†Ç•6÷W&6Tf–ÆW5Â…Â•µÇ5Å5Ò£÷&–çE7V6–f–6F–öç5µÇ5Å5Ò£şKº>‹ênXÛX‹~ûÉ¥ÂEÇ·&–çDæÖW5Âæ¦ö–åÂ‚.8%Â•ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂö—FVÕÂç&–6–ærÓÓÒ&FÒ%µÇ5Å5Ò£öÂEÇ¶Ö†–×VÕÇÒšVò“°¢76W'BæÖF6‚‡6÷W&6RÂşiª¾KˆŞŠˆXZ^{k.z¹X‰ŞKËò“°¢76W'BæÖF6‚‡6÷W&6RÂşiÈikjXéşZx¾j©NXª‹;ÎûÈ…ÂEÇ·6÷W&6Tf–ÆU6VÆV7F–öç5ÂæÖò“°¢76W'BæÖF6‚‡6÷W&6RÂşûÈûÉ®‹+¾yJXúnŠÎz+®Š¨Òò“°¢76W'BæÖF6‚‡6÷W&6RÂşiÈikjXJ®h:ûÈ…ÂEÇ¶f÷&ÖDÖöçF†Ç”F—66÷VçEÂ†F—66÷VçE&FUÂ•ÇŞûÈ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşYjîjÊXø>ˆ>ûÈşXJ®h:[èÂò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşyºîX˜ŞKéŞh˜˜iÈŞX¹y¨NYjîjÊX;jÎYŠˆZY~yJiÈikjXJ®h:ûÉ¾jÚ>[Èş˜yšŞKéŞXZ~ZëŠH~™¹Î[ªnˆˆ~{JiÙz+®Š¨Òò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂögVæ7F–öâvWDÖöçF†Ç•6÷W&6Tf–ÆU&–6–æwÆgVæ7F–öâvWDÖöçF†Ç•6÷W&6Tf–ÆU&–6T&6—7ÆÖöçF†Ç•6÷W&6UF&vWBò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşXéşZx¾j©NXª‹;ÎûÙÅÂEÇ¶ÖöçF†Ç•6÷W&6Tf–ÆTÆ&VÅÇÒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşi[NX¾iÈikj™ÈŠhXéşZx¾j©GÎiÈikjXéşZx¾j©NûÈYû®iÊÎ‹+²Â³S^ûÈ’ò“°§Ò“° §FW7B‚&6ö×ÆWFVBW7F–ÖFR6â&RF÷væÆöFVB2'&æFVBDb"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÆ–æT6öçF7EW&ÂÒ&‡GG3¥ÂõÂöÆ–æUÂæÖUÂ÷F•Â÷Â÷Fƒ7¥VT7&R"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ&Æ–æRÖ'WGFöâ"‡&VcÕÇ¶Æ–æT6öçF7EW&ÅÇÒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöÆ–æUÂæÖUÂõ%Â÷6†&Rò“°¢76W'BæÖF6‚‡6÷W&6RÂşKˆ¾‹ÈKËX;Yjâò“°¢76W'BæÖF6‚‡6÷W&6RÂöF÷væÆöDW7F–ÖFRò“°¢76W'BæÖF6‚‡6÷W&6RÂö7&VFUFdg&öÔ§Vw2ò“°¢76W'BæÖF6‚‡6÷W&6RÂòUDbÓÂãBò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆ–6F–öåÂ÷Fbò“°¢76W'BæÖF6‚‡6÷W&6RÂõÂõFõVæ–6öFRb"ò“°¢76W'BæÖF6‚‡6÷W&6RÂó2G"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷FW‡DÆ–æW3¢vUFW‡DÆ–W'5Å·vT–æFW…ÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂõ6ÒÔFW6–vâÕ7GVF–òŞKËX;YjâÕÂEÇ¶W7F–ÖFU&VfW&Væ6UÇÕÂçFbò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&VfW&Væ6UF–ÖRÒæWr–çFÅÂäFFUF–ÖTf÷&ÖBò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BW7F–ÖFU&VfW&Væ6RÒ4ÒÕÂEÇ¶f–ÆTFFUÂç&WÆ6TÆÅÂ‚"Ò"Â"%Â•ÇÒÕÂEÇ·&VfW&Væ6UF–ÖUÇÖò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BfÆ–EVçF–ÄFFRÒæWrFFUÂ†æ÷uÂævWEF–ÖUÂ…Â’Â²BÂ¢#BÂ¢cÂ¢cÂ¢Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆ&VÃ¢.iÈiXiÉş™™"ÂfÇVS¢fÆ–EVçF–Âò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâÆöEFd6öçF7E$6öFRò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷v—F…V&Æ–4&6UF…Â‚&76WG5ÂöVÖ&VFFVEÂóƒs#s#&3FcSuÂçvV'%Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆ&VÃ¢.ˆş{Zik[Èò"ÂfÇVS¢.hè>høò"6öFUÅÆîz+®Š¨ŞjÚ>[ÈşZX;ˆˆ~XúşZèhé.j©NiÉò"Â$6öFS¢G'VRò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöÆ&VÃ¢.ˆş{Zik[Èò%µåÆåÒ¦Æ–æT6öçF7EW&Âò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷vT6çf6W2ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâÆöEFdÆövõvFW&Ö&²ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷v—F…V&Æ–4&6UF…Â‚&76WG5Âö'&æEÂ÷6ÖFW6–vâÖÆövò×7V&UÂçær%Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâG&uFdÆövõvFW&Ö&²ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÖ&µv–GF‚Òƒò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öçFW‡EÂævÆö&ÄÇ†ÒÂãò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&÷tföçE6—¦RÒ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÖV7W&TW7F–ÖFU&÷rÒò“°¢76W'BæÖF6‚‡6÷W&6RÂôÖF…ÂæÖ…Â†Æ&VÄÆ–æW5ÂæÆVæwF‚ÂfÇVTÆ–æW5ÂæÆVæwF…Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&÷t†V–v‡BÒ&÷uÂç$6öFRÃòÖF…ÂæÖ…ÂƒsbÂFW‡E&÷t†V–v‡EÂ’¢FW‡E&÷t†V–v‡Bò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öçFW‡EÂæG&t–ÖvUÂ†6öçF7E$6öFRÂ$ÆVgBÂ%F÷Â%6—¦RÂ%6—¦UÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BG&t–æÆ–æTw&÷W†VFW"Òò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B–æÆ–æT†VFW$†V–v‡BÒsbò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷’Â²–æÆ–æT†VFW$†V–v‡BÂ²f—'7E&÷t†V–v‡Bâ&öG”&÷GFöÒò“°¢76W'BæÖF6‚‡6÷W&6RÂö7W'&VçEvRÒ7&VFTW7F–ÖFUvUÂ†ÂEÇ¶w&÷WÂçF—FÆUÇŞûÈ{¨ÎûÈ–Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşzÊÂÂEÇ¶–æFW‚Â²ÇŞûÈõÂEÇ·vT6çf6W5ÂæÆVæwF…ÇÒšò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BW7F–ÖFTæ÷F–6RÒ.jÚNx+®X‰ŞKËûÈÎjÚ>[Èş‹+¾yJKº^z+®Š¨Ş™Èk.[èÎy¨NZX;Yjîx+®k©n8""ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BFe7VÖÖ'”Æ–æW2Ò7VÖÖ'”Æ–æW5µÇ5Å5Ò£õÂç6Æ–6UÂƒÂÓÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BFWF–Å&÷tw&÷W3¢'&“ÅÇ²F—FÆS¢7G&–æs²&÷w3¢W7F–ÖFU&÷uÅµÅÒÇÓâò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&÷tw&÷W3¢'&“ÅÇ²F—FÆS¢7G&–æs²&÷w3¢W7F–ÖFU&÷uÅµÅÒÇÓâò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷F—FÆS¢.YKÙÎˆˆ~ˆş{Z"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B—4öÖ—GF&ÆUFe&÷rò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6–ævÆT6ö×7E&÷w2ò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆ&VÃ¢.iÈŞX¹š^yºâ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂşKªNiÉşûÉ®{HBò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BF÷FÅæVÅF÷Ò#ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–bÂ†—4f—'7EvUÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆWB7W'&VçEvRÒ7&VFTW7F–ÖFUvUÂ‡&÷tw&÷W5Å³ÅÕÃõÂçF—FÆRÂG'VUÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B—5F÷FÅ&÷rÒ&÷uÂæÆ&VÅÂæ–æ6ÇVFW5Â‚.{‹ŞšÒ%Â’ÇÅÇÂ&÷uÂæÆ&VÅÂæ–æ6ÇVFW5Â‚.iÊÎš^X‰ŞKË%Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&÷tf–ÆÂÒ—5F÷FÅ&÷rÃò"6SfC†6B"ò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆ&VÃ¢.Šª®iˆâ"ÂfÇVS¢W7F–ÖFTæ÷F–6Rò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷&Wf–WuFgÆFö7VÖVçEÂæ&öG•Âç&WÆ6T6†–ÆG&Vâò“°¢76W'BæÖF6‚‡6÷W&6RÂö6†&7FW"ÓÓÒ%ÅÆâ"ò“°§Ò“° §FW7B‚'6–ævÆRÖFW6–vâ6W'f–6W27W÷'B×VÇF—ÆR6VÆV7F–öç2æBW"Ö—FVÒVçF—F–W2"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚‡6÷W&6RÂş˜	jÊ™ÈŠhY:®K©¾ŠŠŞŠˆûÉşXúşŠH~˜‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷FövvÆU6W'f–6Rò“°¢76W'BæÖF6‚‡6÷W&6RÂö&–×&W76VBò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6–ævÆR×6VÆV7F–öâ×7FGW2ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6–ævÆR×6W'f–6R×–6¶W"×VçF—G’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâF§W7E6–ævÆU6W'f–6UVçF—G’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö[{.˜‚ÂEÇ·6VÆV7FVE6W'f–6W5ÂæÆVæwF…ÇÒš^ûÈÎKˆ¾KˆjÚ^Xú®z+®Š¨ŞiÈ>[Û™ûşX;jÎy¨NXZ~Zë–ò“°¢76W'BæÖF6‚‡6÷W&6RÂşŠ¸¾XˆnXŠ^Z¾Zú¾jøşX¾ŠŠŞŠˆš^yºîy¨Nš	Šˆi[˜xòò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6VÆV7FVE6W'f–6W5Âæf÷$V6‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂş‹zšîYè¾ŠŠŞŠˆ{XNY‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWE6VÆV7FVE6W'f–6T6FVv÷'’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–bÂ†6FVv÷&–W5Âç6—¦RâÂ’&WGW&â&Ö—†VB"ò“°¢76W'BæÖF6‚‡6÷W&6RÂş™»¾YXnûÈşzKî{êNŠŠŞŠˆ…µÇ5Å5Ò£ş[›>™Ú.XÛX‹~ŠŠŞŠˆ…µÇ5Å5Ò£şX[nK¹nŠŠŞŠˆiÈŞX¹’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö†56VÆV7FVE&–çE6W'f–6Rò“°§Ò“° §FW7B‚'&W6—¦R6W'f–6R6ÆV&Ç’7FFW2F†BF†R÷&–v–æÂFW6–vâf–ÆR—2&WV—&VB"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–C¢'&W6—¦R"ÅµÇ5Å5Ò£öæ÷FS¢.™ÈhùKé¾XéşZx¾ŠŠŞŠˆj©B"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–C¢'&W6—¦R"ÅµÇ5Å5Ò£öæÖS¢%&W6—¦R"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöæÖS¢.YÎjËîŠŠŞŠˆiK[®Zû‚"ò“°¢76W'BæÖF6‚‡6÷W&6RÂóÇ6ÖÆÂ6Æ74æÖSÒ&6†ö–6R×&WV—&VÖVçB#ãÇ7ãîj©Nj™Èk#ÅÂ÷7ãåÇ¶æ÷FUÇÓÅÂ÷6ÖÆÃâò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ&6†ö–6RÒƒó¦æ÷FWÇ&WV—&VÖVçB’.X)Š‹¾ûÉ¢ò“°¢76W'BæÖF6‚‡6÷W&6RÂöFWF–ÃÕÇ¶—FVÕÂæFW67&—F–öåÇÕµÇ5Å5Ò£öæ÷FSÕÇ¶—FVÕÂææ÷FUÇÒò“°¢76W'BæÖF6‚†772ÂõÂæ6†ö–6RÂæ6†ö–6R×&WV—&VÖVçBÇµµÇ5Å5Ò£ö&÷&FW"×&F—W3¢““—ƒ²ò“°§Ò“° §FW7B‚'†÷Fò&WF÷V6‚VçF—G’66WG27W7FöÒçVÖ&W"–â6VÆV7F–öâæB7V6–f–6F–öç2"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B„õDõõTåD•E•ôÄ”Ô•BÒ“’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö66R'†÷Fò#¥µÇ5Å5Ò£öÖ†–×VÓ¢„õDõõTåD•E•ôÄ”Ô•BÂ7W7FöÔ–çWC¢G'VRò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷†÷Fó¢ÇµµÇ5Å5Ò£÷VçF—G”7W7FöÓ¢G'VRò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ6WE6–ævÆU6W'f–6UVçF—G•Â‡6W'f–6T–C¢7G&–ærÂ&ufÇVS¢7G&–æuÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö&–ÖÆ&VÃÕÇ¶ÂEÇ¶—FVÕÂææÖUÇŞˆz®Šˆ.i[˜xöÇÕµÇ5Å5Ò£÷Æ6V†öÆFW#Ò.‹ËXZ^[Ë^i[‚"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öæf–uÂçVçF—G”7W7FöÒÃòÆ–çWEµÇ5Å5Ò£÷Æ6V†öÆFW#Ò.‹ËXZ^i[˜xò"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö7F—fU6W'f–6TFWF–Å6W'f–6UÂæ–BÓÓÒ'†÷Fò"Ãò„õDõõTåD•E•ôÄ”Ô•B¢““’ò“°¢76W'BæÖF6‚†772ÂõÂç6–ævÆRÖ7W7FöÒ×VçF—G’–çWBÇµµÇ5Å5Ò£÷v–GFƒ¢s'ƒµµÇ5Å5Ò£öÖ–âÖ†V–v‡C¢3Gƒ²ò“°§Ò“° §FW7B‚&FW6–vâ6FVv÷&–W2&WfVÂöæÇ’F†R6VÆV7FVB6W'f–6RÆ—7B"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢6öç7B&VæFW$6öçG&öÇ2Ò6÷W&6Rç6Æ–6R‡6÷W&6Ræ–æFW„öb‚&gVæ7F–öâ&VæFW$6öçG&öÇ2‚’"’“°¢6öç7B6FVv÷'•7FWÒ&VæFW$6öçG&öÇ2æÖF6‚‚ö66R&6FVv÷'’#¢…µÇ5Å5Ò£ò–66R'VçF—G’#¢ò“òå³Òóò"#°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6–ævÆU6W'f–6T6FVv÷'”w&÷W2Òò“°¢76W'BæÖF6‚‡6÷W&6RÂö–C¢'&W6—¦R"ÅµÇ5Å5Ò£ö6FVv÷'“¢&÷F†W""ò“°¢76W'BæÖF6‚‡6÷W&6RÂşX[nK¹nŠŠŞŠˆiÈŞX¹’"ÂFWF–Ã¢%&W6—¦^8xZ~x˜~[èÎŠ;Ş8jŠiÛşŠŠŞŠˆ‚"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BV6öÖÖW&6TFWF–Å6W'f–6T–G2ÒæWr6WEÂ…Å²&&ææW""Â'6ö6–Â"Â'&VVÂ"Â'&öGV7BÖg&ÖR"Â'&W6—¦R%ÅÕÂ’ò“°¢76W'BæÖF6‚†6FVv÷'•7FWÂ÷6–ævÆU6W'f–6T6FVv÷'”w&÷W5ÂæÖò“°¢76W'BæÖF6‚†6FVv÷'•7FWÂö&–ÖW‡æFVCÕÇ¶—4W‡æFVEÇÒò“°¢76W'BæÖF6‚†6FVv÷'•7FWÂööä6Æ–6³ÕÇµÂ…Â’Óâ6WDW‡æFVE6W'f–6T6FVv÷'•Â†—4W‡æFVBÃòçVÆÂ¢w&÷WÂæ6FVv÷'•Â•ÇÒò“°¢76W'BæÖF6‚†6FVv÷'•7FWÂ÷6W'f–6RÖ6FVv÷'’×&WfVÅÂEÇ¶—4W‡æFVBÃò"—2Ö÷Vâ"¢"%ÇÒò“°¢76W'BæÖF6‚†6FVv÷'•7FWÂö&–Ö†–FFVãÕÇ²—4W‡æFVEÇÒò“°¢76W'BæÖF6‚†6FVv÷'•7FWÂö–æW'CÕÇ²—4W‡æFVEÇÒò“°¢76W'BæÖF6‚†6FVv÷'•7FWÂş™h¾Zx¾z+®Š¨Ş™Èk"(i"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö66R'6W'f–6R#¢ò“°¢76W'BæÖF6‚†772ÂõÂç6W'f–6RÖ6FVv÷'’×æVÅÂæ—2Ö÷Vâò“°¢76W'BæÖF6‚†772ÂõÂç6W'f–6RÖ6FVv÷'’×G&–vvW#¦fö7W2×f—6–&ÆRò“°¢76W'BæÖF6‚†772ÂõÂç6W'f–6RÖ6FVv÷'’×&WfVÂÇµµÇ5Å5Ò£öw&–B×FV×ÆFR×&÷w3¢g#²ò“°¢76W'BæÖF6‚†772ÂõÂç6W'f–6RÖ6FVv÷'’×&WfVÅÂæ—2Ö÷VâÇµµÇ5Å5Ò£öw&–B×FV×ÆFR×&÷w3¢g#²ò“°§Ò“° §FW7B‚'&–çBvR6÷VçG2&R6öÆÆV7FVB–ç6–FR7V6–f–6F–öç2"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ&WV—&W4–æ—F–ÅVçF—G’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6VÆV7FVE6W'f–6W5Âæf–ÇFW%Â‡&WV—&W4–æ—F–ÅVçF—G•Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–æ—F–ÅVçF—G•6W'f–6W5ÂæÖò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ&WV—&W4ÖçVÅ&–çEvT6÷VçBò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&WGW&â7G'V7GW&RÓÓÒ&×VÇF—vR"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷6W'f–6T–BÓÓÒ&ÖVçR"ÇÅÇÂÂ‡6W'f–6T–BÓÓÒ&FÒ"bb7G'V7GW&RÓÓÒ&×VÇF—vR%Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B66WG5vT6÷VçBÒ&WV—&W4ÖçVÅ&–çEvT6÷VçEÂ†FWF–ÅÂç7G'V7GW&UÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÇ¶66WG5vT6÷VçBbbÂ…µÇ5Å5Ò£óÆÆ&VÂ6Æ74æÖSÕÇ¶f–VÆD6Æ74æÖUÂ‚'vT6÷VçB%Â•ÇÒFFÖf–VÆCÒ'vT6÷VçB#åµÇ5Å5Ò£ş{‹ŞŠŠŞŠˆši[‚Ç6ÖÆÃîûÈY
+¾[™Ú.8[[©^ûÈ“ÅÂ÷6ÖÆÃâò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&WV—&VEvT6÷VçD÷F–öç5Âæf–ÇFW%Â…Â†6÷VçEÂ’Óâ6÷VçBãÒÖ–æ–×VÕvT6÷VçEÂ•ÂæÖò“°¢76W'BæÖF6‚‡6÷W&6RÂövWDÖ–æ–×VÕ&–çEvT6÷VçEÂ†7F—fTFWF–ÆVE6W'f–6UÂæ–BÂFWF–ÅÂç7G'V7GW&UÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂövWDÖ–æ–×VÕ&–çEvT6÷VçEÂ†ÖöçF†Ç•&–çE6W'f–6T–BÂÖöçF†Ç•&–çDFWF–ÅÂç7G'V7GW&UÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö7W7FöÕvT6÷VçEÃó¢&ööÆVâò“°¢76W'BæÖF6‚‡6÷W&6RÂóÆ÷F–öâfÇVSÒ&7W7FöÒ#îˆz®Šˆ.ši[ƒÅÂö÷F–öãâò“°¢76W'BæÖF6‚‡6÷W&6RÂö&–ÖÆ&VÃÒ.ˆz®Šˆ.{‹ŞŠŠŞŠˆši[‚"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ&7W7FöÒ×vRÖ6÷VçBÖ–çWB"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşKˆŞY
+¾[™Ú.8[[©Rò“°¢76W'BæÖF6‚‡6÷W&6RÂö–bÂ‚VçF—G•Â’&WGW&â6W'f–6UÂææÖRò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷6W'f–6T–BÓÓÒ&fÇ–W"%µÇ5Å5Ò£÷fÇVRÓÓÒ'6–ævÆR"ÇÅÇÂfÇVRÓÓÒ&F÷V&ÆR"ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWDWFöÖF–5&–çEvT6÷VçBò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWDÖ–æ–×VÕ&–çEvT6÷VçEÂ‡6W'f–6T–C¢7G&–ærÇÂVæFVf–æVBÂ7G'V7GW&UÃó¢&–çE7G'V7GW&UÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷7G'V7GW&RÓÓÒ&×VÇF—vR%Â’&WGW&â6W'f–6T–BÓÓÒ&ÖVçR"Ãò2¢"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–bÂ‡&WV—&W4ÖçVÅ&–çEvT6÷VçEÂ‡F6…Âç7G'V7GW&UÂ•Â•µÇ5Å5Ò£öFVÆWFRVçF—F–W5Å·6W'f–6T–EÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂövWDWFöÖF–5&–çEvT6÷VçEÂ‡F6…Âç7G'V7GW&UÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöf–æÃ¢.[{.Zé®z‹ò"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşih~ZÙ~ˆˆ~X;jÎ[{.Zé®z‹òò“°¢76W'BæÖF6‚‡6÷W&6RÂş[»nKËx˜iÊÂÇ6ÖÆÃîûÈYÎx˜hù¾XZ~ZëûÈÎKˆŞY
+¾˜xŞhé.h‰b&W6—¦^ûÈ“ÅÂ÷6ÖÆÃâò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşx˜iÊÎi[‡Î[»nKËx˜iÊÎi[‚ò“°§Ò“° §FW7B‚'&WV—&VBW7F–ÖFRVçF—F–W2W6RG&÷F÷vç2W†6WB7V6–Æ—¦VBV6öÖÖW&6R–çWG2"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢6öç7BV6öÖÖW&6T6&BÒ6÷W&6RæÖF6‚‚ö66R&V6öÖÖW&6TFWF–Ç2#¢Ç²…µÇ5Å5Ò£ò–66R'&–çDFWF–Ç2#¢Ç²ò“òå³Òóò"#°¢6öç7B&–çD6&BÒ6÷W&6RæÖF6‚‚ö66R'&–çDFWF–Ç2#¢Ç²…µÇ5Å5Ò£ò–66R'6W'f–6TFWF–Ç2#¢Ç²ò“òå³Òóò"#°¢6öç7B6W'f–6T6&BÒ6÷W&6RæÖF6‚‚ö66R'6W'f–6TFWF–Ç2#¢Ç²…µÇ5Å5Ò£ò–66R'&–çEW'÷6R#¢Ç²ò“òå³Òóò"#° ¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&WV—&VEVçF—G”÷F–öç2Ò'&•Âæg&öÕÂ…Ç²ÆVæwFƒ¢ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&WV—&VEvT6÷VçD÷F–öç2Ò'&•Âæg&öÕÂ…Ç²ÆVæwFƒ¢’ÇÒÂÂ…òÂ–æFW…Â’Óâ–æFW‚Â²%Â’ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂö7F—fTV6öÖÖW&6U6W'f–6UÂæ–BÓÓÒ'&VVÂ"ÃòÆ–çWEµÇ5Å5Ò£ó¢Ç6VÆV7Bò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂö&–ÖÆ&VÃÒ.‹+Îih~zø~i[‚%µÇ5Å5Ò£÷G—SÒ&çVÖ&W""ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂö&–ÖÆ&VÃÒ.YÉnjnx˜Yè¾i[‚%µÇ5Å5Ò£÷G—SÒ&çVÖ&W""ò“°¢76W'BæÖF6‚‡&–çD6&BÂöFFÖf–VÆCÒ'vT6÷VçB%µÇ5Å5Ò£óÇ6VÆV7Bò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂö6öæf–uÂçVçF—G”÷F–öæÂÃòÆ–çWEµÇ5Å5Ò£ó¢Ç6VÆV7Bò“°¢76W'BæÖF6‚†772ÂõÂçVçF—G’Ö–çWB×w&–çWBÅÇ2¥ÂçVçF—G’Ö–çWB×w&6VÆV7Bò“°§Ò“° §FW7B‚'&–çB7V6–f–6F–öç2–FVçF–g’æBfö7W2Ö—76–ær&WV—&VBf–VÆG2"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷G—R&–çDFWF–Äf–VÆBò“°¢76W'BæÖF6‚‡6÷W&6RÂövWDÖ—76–æu&–çDFWF–Äf–VÆG2ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÅ·&–çDFWF–ÄW'&÷'2Â6WE&–çDFWF–ÄW'&÷'5ÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂöFFÖf–VÆCÒ'W'÷6W2"ò“°¢76W'BæÖF6‚‡6÷W&6RÂöFFÖf–VÆCÒ&f÷&ÖB"ò“°¢76W'BæÖF6‚‡6÷W&6RÂöFFÖf–VÆCÒ'7G'V7GW&R"ò“°¢76W'BæÖF6‚‡6÷W&6RÂöFFÖf–VÆCÒ&6öçFVçE7FGW2"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö&–Ö–çfÆ–CÕÇ¶†4W'&÷"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷67&öÆÄ–çFõf–WuÂ…Ç²&V†f–÷#¢'6Öö÷F‚"Â&Æö6³¢&6VçFW""ÇÕÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöfö7W5Â…Ç²&WfVçE67&öÆÃ¢G'VRÇÕÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşŠ¸¾Z¾Zú¾jÚNjÈNKØÒò“°¢76W'BæÖF6‚‡6÷W&6RÂşŠ¸¾Š9ÎZ¾ûÉ¢ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöF—6&ÆVCÕÇ²—46ö×ÆWFUÇÒöä6Æ–6³ÕÇ¶6öæf—&Õ&–çDFWF–Ç5ÇÒò“°¢76W'BæÖF6‚†772ÂõÂæ6ö×7B×6V7F–öåÂæ†2ÖW'&÷"ò“°¢76W'BæÖF6‚†772ÂõÂæ6ö×7BÖf–VÆEÂæ†2ÖW'&÷"–çWBò“°¢76W'BæÖF6‚†772ÂõÂæf–VÆBÖW'&÷"ò“°§Ò“° §FW7B‚'vRæBfW'6–öâ6÷VçG27F’&Ææ²v†–ÆR÷7FW"7F'G2g&öÒöæR&6RFW6–vâ"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚‡6÷W&6RÂöVÇ6R–bÂ‡FövvÆVE6W'f–6RbbÂ‡&WV—&W4–æ—F–ÅVçF—G•Â‡FövvÆVE6W'f–6UÂ’ÇÅÇÂFövvÆVE6W'f–6UÂæ–BÓÓÒ'÷7FW"%Â•Â’ÇµÇ2§VçF—F–W5Å·6W'f–6T–EÅÒÒ²ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&WGW&âV6öÖÖW&6TFWF–Å6W'f–6T–G5Âæ†5Â‡6W'f–6UÂæ–EÂ’bbFWF–ÆVE&–çE6W'f–6T–G5Âæ†5Â‡6W'f–6UÂæ–EÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâWFFT7F—fU&–çEvT6÷VçEÂ‡&ufÇVS¢7G&–æuÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöFVÆWFRVçF—F–W5Å¶7F—fTFWF–ÆVE6W'f–6UÂæ–EÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂöç7vW'5ÂçVçF—F–W5Å¶7F—fTFWF–ÆVE6W'f–6UÂæ–EÅÒÃõÃò""ò“°¢76W'BæÖF6‚‡6÷W&6RÂöç7vW'5ÂçVçF—F–W5Å¶7F—fTFWF–ÆVE6W'f–6UÂæ–EÅÒÃõÃòò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷fW'6–öä6÷VçC¢'6T÷F–öæÅ÷6—F—fT–çFVvW%Â†WfVçEÂçF&vWEÂçfÇVUÂ’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö–bÂ‚FWF–ÅÂçfW'6–öä6÷VçEÂ’Ö—76–æuÂçW6…Â‚'fW'6–öä6÷VçB%Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷fW'6–öä6÷VçC¢VæFVf–æVBò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷fÇVSÕÇ¶FWF–ÅÂçfW'6–öä6÷VçBÃõÃò"%ÇÒÆ6V†öÆFW#Ò#"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–bÂ‚VçF—G•Â’&WGW&â6W'f–6UÂææÖRò“°§Ò“° §FW7B‚'7VÖÖ'’æBDbW6R6ö×7BVçF—G’v÷&F–ær"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâf÷&ÖE6W'f–6UVçF—G’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöÂEÇ·6W'f–6UÂææÖUÇÒ9uÂEÇ·VçF—G•ÇÒÂEÇ¶vWE6W'f–6UVæ—EÂ‡6W'f–6RÂç7vW'5Â•ÇÖò“°¢76W'BæÖF6‚‡6÷W&6RÂô”~ûÈôd"zKî{êNYÉnih~ûÉ¥ÂEÇ·÷7D'&V¶F÷våÇŞûÈşX[ÂEÇ·6ö6–Å&–6–æuÂçF÷FÄ–ÖvW5ÇÒ[Ë^ûÈ[»nKË‚ÂEÇ·6ö6–Å&–6–æuÂæW‡FVç6–öä6÷VçEÇÒ[Ë^ûÈ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşYXnY8K‹¾YÉnZY~x˜ûÉ¥ÂEÇ¶g&ÖT'&V¶F÷våÇŞûÈşX[ÂEÇ¶g&ÖU&–6–æuÂçF÷FÅ&öGV7G5ÇÒš^yJ.Y8ò“°¢76W'BæÖF6‚‡6÷W&6RÂşiÈ˜xşûÉ¥ÂEÇ¶ç7vW'5ÂæÖöçF†Ç”w&÷W6÷VçEÇÒ{XBò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöÆ–æW5ÂçW6…Â†i[˜xşûÉ¥ÂEÇ·6VÆV7FVE6W'f–6W2ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂõÇ·V÷FUÂæ&6Tæ÷FRbbÇâò“°§Ò“° §FW7B‚'F†R6öÖ&–æVBfÇ–W"æBDÒ6W'f–6RW6W2F†R6ÖRf–æ—6†VB×&öGV7B7G'V7GW&W22ÖVçR"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö–C¢&fÇ–W"%µÇ5Å5Ò£öæÖS¢.X+>Yjâ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–C¢&FÒ%µÇ5Å5Ò£öæÖS¢.X+>YjîûÈôDÒ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–C¢&ÖVçR%µÇ5Å5Ò£öæÖS¢.ˆùÎYjâ"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö–C¢&6FÆör"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöæÖS¢.X+>YjîûÈôDŞûÈşˆùÎYjâ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö×VÇF—vS¢.ZI®š"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö–bÂ‡6W'f–6T–BÓÓÒ&fÇ–W"%Â’&WGW&â÷F–öç5Âæf–ÇFW"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö–bÂ‡6W'f–6T–BÓÓÒ&FÒ%Â’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşYè¾˜ÈBò“°¢76W'BæÖF6‚‡6÷W&6RÂöÂEÇ¶FWF–ÆVDæÖUÇŞŠhX®h‰Yjî™Ú.8™¹™Ú.8h©šûÈÎ˜(NiŠşZI®šûÉöò“°¢76W'BæÖF6‚‡6÷W&6RÂó¢.ZI®š{zhé""ò“°§Ò“° §FW7B‚'6W'f–6R6†ö–6W26†÷rF†RvV'6—FR&–6W2&Vf÷&R6VÆV7F–öâ"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWE6W'f–6TF—7Æ•&–6Rò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UÂæ–BÓÓÒ&&ææW""ò“°¢76W'BæÖF6‚‡6÷W&6RÂşK‹¾ŠinŠk®[»nKËXª‹;ÂÂµÂEÇ¶f÷&ÖE&–6U&ævUÂ†&ææW$W‡FVç6–öå&–6UÂæÆ÷rÂ&ææW$W‡FVç6–öå&–6UÂæ†–v…Â•ÇŞûÈş[ËRò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UÂæ–BÓÓÒ'6ö6–Â"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6ö6–ÄW‡FVç6–öå&–6RÒÇ²Æ÷s¢#SÂ†–vƒ¢SÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂşYÎzø~‹+Îih~ûÈÎzÊÂ"[Ë^‹[rÂµÂEÇ¶f÷&ÖE&–6U&ævUÂ‡6ö6–ÄW‡FVç6–öå&–6UÂæÆ÷rÂ6ö6–ÄW‡FVç6–öå&–6UÂæ†–v…Â•ÇŞûÈş[ËRò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UÂæ–BÓÓÒ'&öGV7BÖg&ÖR"ò“°¢76W'BæÖF6‚‡6÷W&6RÂşYÉnjnY
+²š^yJ.Y8ûÈÎjøş‹ûŞXªš^yJ.Y8ûÈõÂµÂCsò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UÂæ–BÓÓÒ&FÒ"ÇÅÇÂ6W'f–6UÂæ–BÓÓÒ&ÖVçR"ò“°¢76W'BæÖF6‚‡6÷W&6RÂşzÊÂ"š‹[rÂEÇ¶f÷&ÖE&–6U&ævUÂƒcÂƒÂ•ÇŞûÈşšò“°¢76W'BæÖF6‚‡6÷W&6RÂöFWF–ÃÕÇ¶—FVÕÂæFW67&—F–öåÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&–6SÕÇ¶vWE6W'f–6TF—7Æ•&–6UÂ†—FVÕÂ•ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂóÆVÒ6Æ74æÖSÒ&6†ö–6R×&–6R#åÇ·&–6UÇÓÅÂöVÓâò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂş{k.z¹X;jÎûÙÅÇ·&–6UÇ×ÎYÎ{;¾X‰~zÊÂ"š‹[rò“°¢76W'BæÖF6‚†772ÂõÂæ6†ö–6RÂæ6†ö–6R×&–6Rò“°§Ò“° §FW7B‚'F†R6öÖ&–æVBfÇ–W"æBDÒ6W'f–6R7W÷'G26–ævÆRÂF÷V&ÆRÂföÆFVBÂæB×VÇF—vR&–6–ær"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢6öç7B6öÖ&–æVE6W'f–6RÒ6÷W&6RæÖF6‚‚õÇµÇ2¦–C¢&FÒ"Â…µÇ5Å5Ò£ò•ÆåÇ2¥ÇÒÂò“òå³Òóò"#°¢76W'BæÖF6‚†6öÖ&–æVE6W'f–6RÂöæÖS¢.X+>YjîûÈôDÒ"ò“°¢76W'BæÖF6‚†6öÖ&–æVE6W'f–6RÂ÷Væ—C¢.š"ò“°¢76W'BæÖF6‚†6öÖ&–æVE6W'f–6RÂ÷&–6–æs¢&FÒ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö&6TÆ÷rÒ6W'f–6UÂæÆ÷rÂ²ÖF…ÂæÖ…ÂƒÂVçF—G’ÒÂ’Â¢cò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö–bÂ‡6W'f–6T–BÓÓÒ&fÇ–W"%Â’&WGW&â÷F–öç5Âæf–ÇFW"ò“°¢76W'BæÖF6‚‡6÷W&6RÂöæ÷&ÖÆ—¦VE6W'f–6T–BÒ6W'f–6T–BÓÓÒ&fÇ–W""Ãò&FÒ"¢6W'f–6T–Bò“°§Ò“° §FW7B‚&6&B6–ævÆRÒæBF÷V&ÆR×6–FVB&–6–ær—2öæR6W'f–6R6VÆV7FVB–â7V6–f–6F–öç2"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–C¢&6&B%µÇ5Å5Ò£öæÖS¢.YŞx˜~ûÈşiÈ>Y:XÚ%µÇ5Å5Ò£÷&–6–æs¢&6&B"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UÂæ–BÓÓÒ&6&B%µÇ5Å5Ò£şYjî™Ú"ÂEÇ¶f÷&ÖE&–6U&ævUÂƒÂSÂ•ÇÕµÇ5Å5Ò£ş™¹™Ú"ÂEÇ¶f÷&ÖE&–6U&ævUÂƒ#Â##Â•ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷7V6–f–6F–öäÆ&VÃ¢.Yjî™Ú.ûÈş™¹™Ú""ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷fÇVS¢'6–ævÆR%µÇ5Å5Ò£÷fÇVS¢&F÷V&ÆR"ò“°¢76W'BæÖF6‚‡6÷W&6RÂöç7vW'5Âç6W'f–6TFW6–väFWF–Ç5Âæ6&EÃõÂç7V6–f–6F–öâÓÓÒ&F÷V&ÆR"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö7F—fU6W'f–6TFWF–Å6W'f–6UÂæ–BÓÓÒ&6&B"Ãò"6&B×&WV—&VBÖw&–B"¢""ò“°¢76W'BæÖF6‚†772ÂõÂæ6&B×&WV—&VBÖw&–BâÂæ6ö×7BÖf–VÆBÇµÇ2¦Æ–vâÖ6öçFVçC¢VæCµÇ2¥ÇÒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö6&B×6–ævÆWÆ6&BÖF÷V&ÆRò“°§Ò“° §FW7B‚'F†R6öÖ&–æVBfÇ–W"æBDÒ6W'f–6RæBÖVçR6öÆÆV7B&öGV7F–öâFWF–Ç2v—F†÷WB6¶–ærf÷"FVÆ—fW'’Æö6F–öâ"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢6öç7Bç7vW'5G—RÒ6÷W&6RæÖF6‚‚÷G—Rç7vW'2ÒÇ²…µÇ5Å5Ò£ò•ÆåÇÓ²ò“òå³Òóò"#°¢76W'BæÖF6‚‡6÷W&6RÂşK‹¾ŠhiÈ>yJYÊY:®Š:ò“°¢76W'BæÖF6‚‡6÷W&6RÂşŠ¸¾˜i8~KˆX¾iÈK‹¾Šhy¨NyJ˜	Bò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷W'÷6W3¢Å·fÇVUÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷G—SÒ'&F–ò"æÖSÕÇ¶W'÷6RÒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷FövvÆU&–çEW'÷6WÇG—SÒ&6†V6¶&÷‚"6†V6¶VCÕÇ·6VÆV7FVEW'÷6W2ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&–çEW'÷6T÷F–öç4'•6W'f–6Rò“°¢76W'BæÖF6‚‡6÷W&6RÂöFÓ¥µÇ5Å5Ò£÷&–çEW'÷6TÆ&VÇ5ÂæF—7G&–'WF–öåµÇ5Å5Ò£÷&–çEW'÷6TÆ&VÇ5Å²&F—&V7BÖÖ–Â%ÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂöÖVçS¥µÇ5Å5Ò£÷&–çEW'÷6TÆ&VÇ5Å²&F–æRÖ–â%ÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂşK¸¾{KyJ.Y88Y8x˜Îh‰niÈŞX¹XZ~Zë’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşŠ~š
+ŞûÈşYXnYÈkKîy›ÇÎ˜;^ZøNûÈşYŞYjîh©^˜çÎ[©~XZ~yJšIò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂò&FVÆ—fW'’'ÎZIn˜ûÈş{y®Kˆ®ˆùÎYjçÎZIn˜[›>Xû8"6öFRh‰n{y®Kˆ®xşŠkÒò“°¢76W'BæÖF6‚‡6÷W&6RÂövWE&–çEW'÷6T÷F–öç5Â†7F—fTFWF–ÆVE6W'f–6UÃõÂæ–EÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşh‰Y8[®Zûˆˆ~ikY	ò“°¢76W'BæÖF6‚‡6÷W&6RÂşYjî™Ú.8™¹™Ú.8h©šûÈÎ˜(NiŠşZI®šò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷6W'f–6T–BÓÓÒ&6FÆör'ÎYè¾˜ÈNiÈ>hêZI®š{zhé'Î‹È>ZèÎi[NYËK¸¾{KY8x˜Âò“°¢76W'BæÖF6‚‡6÷W&6RÂşš	ŠˆKÛşyJY:®KˆzŠîh©šik[Èòò“°¢76W'BæÖF6‚‡6÷W&6RÂşih~ZÙ~8Y8š^ˆˆ~X;jÎiŠşY
+n[{.{i>Zé®z‹òò“°¢76W'BæÖF6‚‡6÷W&6RÂşxZ~x˜~h‰nYÉnx˜~k©nX)[é~Zh.KÙRò“°¢76W'BæÖF6‚‡6÷W&6RÂşKˆŞYÎŠ©îŠˆ8Xˆn[©~8X;jÎh‰nkK¾X¹^XZ~Zë’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşiÈi™®[ˆÎiÉ¾KÙ^i˜.iKnX‹Xúş˜XÛy¨NZèÎz‹şj©Bò“°¢76W'BæÖF6‚‡6÷W&6RÂşh‰Y8X‹‹*iz^iÈ>XúnŠÎz+®Š¨Òò“°¢76W'BæÖF6‚‡6÷W&6RÂşš	ŠˆXÛ˜xòò“°¢76W'BæÖF6‚‡6÷W&6RÂş{I[ËRò“°¢76W'BæÖF6‚‡6÷W&6RÂşXª[zRò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&–çE7V6–f–6F–öç2ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷&–çE7V6–f–6F–öä–æFW‡Æ7F—fU&–çE6W'f–6Rò“°¢76W'BæÖF6‚‡6÷W&6RÂşY:®K©¾[›>™Ú.XÛX‹~š^yºî™ÈŠhXÙNXªz+®Š¨ŞŠhşjÎˆˆ~Kº>‹ên˜XÛûÉşXúşKˆjÊŠH~˜‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâFövvÆU&–çE&öGV7F–öåÂ‡6W'f–6T–C¢7G&–æuÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6VÆV7FVE&–çE6W'f–6W5ÂæÖÂ…Â‡6W'f–6UÂ’Óâò“°¢76W'BæÖF6‚‡6÷W&6RÂööä6Æ–6³ÕÇµÂ…Â’ÓâFövvÆU&–çE&öGV7F–öåÂ‡6W'f–6UÂæ–EÂ•ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷7W÷'FVE&–çE6W'f–6W5ÂæÖÂ…Â‡6W'f–6UÂ’Óâò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâWFFU&–çE&öGV7F–öåÂ‡6W'f–6T–C¢7G&–ærÂF6ƒ¢'F–ÃÅ&–çE7V6–f–6F–öãåÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ6öæf—&Õ&–çE&öGV7F–öåÂ…Â•µÇ5Å5Ò£öÖ÷fUÂ‚'&W7VÇB"ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÂEÇ·6W'f–6UÂææÖUÇŞXÛX‹rò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö†4æW‡E&–çE6W'f–6RÃò'&–çE7W÷'B'Æ66R'&–çE7W÷'B'Æ66R'&–çEVçF—G’"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷&–çEVçF—G•Ãó¢çVÖ&W'Ç&–çEW%Ãó¢&–çEW'Ç&–çDf–æ—6…Ãó¢&–çDf–æ—6‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&–çDFW6–väFWF–Ç2ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&–çDFWF–Ä–æFW‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂö7F—fTFWF–ÆVE6W'f–6Rò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷W'÷6W5Ãó¢&–çEW'÷6UÅµÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6VÆV7E&–çEW'÷6Rò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öæf—&Õ&–çEW'÷6W2ò“°¢76W'BæÖF6‚‡6÷W&6RÂş[{.˜i8~K‹¾ŠhyJ˜	Bò“°¢76W'BæÖF6‚‡6÷W&6RÂşz+®Š¨ŞyJ˜	Bò“°¢76W'BæÖF6‚‡6÷W&6RÂöFWF–ÅÂçW'÷6W5ÂæÖò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷W'÷6UÃó¢&–çEW'÷6Rò“°¢76W'BæÖF6‚‡6÷W&6RÂöf÷&ÖEÃó¢&–çDf÷&ÖBò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷7G'V7GW&UÃó¢&–çE7G'V7GW&Rò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öçFVçE7FGW5Ãó¢6öçFVçE7FGW2ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–ÖvU7FGW5Ãó¢–ÖvU7FGW2ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷fW'6–öä6÷VçEÃó¢çVÖ&W"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6ö×ÆW†—G•Ãó¢6ö×ÆW†—G’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷F–ÖVÆ–æUÃó¢F–ÖVÆ–æRò“°¢76W'BæÖF6‚‡6÷W&6RÂöFVFÆ–æUÃó¢7G&–ærò“°¢76W'BæÖF6‚‡6÷W&6RÂö†4æW‡E6W'f–6RÃò'&–çEW'÷6R"¢'6÷W&6Tf–ÆR"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BFW7F–æF–öâÒvWDæW‡D–æ6ö×ÆWFU7V6–f–6F–öäFW7F–æF–öåÂ†æW‡Dç7vW'2Â7F—fTFWF–ÆVE6W'f–6UÂæ–EÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÂEÇ·6W'f–6UÂææÖUÇŞyJ˜	NûÉ¢ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÂEÇ·6W'f–6UÂææÖUÇŞŠhşjÎûÉ¢ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂõÂEÇ·6W'f–6UÂææÖUÇŞyJ˜	NûÈşŠhşjÂò“°¢76W'BæÖF6‚‡6÷W&6RÂõÂEÇ·6W'f–6UÂææÖUÇŞXZ~Zë’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöFWF–ÅÂæ–ÖvU7FGW2Ãò{JiÙx¸k8ÂEÇ¶–ÖvU7FGW4Æ&VÇ5Å¶FWF–ÅÂæ–ÖvU7FGW5ÅÕÇÖò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşûÈşyJYÉbÂEÇ¶FWF–ÅÂæ–ÖvU7FGW2ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÂEÇ·6W'f–6UÂææÖUÇŞŠinŠk®ûÈşhé.zˆ²ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÂEÇ·6W'f–6UÂææÖUÇŞXéşZx¾j©Bò“°¢76W'BæFöW4æ÷DÖF6‚†ç7vW'5G—RÂ÷&–çDf÷&ÖEÃó¢&–çDf÷&ÖGÆ–ÖvU7FGW5Ãó¢–ÖvU7FGW2ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşKªN‹*YË›¹çÎ˜‹*YË›¹çÎ˜XŞ˜YËYØò“°§Ò“° §FW7B‚&föÆFVB&–çB7V6–f–6F–öç26†÷r6ÆV"f—7VÂföÆB6†ö–6W2"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&–çDföÆDFW67&—F–öç3¢&V6÷&CÅ&–çDföÆBÂ7G&–æsâò“°¢76W'BæÖF6‚‡6÷W&6RÂş{I[Ë^[znXû>[Şh©ûÈÎ[Ú.h‰BX¾x˜™Ú"ò“°¢76W'BæÖF6‚‡6÷W&6RÂşXZXNKéŞ[¨şY	XZ~iKnh©ûÈÎ[Ú.h‰bX¾x˜™Ú"ò“°¢76W'BæÖF6‚‡6÷W&6RÂşk+şh©{y®X˜Ş[èÎKªN˜ÊşûÈÎX8şš*yNˆŠÎ[^™h²ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâföÆDF–w&ÕÂ…Ç²föÆBÇÓ¢Ç²föÆC¢&–çDföÆBÇÕÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâföÆD6†ö–6UÂ‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&WGW&âÇ7â6Æ74æÖSÒ&föÆBÖF–w&ÒföÆBÖF–w&ÒÖ7W7FöÒ"&–Ö†–FFVãÒ'G'VR#ãÆ#åÃóÅÂö#ãÅÂ÷7ãâò“°¢76W'BæÖF6‚‡6÷W&6RÂóÆ'WGFöâ6Æ74æÖSÕÇ¶föÆBÖ6†ö–6UÂEÇ·6VÆV7FVBÃò"6VÆV7FVB"¢"%ÇÖÇÒG—SÒ&'WGFöâ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ&föÆBÖ÷F–öâÖw&–B"&–ÖÆ&VÃÒ.h©šik[ÈşzK®hHşYÉb"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6VÆV7FVCÕÇ¶FWF–ÅÂæföÆBÓÓÒfÇVUÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂöföÆBÖ÷F–öâÖw&–BföÆBÖ÷F–öâÖw&–BÖ6öçfW'6F–öâò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöFWF–ÅÂç7G'V7GW&RÓÓÒ&föÆFVB"bbÆÆ&VÅµÇ5Å5Ò£óÇ6VÆV7B&–Ö–çfÆ–CÕÇ¶†4W'&÷%Â‚&föÆB%Â•ÇÒò“°¢76W'BæÖF6‚†772ÂõÂæföÆBÖ÷F–öâÖw&–BÇµµÇ5Å5Ò£öw&–B×FV×ÆFRÖ6öÇVÖç3¢&WVEÂƒBÂÖ–æÖ…ÂƒÂg%Â•Â’ò“°¢76W'BæÖF6‚†772ÂõÂæföÆBÖ6†ö–6UÂç6VÆV7FVBò“°¢76W'BæÖF6‚†772ÂõÂæföÆBÖF–w&ÒÖ66÷&F–öâÂæföÆB×W"“¦çF‚Ö6†–ÆEÂ†öFEÂ’ò“°¢76W'BæÖF6‚†772ÂôÖVF–Â†Ö‚×v–GFƒ¢sc…Â•µÇ5Å5Ò£õÂæföÆBÖ÷F–öâÖw&–BÇµµÇ5Å5Ò£÷&WVEÂƒ"ÂÖ–æÖ…ÂƒÂg%Â•Â’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷&–çDföÆE&VfW&Væ6W7ÆföÆB×&VfW&Væ6R×†÷F÷ÆföÆBÖ6†ö–6R×6÷W&6Rò“°¢76W'BæFöW4æ÷DÖF6‚†772Â÷W'7V7F—fS¢#c‡Ç&÷FFU…Â‚Ó&FVuÂ—ÆföÆB×&VfW&Væ6R×†÷F÷ÆföÆBÖ6†ö–6R×6÷W&6Rò“°§Ò“° §FW7B‚'&–6–ærFF—F–öç2&R—FVÖ—¦VBÂæöâÖ6ö×÷VæF–ærÂæB6÷W&6Rf–ÆW2&R6VÆV7F&ÆRW"6W'f–6R"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6÷W&6Tf–ÆU6W'f–6T–G2ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷FövvÆU6÷W&6Tf–ÆRò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ&×VÇF’×6VÆV7B×w&FBÖöâ×6VÆV7F÷""ò“°¢76W'BæÖF6‚‡6÷W&6RÂóÇ7G&öæsî™ÈŠhXúş{z‹Êşy¨NXéşZx¾j©NYxîûÉóÅÂ÷7G&öæsâò“°¢76W'BæÖF6‚‡6÷W&6RÂóÇ7G&öæsî™ÈŠhXÙNXªXÛX‹~YxîûÉóÅÂ÷7G&öæsâò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ6öæf—&Õ6–ævÆTFDöç5Â…Â•µÇ5Å5Ò£öÖ÷fUÂ‚'&W7VÇB"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöÖ÷fUÂ††56VÆV7FVE&–çE6W'f–6UÂ†ç7vW'5Â’Ãò'&–çE&öGV7F–öâ"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷'W6„Æ÷wÇ'W6„†–v‡Îh
+^K»nXªX;’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&–çE7V6–f–6F–öç5Å·6W'f–6UÂæ–EÅÕÃõÂç7W÷'Bò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&–çDÆ÷rÒç7vW'5Âç&ö¦V7EG—RÓÓÒ'6–ævÆR"bbç7vW'5Âç&–çE7V6–f–6F–öç5Å·6W'f–6UÂæ–EÅÕÃõÂç7W÷'BÃò&6TÆ÷rÂ¢ÂãR¢ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6÷W&6Tf–ÆT&6TÆ÷rÒ6W'f–6UÂæ–BÓÓÒ'&öGV7BÖg&ÖR"Ãò6W'f–6UÂæÆ÷rÂ¢VçF—G’¢&6TÆ÷rò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6÷W&6Tf–ÆT&6T†–v‚Ò6W'f–6UÂæ–BÓÓÒ'&öGV7BÖg&ÖR"Ãò6W'f–6UÂæ†–v‚Â¢VçF—G’¢&6T†–v‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂşYXnY8K‹¾YÉnx˜Yè²ÂEÇ´ÖF…ÂæÖ…ÂƒÂVçF—G•Â•ÇÒx˜‚9rjøşx˜ŠŠŞŠˆ‹+²9rS^ûÈKˆŞY
+¾‹ûŞXªyJ.Y8ûÈ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşKéŞYXnY8K‹¾YÉnx˜Yè¾i[Šˆzé~ûÈÎjøşx˜ŠŠŞŠˆ‹+²Â³S^ûÈKˆŞY
+¾‹ûŞXªyJ.Y8ûÈ’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷&–÷&—G•66†VGVÆU&FWÇ&–÷&—G”Æ÷wÇ&–÷&—G”†–v‡Æ†5&–÷&—G•66†VGVÆWÎXJ®XXhé.zˆ²ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷F÷FÄÆ÷s¢&6TÆ÷rÂ²FFöäÆ÷rÂ²6÷W&6TÆ÷rÂ²&–çDÆ÷rò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşKˆŞK©.y»yh®K™‡ÎXªX;Šˆzé~ûÉ¢ò“°¢76W'BæÖF6‚‡6÷W&6RÂóÇ7G&öæsî‹+¾yJiˆî{KÅÂ÷7G&öæsâò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂş{k.z¹X‰ŞjÚ^KËX;iˆî{Kò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6W'f–6T'&V¶F÷vã¢&–6T'&V¶F÷vä—FVÕÅµÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆ&VÃ¢ÂEÇ·6W'f–6UÂææÖUÇŞûÙÎŠŠŞŠˆ‹+¶ò“°¢76W'BæÖF6‚‡6÷W&6RÂöFWF–Ã¢vWE6W'f–6U&–6T&6—5Â†ç7vW'2Â6W'f–6UÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6T'&V¶F÷våÂçW6…Â…ÇµµÇ5Å5Ò£öÆ&VÃ¢ÂEÇ·6W'f–6UÂææÖUÇŞûÙÎXéşZx¾j©NXª‹;Æò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6T'&V¶F÷våÂçW6…Â…ÇµµÇ5Å5Ò£öÆ&VÃ¢ÂEÇ·6W'f–6UÂææÖUÇŞûÙÎXÛX‹~Kº>‹êniÈŞX¹‹+¶ò“°¢76W'BæÖF6‚‡6÷W&6RÂşŠˆzé~KéŞi9®ûÈş[şŠˆ‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂşKˆŞiÈ>y»Nhê^‹ûŞXªò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöÆ÷rÂ£ÒÂãWÆ†–v‚Â£ÒÂãWÆÆ÷rÂ£ÒÂãWÆ†–v‚Â£ÒÂãRò“°§Ò“° §FW7B‚'6ÖR×6W&–W26ö6–Â–ÖvW2æB&öGV7BÖg&ÖRÆ–6F–öç2W6RW‡FVç6–öâ&–6–ær"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6ö6–Å÷7D6÷VçBò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6ö6–Å÷7D–ÖvT6÷VçG2ò“°¢76W'BæÖF6‚‡6÷W&6RÂş‹+Îih~zø~i[‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂö&–ÖÆ&VÃÒ.‹+Îih~zø~i[‚"ò“°¢76W'BæÖF6‚‡6÷W&6RÂşzÊÂÂEÇ¶–æFW‚Â²ÇÒzø~‹+Îih~YÉnx˜~[Ë^i[‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂşXXZ¾zø~i[ûÈÎXhŞZ¾jøşzø~YÉni[ûÉ¾jøşzø~iÈZI¢[Ë^YÉnûÈÎzÊÂ"[Ë^‹[~hê[»nKËX;’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B4ô4”Åô”ÔtU5õU%õõ5EôÄ”Ô•BÒò“°¢76W'BæÖF6‚‡6÷W&6RÂöÖƒÕÇµ4ô4”Åô”ÔtU5õU%õõ5EôÄ”Ô•EÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWE6ö6–Å&–6–æt6÷VçG2ò“°¢76W'BæÖF6‚‡6÷W&6RÂö7W'&VçEÂç6ö6–Å÷7D–ÖvT6÷VçG5ÃõÂåÅ¶–æFW…ÅÒÃõÃòò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BW‡FVç6–öä6÷VçBÒ–ÖvT6÷VçG5Âç&VGV6UÂ…Â‡7VÒÂ6÷VçEÂ’Óâ7VÒÂ²ÖF…ÂæÖ…ÂƒÂ6÷VçBÒÂ’ÂÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&–Ö'”6÷VçBÒ6ö6–Å&–6–æuÃõÂç÷7D6÷VçBÃõÃòò“°¢76W'BæÖF6‚‡6÷W&6RÂö&6TÆ÷rÒ6W'f–6UÂæÆ÷rÂ¢&–Ö'”6÷VçBÂ²W‡FVç6–öä6÷VçBÂ¢6ö6–ÄW‡FVç6–öå&–6UÂæÆ÷rò“°¢76W'BæÖF6‚‡6÷W&6RÂö&6T†–v‚Ò6W'f–6UÂæ†–v‚Â¢&–Ö'”6÷VçBÂ²W‡FVç6–öä6÷VçBÂ¢6ö6–ÄW‡FVç6–öå&–6UÂæ†–v‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂöf÷&ÖE&–6U&ævUÂ†W‡FVç6–öä6÷VçBÂ¢6ö6–ÄW‡FVç6–öå&–6UÂæÆ÷rÂW‡FVç6–öä6÷VçBÂ¢6ö6–ÄW‡FVç6–öå&–6UÂæ†–v…Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşjøşzø~iÈZI¢[Ë^YÉnûÈÎzÊÂ"[Ë^‹[~hê[»nKËX;’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşjøşzø~šin[ËR9uÂEÇ·÷7D6÷VçEÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂşYÎzø~[»nKË‚9uÂEÇ¶W‡FVç6–öä6÷VçEÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂş{‹ŞYÉb[Ë^Kº^Kˆ¢•ÂãRh©‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂö&6TÆ÷rÂ£ÒÂã“Rò“°¢76W'BæÖF6‚‡6÷W&6RÂö&6T†–v‚Â£ÒÂã“Rò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&öGV7Dg&ÖU&öGV7D6÷VçG2ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWE&öGV7Dg&ÖU&–6–æt6÷VçG2ò“°¢76W'BæÖF6‚‡6÷W&6RÂşzÊÂÂEÇ¶–æFW‚Â²ÇÒx˜YÉnjnyJ.Y8i[˜xòò“°¢76W'BæÖF6‚‡6÷W&6RÂşXXZ¾x˜Yè¾i[ûÈÎXhŞZ¾jøşx˜ZY~yJy¨NyJ.Y8i[ûÉ¾jøşx˜Y
+²š^yJ.Y8ûÈÎjøş‹ûŞXªš^ûÈõÂµÂCsò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BW‡G&&öGV7D6÷VçBÒ&öGV7D6÷VçG5Âç&VGV6UÂ…Â‡7VÒÂ6÷VçEÂ’Óâ7VÒÂ²ÖF…ÂæÖ…ÂƒÂ6÷VçBÒÂ’ÂÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöW‡G&&öGV7D6÷VçBÂ¢sò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşYÉnjeµåÆåÒ¢‹+ÎihwÎYÎzøwÃ[Ë^Kº^Kˆ¢’ò“°§Ò“° §FW7B‚&V6öÖÖW&6R6W'f–6W2W6RF†V—"÷vâW"Ö—FVÒ7V6–f–6F–öâ6&G2"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢6öç7BV6öÖÖW&6T6&BÒ6÷W&6RæÖF6‚‚ö66R&V6öÖÖW&6TFWF–Ç2#¢Ç²…µÇ5Å5Ò£ò–66R'&–çDFWF–Ç2#¢Ç²ò“òå³Òóò"#°¢6öç7BV6öÖÖW&6UfÆ–FF–öâÒ6÷W&6RæÖF6‚‚ögVæ7F–öâvWDÖ—76–ætV6öÖÖW&6TFWF–Äf–VÆG5µÇ5Å5Ò£õÇ²…µÇ5Å5Ò£ò–6öç7B&–çEW'÷6TÆ&VÇ2ò“òå³Òóò"#°¢76W'BæÖF6‚‡6÷W&6RÂõÇÂ&V6öÖÖW&6TFWF–Ç2"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷G—RV6öÖÖW&6TFW6–väFWF–Âò“°¢76W'BæÖF6‚‡6÷W&6RÂöV6öÖÖW&6TFW6–väFWF–Ç3¢&V6÷&CÇ7G&–ærÂV6öÖÖW&6TFW6–väFWF–Ãâò“°¢76W'BæÖF6‚‡6÷W&6RÂöV6öÖÖW&6UÆ6VÖVçD÷F–öç4'•6W'f–6Rò“°¢76W'BæÖF6‚‡6÷W&6RÂöV6öÖÖW&6U6—¦T÷F–öç4'•6W'f–6Rò“°¢76W'BæÖF6‚‡6÷W&6RÂö&ææW#¥µÇ5Å5Ò£şZé{k.šinšûÈş‹Ê®i*Òò“°¢76W'BæÖF6‚‡6÷W&6RÂö&ææW$W‡FVç6–öä6÷VçEÃó¢çVÖ&W"ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWD&ææW$W‡FVç6–öä6÷VçBò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö6öç7B&ææW$FW6–våG—T÷F–öç7ÆgVæ7F–öâvWD&ææW$FW6–vå&ævWÆgVæ7F–öâ—4&ææW$W‡FVç6–öâò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö–C¢&¶W’×f—7VÂÖW‡FVç6–öâ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6ö6–Ã¥µÇ5Å5Ò£ôd.ûÈô”rX¹^hX¾‹+Îihrò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VVÃ¥µÇ5Å5Ò£õ–÷UGV&R{ŠîYÉbò“°¢76W'BæÖF6‚‡6÷W&6RÂò'&öGV7BÖg&ÖR#¥µÇ5Å5Ò£ş‰ÚnyªîYXnY8šò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&W6—¦S¥µÇ5Å5Ò£ş‹z[›>Xû[»nKË‚ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂóÇ7VÖÖ'“îX[nK¹n™Èk.ûÈ˜Z¾ûÈ“ÅÂ÷7VÖÖ'“âò“°¢76W'BæFöW4æ÷DÖF6‚†V6öÖÖW&6T6&BÂö6ö×7BÖ÷F–öæÂÖæ÷FWÎŠ9ÎXX^™Èk.ûÈ˜Z¾ûÈÎXúşzˆŞ[èÎŠ9ÎûÈ’ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂşKÛşyJ[›>XûûÈşXˆ®y›¾KØŞ{ÚîûÈYjî˜ûÈ’ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂövWDV6öÖÖW&6TFWF–Äf–VÆDÆ&VÅÂ†7F—fTV6öÖÖW&6U6W'f–6RÂ'VçF—G’%Â’ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂöç7vW'5ÂçVçF—F–W5Å¶7F—fTV6öÖÖW&6U6W'f–6UÂæ–EÅÒò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂöç7vW'5Âç6ö6–Å÷7D6÷VçBò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂöç7vW'5Âç6ö6–Å÷7D–ÖvT6÷VçG2ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂşx˜KØŞ[®ZûûÈşjùNKè²ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂşih~jˆˆr5Dò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂşY8x˜Îˆˆ~YXnY8{JiÙò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂş[»nKËx˜iÊÂÇ6ÖÆÃîûÈYÎx˜hù¾XZ~ZëûÈÎKˆŞY
+¾˜xŞhé.h‰b&W6—¦^ûÈ’ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂ÷Æ6V†öÆFW#Ò.xJX˜~yYz›¢"ò“°¢76W'BæFöW4æ÷DÖF6‚†V6öÖÖW&6UfÆ–FF–öâÂöÖ—76–æuÂçW6…Â‚'fW'6–öä6÷VçB%Â’ò“°¢76W'BæFöW4æ÷DÖF6‚†V6öÖÖW&6UfÆ–FF–öâÂöÖ—76–æuÂçW6…Â‚'&öGV7D6÷VçB%Â’ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂşK‹¾ŠinŠk®[»nKËXª‹;Âò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂşiŠşY
+n™ÈŠhK‹¾ŠinŠk®[»nKËXª‹;Âò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂö&–ÖÆ&VÃÒ.iŠşY
+n™ÈŠhK‹¾ŠinŠk®[»nKËXª‹;Â"ò“°¢76W'BæFöW4æ÷DÖF6‚†V6öÖÖW&6T6&BÂô&ææW"ŠŠŞŠˆšîYè²ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂşŠinŠk®Š;ŞKÙÎzˆ¾[ªbò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂşz+®Š¨ŞŠhşjÂò“°¢76W'BæFöW4æ÷DÖF6‚†V6öÖÖW&6T6&BÂôGÎh‰Y8{Yjx·Îh©šÎ{I[ËWÎKº>‹ênXÛX‹wÇ&–çDf÷&ÖDÆ&VÇ7Ç&–çE7G'V7GW&TÆ&VÇ2ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂ÷&VæFW%6†&VE66†VGVÆTæ÷FUÂ†7F—fTV6öÖÖW&6U6W'f–6UÂæ–EÂ•µÇ5Å5Ò£şKËX;[ø^Z²ò“°¢76W'BæFöW4æ÷DÖF6‚†V6öÖÖW&6T6&BÂ÷WFFT7F—fTV6öÖÖW&6TFWF–ÅÂ…Ç²F–ÖVÆ–æS¢ò“°¢76W'BæFöW4æ÷DÖF6‚†V6öÖÖW&6UfÆ–FF–öâÂöÖ—76–æuÂçW6…Â‚'F–ÖVÆ–æR%Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÂEÇ·6W'f–6UÂææÖUÇŞŠhşjÎûÉ®x˜KØÒÂEÇ·6—¦UÇÒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂõÇÂ'6ö6–Å&–Ö'”6÷VçB'ÅÇÂ'&öGV7Dg&ÖU&öGV7D6÷VçB"ò“°§Ò“° §FW7B‚&&ææW"W‡FVç6–öâ7F—2&WV—&VBæB&V6V—fW2F†RÖöçF†Ç’×ÆâF—66÷VçB"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢6öç7BV6öÖÖW&6T6&BÒ6÷W&6RæÖF6‚‚ö66R&V6öÖÖW&6TFWF–Ç2#¢Ç²…µÇ5Å5Ò£ò–66R'&–çDFWF–Ç2#¢Ç²ò“òå³Òóò"#°¢6öç7BÖöçF†Ç•6W'f–6W57FWÒ6÷W&6Rç6Æ–6R‡6÷W&6Ræ–æFW„öb‚&gVæ7F–öâ&VæFW$6öçG&öÇ2‚’"’’æÖF6‚‚ö66R&ÖöçF†Ç•6W'f–6W2#¢…µÇ5Å5Ò£ò–66R'6÷W&6Tf–ÆR#¢ò“òå³Òóò"#° ¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂöFFÖf–VÆCÒ&&ææW$W‡FVç6–öä6÷VçB%µÇ5Å5Ò£ö6Æ74æÖSÒ&–æÆ–æRÖ6†ö–6RÖ'WGFöç2%µÇ5Å5Ò£ö&–ÖÆ&VÃÒ.iŠşY
+n™ÈŠhK‹¾ŠinŠk®[»nKËXª‹;Â"ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂóîY
+nûÈÎKˆŞ™ÈŠhÅÂö'WGFöãåµÇ5Å5Ò£óîiŠşûÈÎ™ÈŠhÅÂö'WGFöãâò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂşK‹¾ŠinŠk®[»nKË[Ë^i[…µÇ5Å5Ò£óåÇ¶6÷VçEÇÒ[ËSÅÂö÷F–öãâò“°¢76W'BæFöW4æ÷DÖF6‚†V6öÖÖW&6T6&BÂõÇ¶6÷VçEÇÒ[Ë^ûÙÎjøş[ËRÂCƒûÙãÃ#ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UÂæ–BÓÓÒ&&ææW"%Â’&WGW&â.K‹¾ŠinŠk®š*jÂ"ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂşk+şyJiÊÎjÊK‹¾ŠinŠk®ûÈÎ[»nKËKˆŞYÎ[®ZûK˜¾{;¾X‰~z‹şûÈ™Ùî˜xŞikŠŠŞŠˆûÈûÉ¾KˆŞYÎikÎX8^Š«şi[N[®Zûy¨B&W6—¦Rò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşk+şyJiÊÎjÊK‹¾ŠinŠk®ûÈÎ[»nKËKˆŞYÎ[®ZûK˜¾{;¾X‰~z‹şûÈ™Ùî˜xŞikŠŠŞŠˆûÈûÉ¾KˆŞYÎikÎX8^Š«şi[N[®Zûy¨B&W6—¦^8.KéŞ[»nKË[Ë^i[ŠˆX;KŠnZY~yJiÈikjXJ®h:ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂö7F—fTV6öÖÖW&6U6W'f–6UÂæ–BÓÒ&&ææW"%µÇ5Å5Ò£ş[»nKËx˜iÊÂò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşiÈikjiŠşY
+n™ÈŠh&ææW"K‹¾ŠinŠk®[»nKËXª‹;Âò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşiÈikj‚&ææW"K‹¾ŠinŠk®[»nKË[Ë^i[‚ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂö6Æ74æÖSÒ&–æÆ–æRÖ6†ö–6RÖ'WGFöç2%µÇ5Å5Ò£ö&–ÖÆ&VÃÒ.iÈikjiŠşY
+n™ÈŠh&ææW"K‹¾ŠinŠk®[»nKËXª‹;Â"ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂóîY
+nûÈÎKˆŞ™ÈŠhÅÂö'WGFöãåµÇ5Å5Ò£óîiŠşûÈÎ™ÈŠhÅÂö'WGFöãâò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂõÇ¶6÷VçEÇÒ[Ë^ûÙÎjøş[ËRÂCƒûÙãÃ#ò“°¢76W'BæFöW4æ÷DÖF6‚†V6öÖÖW&6T6&BÂö7F—fTV6öÖÖW&6U6W'f–6UÂæ–BÓÓÒ&&ææW""bbfÇVRÓÓÒ'&–÷&—G’"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VfW&Væ6UÂæFW6–väÆ÷rÒ6W'f–6UÂæÆ÷rÂ¢VçF—G’Â²W‡FVç6–öä6÷VçBÂ¢&ææW$W‡FVç6–öå&–6UÂæÆ÷rò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VfW&Væ6UÂæFW6–vä†–v‚Ò6W'f–6UÂæ†–v‚Â¢VçF—G’Â²W‡FVç6–öä6÷VçBÂ¢&ææW$W‡FVç6–öå&–6UÂæ†–v‚ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷&VfW&Væ6UÂæFFöäÆ÷rÒW‡FVç6–öä6÷VçBÂ¢&ææW$W‡FVç6–öå&–6UÂæÆ÷rò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BFFöäÆ÷rÒ&ææW$W‡FVç6–öä6÷VçBÂ¢&ææW$W‡FVç6–öå&–6UÂæÆ÷rò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷F÷FÄÆ÷s¢&6TÆ÷rÂ²FFöäÆ÷rÂ²6÷W&6TÆ÷rÂ²&–çDÆ÷rò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UÂæ–BÓÓÒ&&ææW"%µÇ5Å5Ò£şK‹¾ŠinŠk®[»nKË‚ÂEÇ¶W‡FVç6–öä6÷VçEÇÒ[ËRò“°¢76W'BæÖF6‚‡6÷W&6RÂô&ææW"Yû®iÊÎŠŠŞŠˆ‹+²9rS^ûÈKˆŞY
+¾K‹¾ŠinŠk®[»nKËXª‹;ÎûÈ’ò“°§Ò“° §FW7B‚'&VÖ–æ–ær6W'f–6W2W6RFVF–6FVB7V6–f–6F–öâ6&G2v—F†÷WB6÷––ær&–çBÖFW6–vâ÷F–öç2"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢6öç7B&VæFW$6öçG&öÇ2Ò6÷W&6Rç6Æ–6R‡6÷W&6Ræ–æFW„öb‚&gVæ7F–öâ&VæFW$6öçG&öÇ2‚’"’“°¢6öç7B6W'f–6T6&BÒ&VæFW$6öçG&öÇ2æÖF6‚‚ö66R'6W'f–6TFWF–Ç2#¢Ç²…µÇ5Å5Ò£ò–66R'&–çEW'÷6R#¢Ç²ò“òå³Òóò"#°¢76W'BæÖF6‚‡6÷W&6RÂõÇÂ'6W'f–6TFWF–Ç2"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷G—R6W'f–6TFW6–väFWF–Âò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6TFW6–väFWF–Ç3¢&V6÷&CÇ7G&–ærÂ6W'f–6TFW6–väFWF–Ãâò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6W'f–6TFWF–Ä6öæf–w3¢&V6÷&CÇ7G&–ærÂ6W'f–6TFWF–Ä6öæf–sâò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷÷7FW#¥µÇ5Å5Ò£şk[~Z[®Zûˆˆ~ikY	ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷÷7FW#¢ÇµµÇ5Å5Ò£÷VçF—G”Æ&VÃ¢.k[~ZŠŠŞŠˆjËîi[‚"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–C¢'÷7FW""ÅµÇ5Å5Ò£÷Væ—C¢.jËâ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷VçF—F–W3¢6W'f–6UÂæ–BÓÓÒ'÷7FW""ÃòÇ²÷7FW#¢ÇÒ¢ÇµÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷FövvÆVE6W'f–6UÂæ–BÓÓÒ'÷7FW""ò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂşiŠşY
+niÈ{;¾X‰~z‹õµÇ5Å5Ò£şk).iÈûÈÎX8RjËåµÇ5Å5Ò£şiÈûÈÎ™ÈŠh[»nKË{;¾X‰~z‹õµÇ5Å5Ò£ş{;¾X‰~z‹şjËîi[‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂöFWF–ÅÂç6W&–W4'Gv÷&²ÓÓÒ'–W2%µÇ5Å5Ò£ş{;¾X‰~z‹òÂEÇ¶W‡FVç6–öä6÷VçEÇÒjËîûÈX[ÂEÇ¶ç7vW'5ÂçVçF—F–W5Âç÷7FW"ÃõÃòÇÒjËîûÈ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6&C¢ÇµµÇ5Å5Ò£÷VçF—G”Æ&VÃ¢.x˜Yè¾ZY~yJ‚%µÇ5Å5Ò£÷VçF—G”÷F–öæÃ¢G'VUµÇ5Å5Ò£÷7V6–f–6F–öäÆ&VÃ¢.Yjî™Ú.ûÈş™¹™Ú""ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷†÷Fó¢ÇµµÇ5Å5Ò£÷VçF—G”Æ&VÃ¢.[èÎŠ;ŞxZ~x˜~[Ë^i[‚"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6Æ–FW3¢ÇµµÇ5Å5Ò£÷VçF—G”Æ&VÃ¢.jŠiÛşŠŠŞŠˆi[‚"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UÂæ–BÓÓÒ'&VVÂ%Â’&WGW&â.[™Ú.ŠŠŞŠˆ[Ë^i[‚"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UÂæ–BÓÓÒ'&W6—¦R%Â’&WGW&â.[®Zû[»nKËi[‚"ò“°¢76W'BæÖF6‚‡6÷W&6RÂövWDV6öÖÖW&6TFWF–Äf–VÆDÆ&VÅÂ†7F—fTV6öÖÖW&6U6W'f–6RÂ'VçF—G’%Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşYjî™Ú.ûÙÅÂCÃûÙãÃSûÈşjËåµÇ5Å5Ò£ş™¹™Ú.ûÙÅÂCÃ#ûÙã"Ã#ûÈşjËâò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö6&B×6–ævÆWÆ6&BÖF÷V&ÆRò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷†÷Fó¥µÇ5Å5Ò£şK‹¾Šh[èÎŠ;Şš^yºâò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6Æ–FW3¥µÇ5Å5Ò£ş™ÈŠhy¨NŠŠŞŠˆzøNYÈÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6Æ–FW3¥µÇ5Å5Ò£ö†–FUVçF—G“¢G'VRò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&WGW&âÂEÇ¶7F—fU6W'f–6UÃõÂææÖRÃõÃò.˜	š^iÈŞX¹’%ÇŞŠhşjÆò“°¢76W'BæFöW4æ÷DÖF6‚‡6W'f–6T6&BÂö†5&WV—&VE6W'f–6Tf–VÆG2ò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂóÆf–VÆG6WB6Æ74æÖSÒ&6ö×7B×6V7F–öâ#åµÇ5Å5Ò£óÆÆVvVæCîKËX;[ø^Z³ÅÂöÆVvVæCâò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂò6öæf–uÂæ†–FUVçF—G’bb7F—fU6W'f–6TFWF–Å6W'f–6UÂæ–BÓÒ&6&B"bb7F—fU6W'f–6TFWF–Å6W'f–6UÂæ–BÓÒ'÷7FW""bbÆÆ&VÂò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂóÇ7VÖÖ'“îX[nK¹n™Èk.ûÈ˜Z¾ûÈ“ÅÂ÷7VÖÖ'“åµÇ5Å5Ò£ö7F—fU6W'f–6TFWF–Å6W'f–6UÂæ–BÓÓÒ&6&B"bbÆÆ&VÂ6Æ74æÖSÒ&6ö×7BÖf–VÆB#ãÇ7ãåÇ¶6öæf–uÂçVçF—G”Æ&VÅÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂò6öæf–uÃõÂæ†–FUVçF—G’bb6W'f–6UÂç&–6–ærÓÒ&6&B"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öæf–uÂæ†–FUVçF—G•µÇ5Å5Ò£õÃòVæFVf–æVBò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşh©^[Ûx˜~ši[‚ò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂşKËX;[ø^Z²ò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂóÇ7VÖÖ'“îX[nK¹n™Èk.ûÈ˜Z¾ûÈ“ÅÂ÷7VÖÖ'“âò“°¢76W'BæFöW4æ÷DÖF6‚‡6W'f–6T6&BÂö6ö×7BÖ÷F–öæÂÖæ÷FWÎŠ9ÎXX^™Èk.ûÈ˜Z¾ûÈÎXúşzˆŞ[èÎŠ9ÎûÈ’ò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂö7F—fU6W'f–6TFWF–Å6W'f–6UÂæ–BÓÓÒ'†÷Fò"Ãò.ZY~yJ[‹Šh¾ŠŠŞZé¢"¢.ZY~yJ[‹Šh¾[®Zû‚"ò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂöç7vW'5ÂçVçF—F–W5Å¶7F—fU6W'f–6TFWF–Å6W'f–6UÂæ–EÅÒò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂö6öæf–uÂçVçF—G”÷F–öæÂÃòÆ–çWEµÇ5Å5Ò£öÖ–ãÒ#%µÇ5Å5Ò£÷Æ6V†öÆFW#Ò.xJX˜~yYz›¢%µÇ5Å5Ò£ó¢Ç6VÆV7Bò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂ÷&WV—&VEVçF—G”÷F–öç5ÂæÖò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UÂç&–6–ærÓÒ&6&B"bbÂ†ç7vW'5ÂçVçF—F–W5Å·6W'f–6UÂæ–EÅÒÃõÃòÂ’Âò“°¢76W'BæÖF6‚‡6÷W&6RÂõÂ‡'6T÷F–öæÅ÷6—F—fT–çFVvW%Â‡&ufÇVUÂ’ÃõÃòÂ’Â²ò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂö6öæf–uÂçW'÷6T÷F–öç2ò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂö6öæf–uÂç7V6–f–6F–öä÷F–öç2ò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂö6öæf–uÂæ6öçFVçD÷F–öç2ò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂö6öæf–uÂæ76WD÷F–öç2ò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂö6öæf–uÂæ6ö×ÆW†—G”÷F–öç2ò“°¢76W'BæFöW4æ÷DÖF6‚‡6W'f–6T6&BÂ÷&–çDf÷&ÖDÆ&VÇ7Ç&–çE7G'V7GW&TÆ&VÇ7Ç&–çDföÆDÆ&VÇ7Ç&–çEW$Æ&VÇ7Îh‰Y8{Yjx·Îh©šik[È÷ÎKº>‹ên˜XÛò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6TFWF–Ç5&VeÂæ7W'&VçEÃõÂçVW'•6VÆV7F÷"ò“°¢76W'BæÖF6‚‡6W'f–6T6&BÂ÷&VæFW%6†&VE66†VGVÆTæ÷FUÂ†7F—fU6W'f–6TFWF–Å6W'f–6UÂæ–EÂ•µÇ5Å5Ò£şKËX;[ø^Z²ò“°¢76W'BæFöW4æ÷DÖF6‚‡6W'f–6T6&BÂ÷WFFT7F—fU6W'f–6TFWF–ÅÂ…Ç²F–ÖVÆ–æS¢ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6VÆV7FVE6W'f–6TFWF–Å6W'f–6W5Âæf÷$V6‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BFWF–ÆVE&–çE6W'f–6T–G2ÒæWr6WEÂ…Å²&FÒ"Â&ÖVçR%ÅÕÂ’ò“°§Ò“° §FW7B‚&ÆÂ÷F–öæÂçVÖW&–26W'f–6Rf–VÆG26â&WGW&âFò¦W&òæB6ÆV""Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢6öç7B&VæFW$6öçG&öÇ2Ò6÷W&6Rç6Æ–6R‡6÷W&6Ræ–æFW„öb‚&gVæ7F–öâ&VæFW$6öçG&öÇ2‚’"’“°¢6öç7BV6öÖÖW&6T6&BÒ&VæFW$6öçG&öÇ2æÖF6‚‚ö66R&V6öÖÖW&6TFWF–Ç2#¢Ç²…µÇ5Å5Ò£ò–66R'&–çDFWF–Ç2#¢Ç²ò“òå³Òóò"#°¢6öç7B&–çD6&BÒ&VæFW$6öçG&öÇ2æÖF6‚‚ö66R'&–çDFWF–Ç2#¢Ç²…µÇ5Å5Ò£ò–66R'6W'f–6TFWF–Ç2#¢Ç²ò“òå³Òóò"#° ¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ'6T÷F–öæÅ÷6—F—fT–çFVvW%Â‡&ufÇVS¢7G&–æuÂ’ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂş[»nKËx˜iÊÅµÇ5Å5Ò£öÖ–ãÒ#%µÇ5Å5Ò£÷'6T÷F–öæÅ÷6—F—fT–çFVvW%Â†WfVçEÂçF&vWEÂçfÇVUÂ’ò“°¢76W'BæÖF6‚†V6öÖÖW&6T6&BÂşYÉnjnx˜Yè¾i[…µÇ5Å5Ò£şzÊÂÂEÇ¶–æFW‚Â²ÇÒx˜YÉnjnyJ.Y8i[˜xõµÇ5Å5Ò£öÖ–ãÒ#"ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâWFFU&öGV7Dg&ÖU&öGV7D6÷VçEÂ†–æFWƒ¢çVÖ&W"Â&ufÇVS¢7G&–æuÂ’ò“°¢76W'BæFöW4æ÷DÖF6‚†V6öÖÖW&6T6&BÂşZY~yJyJ.Y8{‹Şi[‡Îˆº^xJ‹ûŞXªXúşyYz›¢ò“°¢76W'BæÖF6‚‡&–çD6&BÂş[»nKËx˜iÊÅµÇ5Å5Ò£öÖ–ãÒ#%µÇ5Å5Ò£÷'6T÷F–öæÅ÷6—F—fT–çFVvW%Â†WfVçEÂçF&vWEÂçfÇVUÂ’ò“°¢76W'BæÖF6‚‡&VæFW$6öçG&öÇ2Âö66R'fW'6–öä6÷VçB#¥µÇ5Å5Ò£öÖ–ãÒ#%µÇ5Å5Ò£÷'6T÷F–öæÅ÷6—F—fT–çFVvW%Â†WfVçEÂçF&vWEÂçfÇVUÂ’ò“°¢76W'BæÖF6‚‡&VæFW$6öçG&öÇ2Âşš	ŠˆXÛ˜xşûÈ˜Z¾ûÈ•µÇ5Å5Ò£öÖ–ãÒ#%µÇ5Å5Ò£÷'6T÷F–öæÅ÷6—F—fT–çFVvW%Â†WfVçEÂçF&vWEÂçfÇVUÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÂ‡'6T÷F–öæÅ÷6—F—fT–çFVvW%Â‡&ufÇVUÂ’ÃõÃòÂ’Â²ò“°§Ò“° §FW7B‚&W7F–ÖFR6W&FW2W†6ÇVFVB&–çB6÷7G2æBVæF–ærfVW2"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢6öç7B772Òv—B&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚‡6÷W&6RÂşiÊÎKËX;KˆŞXÈ^Y
+¾XÛX‹~Y8Š;ŞKÙÎ‹+¾ˆˆ~˜¾˜‹+²ò“°¢76W'BæÖF6‚‡6÷W&6RÂşiÊ®Y
+¾‹+¾yJûÉ®XÛX‹~Y8Š;ŞKÙÎ‹+¾8˜¾˜‹+²ò“°¢76W'BæÖF6‚‡6÷W&6RÂövWEVæF–ætW7F–ÖFT—FV×2ò“°¢76W'BæÖF6‚‡6÷W&6RÂş[	®iÈ™Èk.[è^z+®Š¨Ş‹+¾yJ‚ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşš	zé~yZ^KØîikÎyºîX˜ŞhêKË{HGÎš	zé~K¸ŞYÊX‰ŞKËXØ™i>XZwÎKˆŞ[»®ŠÛXXXŠNZé®š	zé~XX^‹k2ò“°¢76W'BæÖF6‚‡6÷W&6RÂöf÷&ÖE&–6U&ævRò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşKéŞyºîX˜Ş˜i8~ûÈÎ‹È>Xúşˆ;Ş‰ŞYÊ{HGÆ6Æ74æÖSÒ'&W7VÇB×F&vWB"ò“°¢76W'BæFöW4æ÷DÖF6‚†772ÂõÂç&W7VÇB×F&vWBò“°§Ò“° §FW7B‚'VW7F–öææ—&Rw&÷W2Æöær&–çBæBÖöçF†Ç’fÆ÷w2–çFşx¶‰ËkºwµçGövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚‡6÷W&6RÂõÇÂ'&–çDFWF–Ç2"ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÇÂ'&–çE&öGV7F–öâ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÇÂ&ÖöçF†Ç•&öf–ÆR"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşZèÎh‰KËX;[ø^Z¾ûÈÎX[nK¹n™Èk.ûÈ˜Z¾ûÈ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşk+şyJKˆ®Kˆš^ŠhşjÂò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&Wf–÷W5vT6÷VçBÒÖF…ÂæÖ…ÂƒÂç7vW'5ÂçVçF—F–W5Å·&Wf–÷W56W'f–6UÂæ–EÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷WFFT7F—fU&–çEvT6÷VçEÂ‡&Wf–÷W5vT6÷VçBâÃò7G&–æuÂ‡&Wf–÷W5vT6÷VçEÂ’¢"%Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşZY~yJ[‹Šh¾[®Zû‚ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşZY~yJ‚BYjî™Ú.[‹yJXÇÎZY~yJ‚BZI®š[‹yJXÇÎZY~yJ[‹yJŠhşjÂò“°¢76W'BæÖF6‚‡6÷W&6RÂóÇ7VÖÖ'“îX[nK¹n™Èk.ûÈ˜Z¾ûÈ“ÅÂ÷7VÖÖ'“âò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşX[nšIXúşyYz›¢ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşŠ9ÎXX^™Èk.ûÈ˜Z¾ûÈÎXúşzˆŞ[èÎŠ9ÎûÈ—ÎX[nšI™Èk.Xúş˜Z²ò“°¢76W'BæÖF6‚‡6÷W&6RÂşKËX;[ø^Z²ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ6öæf—&Õ6–ævÆTFDöç5Â…Â•µÇ5Å5Ò£öÖ÷fUÂ‚'&W7VÇB"ò“°¢76W'BæÖF6‚‡6÷W&6RÂşXÛ˜xş8{I[Ë^ˆˆ~Xª[z^y¨nXúşyYz›®ûÈÎjÚ>[ÈşYKÙÎi˜.XhŞz+®Š¨Òò“°¢76W'BæÖF6‚‡6÷W&6RÂöÖ÷fUÂ‚&ÖöçF†Ç•6W'f–6W2"ÂÇ²&ö¦V7EG—S¢&ÖöçF†Ç’"ÅµÇ5Å5Ò£÷6W'f–6T–G3¢ÅµÅÒÅµÇ5Å5Ò£÷VçF—F–W3¢ÇµÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂşz+®Š¨ŞYKÙÎ{H˜ÈN[èÎûÈÎ˜i8~iÈŞX¹ˆˆ~i[˜xşûÈÎ{;¾{[iÈ>ˆz®X¹^˜XŞ[Şikj‚ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşhê^‰~KéŞiÈŞX¹i[˜xşˆz®X¹^[‹nXZ^ikj‚ò“°¢76W'BæÖF6‚†772ÂõÂæ6ö×7BÖ6&Bò“°¢76W'BæÖF6‚†772ÂõÂæ6ö×7BÖw&–Bò“°¢76W'BæÖF6‚†772ÂõÂæ6ö×7B×W'÷6RÖw&–Bò“°§Ò“° §FW7B‚'VW7F–öææ—&R¶VW26÷&Rf–VÆG2&WV—&VBæB6†÷'FVç2&WVFVBv÷&²"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢6öç7BV6öÖÖW&6UfÆ–FF–öâÒ6÷W&6RæÖF6‚‚ögVæ7F–öâvWDÖ—76–ætV6öÖÖW&6TFWF–Äf–VÆG5µÇ5Å5Ò£õÇ²…µÇ5Å5Ò£ò—&WGW&âÖ—76–æs²ò“òå³Òóò"#°¢6öç7B&–çEfÆ–FF–öâÒ6÷W&6RæÖF6‚‚ögVæ7F–öâvWDÖ—76–æu&–çDFWF–Äf–VÆG5µÇ5Å5Ò£õÇ²…µÇ5Å5Ò£ò—&WGW&âÖ—76–æs²ò“òå³Òóò"#°¢6öç7B6W'f–6UfÆ–FF–öâÒ6÷W&6RæÖF6‚‚ögVæ7F–öâvWDÖ—76–æu6W'f–6TFWF–Äf–VÆG5µÇ5Å5Ò£õÇ²…µÇ5Å5Ò£ò—&WGW&âÖ—76–æs²ò“òå³Òóò"#°¢6öç7BÖöçF†Ç”6öæf—&ÒÒ6÷W&6RæÖF6‚‚ögVæ7F–öâ6öæf—&ÔÖöçF†Ç•&öf–ÆUÂ…Â’Ç²…µÇ5Å5Ò£ò–gVæ7F–öâ6VÆV7E&–çEW'÷6Rò“òå³Òóò"#°¢76W'BæWVÂ‡6÷W&6RæÖF6‚‚õÇ·&VæFW%6†&VE66†VGVÆTæ÷FUÂ†7F—fRƒó¤V6öÖÖW&6U6W'f–6WÄFWF–ÆVE6W'f–6WÅ6W'f–6TFWF–Å6W'f–6R•Âæ–EÂ•ÇÒör“òæÆVæwF‚Â2“°¢76W'BæÖF6‚†V6öÖÖW&6UfÆ–FF–öâÂöÖ—76–æuÂçW6…Â‚'VçF—G’%Â’ò“°¢76W'BæFöW4æ÷DÖF6‚†V6öÖÖW&6UfÆ–FF–öâÂöÖ—76–æuÂçW6…Â‚'F–ÖVÆ–æR%Â’ò“°¢76W'BæFöW4æ÷DÖF6‚†V6öÖÖW&6UfÆ–FF–öâÂöÖ—76–æuÂçW6…Â‚'Æ6VÖVçB%Â—ÆÖ—76–æuÂçW6…Â‚'6—¦R%Â—ÆÖ—76–æuÂçW6…Â‚&6÷•7FGW2%Â—ÆÖ—76–æuÂçW6…Â‚&76WE7FGW2%Â’ò“°¢76W'BæÖF6‚†V6öÖÖW&6UfÆ–FF–öâÂ÷6W'f–6UÂæ–BÓÓÒ&&ææW""bbFWF–ÅÂæ&ææW$W‡FVç6–öä6÷VçBÓÓÒVæFVf–æVEÂ’Ö—76–æuÂçW6…Â‚&&ææW$W‡FVç6–öä6÷VçB%Â’ò“°¢76W'BæFöW4æ÷DÖF6‚†V6öÖÖW&6UfÆ–FF–öâÂ÷6W'f–6UÂæ–BÓÓÒ&&ææW""bbFWF–ÅÂçf—7VÄÆWfVÂò“°¢76W'BæÖF6‚‡&–çEfÆ–FF–öâÂöÖ—76–æuÂçW6…Â‚'7G'V7GW&R%Â’ò“°¢76W'BæFöW4æ÷DÖF6‚‡&–çEfÆ–FF–öâÂöÖ—76–æuÂçW6…Â‚'F–ÖVÆ–æR%Â’ò“°¢76W'BæFöW4æ÷DÖF6‚‡&–çEfÆ–FF–öâÂöÖ—76–æuÂçW6…Â‚'W'÷6W2%Â—ÆÖ—76–æuÂçW6…Â‚&f÷&ÖB%Â—ÆÖ—76–æuÂçW6…Â‚&6öçFVçE7FGW2%Â—ÆÖ—76–æuÂçW6…Â‚&–ÖvU7FGW2%Â—ÆÖ—76–æuÂçW6…Â‚&6ö×ÆW†—G’%Â’ò“°¢76W'BæÖF6‚‡6W'f–6UfÆ–FF–öâÂöÖ—76–æuÂçW6…Â‚'VçF—G’%Â’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6W'f–6UfÆ–FF–öâÂöÖ—76–æuÂçW6…Â‚'F–ÖVÆ–æR%Â’ò“°¢76W'BæÖF6‚‡6W'f–6UfÆ–FF–öâÂ÷6W'f–6UÂæ–BÓÓÒ&6&B"bbFWF–ÅÂç7V6–f–6F–öâò“°¢76W'BæFöW4æ÷DÖF6‚‡6W'f–6UfÆ–FF–öâÂöÖ—76–æuÂçW6…Â‚'W'÷6R%Â—ÆÖ—76–æuÂçW6…Â‚&6öçFVçE7FGW2%Â—ÆÖ—76–æuÂçW6…Â‚&76WE7FGW2%Â—ÆÖ—76–æuÂçW6…Â‚&6ö×ÆW†—G’%Â’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşK‹¾ŠhŠŠŞŠˆšîYè²ò“°¢76W'BæÖF6‚‡6÷W&6RÂóÇ7VÖÖ'“îX[nK¹n™Èk.ûÈ˜Z¾ûÈ“ÅÂ÷7VÖÖ'“âò“°¢76W'BæÖF6‚‡6÷W&6RÂóÇ7ãîKªNK¹zøZXóÅÂ÷7ãâò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂş[›>YØ~ŠinŠk®ŠH~™¹Î[ªgÎ[›>YØ~{JiÙx¸k8ò“°¢76W'BæÖF6‚‡6÷W&6RÂóÇ7ãî{JiÙx¸k8ÅÂ÷7ããÇ6VÆV7BfÇVSÕÇ¶ç7vW'5ÂæÖFW&–Ç2ò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç”6öæf—&ÒÂòç7vW'5ÂæÖöçF†Ç”6öçFVçGÂç7vW'5ÂæÖöçF†Ç”6FVæ6Rò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç”6öæf—&ÒÂòç7vW'5Âæ6ö×ÆW†—G—Âç7vW'5ÂæÖFW&–Ç2ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşiÊ®˜ûÉŞXZ˜:KˆŞ™ÈŠhKº>‹êbò“°¢76W'BæÖF6‚‡6÷W&6RÂşk).iÈXª‹;ÎXúşy»Nhê^ZèÎh‰Ššnzérò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşk+şyJKˆ®Kˆš^XÛX‹~™Èk'ÎKˆ¾KˆšR(i"â®z+®Š¨ŞXÛX‹~™Èk"ò“°¢76W'BæÖF6‚†772ÂõÂæFBÖöâ×6VÆV7F÷"ò“°¢76W'BæÖF6‚†772ÂõÂç&–çB×&öGV7F–öâÖFWF–Ç2ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6–ævÆU&öw&W72ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6†D&öG•Âç67&öÆÅFõÂ‚ò“°¢76W'BæÖF6‚†772ÂõÂæ6ö×7BÖ÷F–öæÂÖæ÷FRò“°¢76W'BæÖF6‚†772ÂõÂæ÷F–öæÂÖFWF–Ç2ò“°¢76W'BæÖF6‚†772ÂõÂç6W'f–6RÖ6†ö–6RÖw&÷Wƒ2ò“°§Ò“° §FW7B‚&Öö&–ÆRV÷FR7VÖÖ'’7F—2f—6–&ÆRv†–ÆRF†R7W7FöÖW"f–ÆÇ2F†Rf÷&Ò"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6—FR×6†VÆÅÂEÇ·7FWÓÓÒ'&W7VÇB"Ãò"W7F–ÖFRÖ6ö×ÆWFR"¢"%ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ'7VÖÖ'’Ö6öçFW‡B"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ'7VÖÖ'’ÖÖö&–ÆR×FövvÆR"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö&–ÖW‡æFVCÕÇ¶—4Öö&–ÆU7VÖÖ'”W‡æFVEÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂş[{.˜‚ÂEÇ·6VÆV7FVE6W'f–6W5ÂæÆVæwF…ÇÒš^iÈŞX¹’ò“°¢76W'BæÖF6‚†772ÂôÖVF–Â†Ö‚×v–GFƒ¢sc…Â•µÇ5Å5Ò£õÂç7VÖÖ'’×æVÂÇµµÇ5Å5Ò£÷÷6—F–öã¢f—†VC²ò“°¢76W'BæÖF6‚†772Âö&÷GFöÓ¢6Æ5Âƒ‡‚Â²VçeÂ‡6fRÖ&VÖ–ç6WBÖ&÷GFöÕÂ•Â’ò“°¢76W'BæÖF6‚†772ÂõÂæ6†BÖ&öG’ÇµÇ2§FF–ærÖ&÷GFöÓ¢Gƒ²ò“°¢76W'BæÖF6‚†772ÂõÂç7VÖÖ'’×æVÅÂæ—2ÖW‡æFVBÇµµÇ5Å5Ò£öÖ‚Ö†V–v‡C¢Ö–åÂƒsf‚ÂSs…Â“²ò“°¢76W'BæÖF6‚†772ÂõÂæW7F–ÖFRÖ6ö×ÆWFRÂç7VÖÖ'’×æVÂÇµÇ2¦F—7Æ“¢æöæS²ò“°§Ò“° §FW7B‚&Öö&–ÆR7V6–f–6F–öâf–VÆG2Fòæ÷BG&–vvW"'&÷w6W"fö7W2¦ööÒ"Â7–æ2‚’Óâ°¢6öç7B772Òv—B&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“° ¢76W'BæÖF6‚†772ÂôÖVF–Â†Ö‚×v–GFƒ¢sc…Â•µÇ5Å5Ò£õÂæ6†B×æVÂ–çWBÅµÇ5Å5Ò£õÂæ6†B×æVÂ6VÆV7BÅµÇ5Å5Ò£õÂæ6†B×æVÂFW‡F&VÇµµÇ5Å5Ò£öföçB×6—¦S¢g‚–×÷'FçCµµÇ5Å5Ò£÷F÷V6‚Ö7F–öã¢Öæ—VÆF–öã²ò“°§Ò“° §FW7B‚'v–FRFW6·F÷6Æ7VÆF÷"Æ6W2—G2†VFÆ–æR&÷fRv–FVæ–ærv÷&·76R"Â7–æ2‚’Óâ°¢6öç7B772Òv—B&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢76W'BæÖF6‚†772ÂôÖVF–Â†Ö–â×v–GFƒ¢#C…Â’ò“°¢76W'BæÖF6‚†772ÂõÂæ–çG&òÇµµÇ5Å5Ò£÷v–GFƒ¢Ö–åÂƒc‚Â6Æ5ÂƒRÒ“g…Â•Â“µµÇ5Å5Ò£öw&–B×FV×ÆFRÖ6öÇVÖç3¢g#²ò“°¢76W'BæÖF6‚†772ÂõÂæ–çG&òÖ6÷’ÇµµÇ5Å5Ò£÷v–GFƒ¢Ö–åÂƒRÂC…Â“µµÇ5Å5Ò£ö§W7F–g’×6VÆc¢6VçFW#µµÇ5Å5Ò£÷FW‡BÖÆ–vã¢6VçFW#²ò“°¢76W'BæÖF6‚†772ÂõÂæW–V'&÷rÅµÇ5Å5Ò£õÂçG'W7BÖÆ—7BÇµµÇ5Å5Ò£ö§W7F–g’Ö6öçFVçC¢6VçFW#²ò“°¢76W'BæÖF6‚†772ÂõÂçV÷FR×v÷&·76RÇµµÇ5Å5Ò£÷v–GFƒ¢SµµÇ5Å5Ò£öw&–B×FV×ÆFRÖ6öÇVÖç3¢Ö–æÖ…ÂƒcC‚Â%Âã&g%Â’Ö–æÖ…Âƒ3‚ÂÂã†g%Â“²ò“°¢76W'BæÖF6‚†772ÂôÖVF–Â†Ö–â×v–GFƒ¢c…Â•µÇ5Å5Ò£õÂæ–çG&òÇµµÇ5Å5Ò£÷v–GFƒ¢Ö–åÂƒcƒ‚Â6Æ5ÂƒRÒ#…Â•Â“²ò“°¢76W'BæFöW4æ÷DÖF6‚†772Âöw&–B×FV×ÆFRÖ6öÇVÖç3¢Ö–æÖ…ÂƒC‚ÂC3…Â’Ö–æÖ…Âƒs‚Âg%Â“²ò“°§Ò“° §FW7B‚&6Æ7VÆF÷"†VFÆ–æRW6W2F†R6ÖRÆöFVBG—Vf6RöâFW6·F÷æBÖö&–ÆR"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂÆ–÷WBÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööÆ–÷WBçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚‡6÷W&6RÂóÆƒ&–ÖÆ&VÃÒ.yJ[›îX¾YXşšÎûÈÎh›îX‹˜YKÚy¨NŠŠŞŠˆš	zé~8"#åµÇ5Å5Ò£şyJ[›îX¾YXşšÂò“°¢76W'BæÖF6‚‡6÷W&6RÂşyJ[›îX¾YXşšÃÇ7â6Æ74æÖSÒ&†VFÆ–æR×Væ7GVF–öâ#îûÈÃÅÂ÷7ãâò“°¢76W'BæÖF6‚‡6÷W&6RÂşh›îX‹˜YKÚy¨NŠŠŞŠˆš	zésÇ7â6Æ74æÖSÒ&†VFÆ–æR×Væ7GVF–öâ#î8#ÅÂ÷7ãâò“°¢76W'BæÖF6‚†Æ–÷WBÂöföçG5ÂævöövÆV—5Âæ6öÕÂö773%ÃöfÖ–Ç“Ôæ÷FõÂµ6W&–eÂµD2ò“°¢76W'BæÖF6‚†772ÂòÒ×F—FÆR×6W&–c¢$æ÷Fò6W&–bD2"Â%6öæwF’D2"Â6W&–c²ò“°¢6öç7B&6T–çG&ô6÷’Ò772æÖF6‚‚õÂæ–çG&òÖ6÷’Ç²…µÇ5Å5Ò£ò•ÇÒò“òå³Òóò"#°¢6öç7B&6T†VFÆ–æRÒ772æÖF6‚‚õÂæ–çG&òƒÇ²…µÇ5Å5Ò£ò•ÇÒò“òå³Òóò"#°¢76W'BæFöW4æ÷DÖF6‚†&6T–çG&ô6÷’Â÷v–GFƒ¢WÆ§W7F–g’×6VÆbò“°¢76W'BæÖF6‚†&6T†VFÆ–æRÂöÖ&v–ã¢²ò“°¢76W'BæÖF6‚†&6T†VFÆ–æRÂöföçBÖfÖ–Ç“¢f%Â‚Ò×F—FÆR×6W&–eÂ“²ò“°¢76W'BæFöW4æ÷DÖF6‚†&6T†VFÆ–æRÂ÷FW‡BÖÆ–vâò“°¢76W'BæÖF6‚†772ÂõÂæ†VFÆ–æR×Væ7GVF–öâÇµµÇ5Å5Ò£öföçB×6—¦S¢ÂãvVÓµµÇ5Å5Ò£÷fW'F–6ÂÖÆ–vã¢Âã†VÓ²ò“°¢6öç7BÖö&–ÆT772Ò772ç6Æ–6R†772æ–æFW„öb‚$ÖVF–†Ö‚×v–GFƒ¢sc‚’"’“°¢6öç7BÖö&–ÆT†VFÆ–æRÒÖö&–ÆT772æÖF6‚‚õÂæ–çG&òƒÇ²…µÇ5Å5Ò£ò•ÇÒò“òå³Òóò"#°¢76W'BæFöW4æ÷DÖF6‚†Öö&–ÆT†VFÆ–æRÂöföçBÖfÖ–Ç’ò“°§Ò“° §FW7B‚'7V6–f–6F–öâ6&G2Æ6R&6²–ÖÖVF–FVÇ’ÆVgBöbF†V—"æW‡B7F–öâ"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B–æÆ–æT&6µ7FW2ÒæWr6WCÅ7FWâò“°¢6öç7B&VæFW$6öçG&öÇ2Ò6÷W&6Rç6Æ–6R‡6÷W&6Ræ–æFW„öb‚&gVæ7F–öâ&VæFW$6öçG&öÇ2‚’"’“°¢6öç7BV6öÖÖW&6T6&BÒ&VæFW$6öçG&öÇ2æÖF6‚‚ö66R&V6öÖÖW&6TFWF–Ç2#¢Ç²…µÇ5Å5Ò£ò–66R'&–çDFWF–Ç2#¢Ç²ò“òå³Òóò"#°¢6öç7B&–çD6&BÒ&VæFW$6öçG&öÇ2æÖF6‚‚ö66R'&–çDFWF–Ç2#¢Ç²…µÇ5Å5Ò£ò–66R'6W'f–6TFWF–Ç2#¢Ç²ò“òå³Òóò"#°¢6öç7B6W'f–6T6&BÒ&VæFW$6öçG&öÇ2æÖF6‚‚ö66R'6W'f–6TFWF–Ç2#¢Ç²…µÇ5Å5Ò£ò–66R'&–çEW'÷6R#¢Ç²ò“òå³Òóò"#°¢f÷"†6öç7B6&Böb¶V6öÖÖW&6T6&BÂ&–çD6&BÂ6W'f–6T6&EÒ’°¢76W'BæÖF6‚†6&BÂö6Æ74æÖSÒ&6ö×7BÖ6&BÖ7F–öç2#åµÇ5Å5Ò£ş(i‹ùNY¹îKˆ®KˆjÚUµÇ5Å5Ò£ö6Æ74æÖSÒ'6VæBÖ'WGFöâ"ò“°¢Ğ¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BW6W4–æÆ–æT&6´æf–vF–öâÒ–æÆ–æT&6µ7FW5Âæ†5Â‡7FWÂ’ò“°¢76W'BæÖF6‚†772ÂõÂæ6ö×7BÖ6&BÖ7F–öç2ÇµµÇ5Å5Ò£öF—7Æ“¢fÆWƒ²ò“°¢76W'BæÖF6‚†772ÂõÂæ–æÆ–æRÖ&6²Ö'WGFöâò“°§Ò“° §FW7B‚&6†ö–6RÖöæÇ’VW7F–öææ—&R7FW2Æ6R&6²æf–vF–öâ&VÆ÷rF†R6†ö–6W2"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÕÇ¶&W7öç6RÖ&V7FW×G&ç6—F–öâ—2ÕÂEÇ·G&ç6—F–öäF—&V7F–öåÇÕÂEÇ¶†—7F÷'•ÂæÆVæwF‚âbbW6W4–æÆ–æT&6´æf–vF–öâò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ'&W7öç6RÖ6öçG&öÇ2#åÇ·&VæFW$6öçG&öÇ5Â…Â•ÇÓÅÂöF—cåµÇ5Å5Ò£ö6Æ74æÖSÒ'&W7öç6RÖ&6²×&÷r%µÇ5Å5Ò£ö6Æ74æÖSÒ'&W7öç6RÖ&6²Ö'WGFöâ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÇ·7FWÓÓÒ'&W7VÇB"bbÆ'WGFöâG—SÒ&'WGFöâ"öä6Æ–6³ÕÇ¶vô&6µÇÒò“°¢76W'BæÖF6‚†772ÂõÂç&W7öç6RÖ&VÂçv—F‚Ö&6²Öæf–vF–öâÇµµÇ5Å5Ò£öw&–B×FV×ÆFRÖ6öÇVÖç3¢Ö–æÖ…ÂƒÂg%Â’ò“°¢76W'BæÖF6‚†772ÂõÂç&W7öç6RÖ&6²×&÷rÇµµÇ5Å5Ò£ö§W7F–g’Ö6öçFVçC¢fÆW‚×7F'Bò“°§Ò“° §FW7B‚'VW7F–öææ—&R7FWæf–vF–öâ¶VW2&V6†VB6V7F–öç2f–Æ&ÆR–â&÷F‚F—&V7F–öç2"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚‡6÷W&6RÂ÷G—R¦÷W&æW•6V7F–öâÒ&6ö÷W&F–öâ%µÇ5Å5Ò£ò'&W7VÇB"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B¦÷W&æW•6V7F–öäÆ&VÇ3¢&V6÷&CÄ¦÷W&æW•6V7F–öâÂ7G&–æsâò“°¢76W'BæÖF6‚‡6÷W&6RÂö6ö÷W&F–öã¢.YKÙÎik[Èò"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6W3¢.iÈŞX¹š^yºâ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷7V6–f–6F–öç3¢.ŠhşjÂ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6–ævÆT¦÷W&æW•6V7F–öç3¢¦÷W&æW•6V7F–öåÅµÅÒÒÅ²&6ö÷W&F–öâ"Â'6W'f–6W2"Â'7V6–f–6F–öç2"Â'6÷W&6R"Â'&W7VÇB%ÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÖöçF†Ç”¦÷W&æW•6V7F–öç3¢¦÷W&æW•6V7F–öåÅµÅÒÒÅ²&6ö÷W&F–öâ"Â'6W'f–6W2"Â'6÷W&6R"Â'&W7VÇB%ÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWD¦÷W&æW•6V7F–öåÂ‡7FW¢7FWÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÅ¶¦÷W&æW•F–ÖVÆ–æRÂ6WD¦÷W&æW•F–ÖVÆ–æUÅÒÒW6U7FFSÄ†—7F÷'”VçG'•ÅµÅÓåÂ…ÅµÅÕÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÅ¶¦÷W&æW•÷6—F–öâÂ6WD¦÷W&æW•÷6—F–öåÅÒÒW6U7FFUÂƒÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B†—7F÷'’Ò¦÷W&æW•F–ÖVÆ–æUÂç6Æ–6UÂƒÂ¦÷W&æW•÷6—F–öåÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÅ¶¦÷W&æW”fÆ÷rÂ6WD¦÷W&æW”fÆ÷uÅÒÒW6U7FFSÅ&ö¦V7EG—SåÂ…Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÅ¶¦÷W&æW•6æ6†÷G2Â6WD¦÷W&æW•6æ6†÷G5ÅÒÒW6U7FFSÅ'F–ÃÅ&V6÷&CÄ¦÷W&æW•6V7F–öâÂ†—7F÷'”VçG'“ããåÂ…ÇµÇÕÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B¦÷W&æW•7FW2ÒW6TÖVÖõÂ…Â…Â’ÓâÇ²ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BfÆ÷rÒç7vW'5Âç&ö¦V7EG—RÃõÃò¦÷W&æW”fÆ÷rò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&WGW&â6V7F–öç5ÂæÖÂ…Â‡6V7F–öåÂ’ÓâÂ…Ç²ò“°¢76W'BæÖF6‚‡6÷W&6RÂöf–Æ&ÆS¢¦÷W&æW•F–ÖVÆ–æUÂç6öÖUÂ…Â†VçG'•Â’ÓâvWD¦÷W&æW•6V7F–öåÂ†VçG'•Âç7FWÂ’ÓÓÒ6V7F–öåÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö–bÂ‡7FWÓÓÒ'&ö¦V7EG—R"bb6VÆV7FVE&ö¦V7EG—UÂ’6WD¦÷W&æW”fÆ÷uÂ‡6VÆV7FVE&ö¦V7EG—UÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BFW7F–æF–öå6æ6†÷C¢†—7F÷'”VçG'’ÒÇ²7FW¢æW‡BÂç7vW'3¢æW‡Dç7vW'2ÂÖW76vW3¢æW‡DÖW76vW2ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂö7W'&VçEÂç6Æ–6UÂƒÂ¦÷W&æW•÷6—F–öâÂ²Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷WFFVEÂçW6…Â†FW7F–æF–öå6æ6†÷EÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6WD¦÷W&æW•÷6—F–öåÂ†¦÷W&æW•÷6—F–öâÂ²Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÅ¶æW‡E6V7F–öåÅÓ¢FW7F–æF–öå6æ6†÷Bò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&Wf–÷W2Ò¦÷W&æW•F–ÖVÆ–æUÅ¶¦÷W&æW•÷6—F–öâÒÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6WD¦÷W&æW•÷6—F–öåÂ†¦÷W&æW•÷6—F–öâÒÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6WD¦÷W&æW”fÆ÷uÂ‡VæFVf–æVEÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6WD¦÷W&æW•6æ6†÷G5Â…ÇµÇÕÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6WD¦÷W&æW•F–ÖVÆ–æUÂ…ÅµÅÕÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6WD¦÷W&æW•÷6—F–öåÂƒÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ§V×Fô¦÷W&æW•6V7F–öåÂ‡6V7F–öã¢¦÷W&æW•6V7F–öåÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BF&vWEF–ÖVÆ–æT–æFW‚Ò¦÷W&æW•F–ÖVÆ–æUÂæf–æD–æFW…Â…Â†VçG'•Â’ÓâvWD¦÷W&æW•6V7F–öåÂ†VçG'•Âç7FWÂ’ÓÓÒ6V7F–öåÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BF&vWBÒ¦÷W&æW•6æ6†÷G5Å·6V7F–öåÅÒÃõÃò¦÷W&æW•F–ÖVÆ–æUÅ·F&vWEF–ÖVÆ–æT–æFW…ÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6WD¦÷W&æW•÷6—F–öåÂ‡F&vWEF–ÖVÆ–æT–æFW…Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ&W7F÷&U&VÖVÖ&W&VE7V6–f–6F–öç5Â†7W'&VçC¢ç7vW'2Â&VÖVÖ&W&VEÃó¢ç7vW'5Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&W7F÷&U&VÖVÖ&W&VE7V6–f–6F–öç5Â‡F6†VDç7vW'2Â¦÷W&æW•6æ6†÷G5Âç7V6–f–6F–öç5ÃõÂæç7vW'5Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&VÖVÖ&W&VDç7vW'2Ò7W'&VçE6V7F–öâÓÓÒ'7V6–f–6F–öç2"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&W7F÷&U&VÖVÖ&W&VE7V6–f–6F–öç5Â†7W'&VçE6æ6†÷EÂæç7vW'2Â7W'&VçEÅ¶7W'&VçE6V7F–öåÅÕÃõÂæç7vW'5Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÅ¶7W'&VçE6V7F–öåÅÓ¢Ç²ÂåÂåÂæ7W'&VçE6æ6†÷BÂç7vW'3¢&VÖVÖ&W&VDç7vW'2ÇÒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂş[{.Z¾XZ~ZëiÈ>KùŞyYûÈÎKˆŞyJ˜	šÎ‹ùNY¹âò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ'F–ÖR×–ÆÂ"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöæW‡E7FWÓÓÒ&V6öÖÖW&6TFWF–Ç2"ÃòÇ²V6öÖÖW&6TFW6–väFWF–Ç3¢ÇµÇÒÂV6öÖÖW&6TFWF–Ä–æFWƒ¢ÇÒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöæW‡E7FWÓÓÒ'&–çDFWF–Ç2"ÃòÇ²&–çDFW6–väFWF–Ç3¢ÇµÇÒÂ&–çDFWF–Ä–æFWƒ¢ÇÒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöæW‡E7FWÓÓÒ'6W'f–6TFWF–Ç2"ÃòÇ²6W'f–6TFW6–väFWF–Ç3¢ÇµÇÒÂ6W'f–6TFWF–Ä–æFWƒ¢ÇÒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷6WD†—7F÷'—ÇF&vWD†—7F÷'”–æFW‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂóÆæb6Æ74æÖSÒ&¦÷W&æW’Öæb"&–ÖÆ&VÃÒ.[ú¾˜	ş‹{>‹ØŠšnzé~jÚ^š™ò#âò“°¢76W'BæÖF6‚‡6÷W&6RÂö¦÷W&æW•7FW5ÂæÖÂ…Â†—FVÒÂ–æFW…Â’Óâò“°¢76W'BæÖF6‚‡6÷W&6RÂöF—6&ÆVCÕÇ¶—FVÕÂæ7W'&VçBÇÅÇÂ—FVÕÂæf–Æ&ÆUÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂö&–Ö7W'&VçCÕÇ¶—FVÕÂæ7W'&VçBÃò'7FW"¢VæFVf–æVEÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂş[	®iÊ®X‹˜NûÉ¥ÂEÇ¶—FVÕÂæÆ&VÅÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂşX˜Ş[èjÚ^š™şûÉ¥ÂEÇ¶—FVÕÂæÆ&VÅÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂö§V×Fô¦÷W&æW•6V7F–öåÂ†—FVÕÂç6V7F–öåÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂõö–çFW$WfVçB2&V7Eö–çFW$WfVçBò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B¦÷W&æW”ædÆ—7E&VbÒW6U&VcÄ…DÔÄF—dVÆVÖVçCåÂ†çVÆÅÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B¦÷W&æW”G&u&VbÒW6U&VeÂ…Ç²7F—fS¢fÇ6RÂö–çFW$–C¢ÓÂ7F'Eƒ¢Â67&öÆÄÆVgC¢ÂÖ÷fVC¢fÇ6RÇÕÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ7F'D¦÷W&æW”G&uÂ†WfVçC¢&V7Eö–çFW$WfVçCÄ…DÔÄF—dVÆVÖVçCåÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâÖ÷fT¦÷W&æW”G&uÂ†WfVçC¢&V7Eö–çFW$WfVçCÄ…DÔÄF—dVÆVÖVçCåÂ’ò“°¢6öç7B7F'D¦÷W&æW”G&rÒ6÷W&6RæÖF6‚‚ögVæ7F–öâ7F'D¦÷W&æW”G&uÂ†WfVçC¢&V7Eö–çFW$WfVçCÄ…DÔÄF—dVÆVÖVçCåÂ’Ç²…µÇ5Å5Ò£ò–gVæ7F–öâÖ÷fT¦÷W&æW”G&rò“òå³Òóò"#°¢6öç7BÖ÷fT¦÷W&æW”G&rÒ6÷W&6RæÖF6‚‚ögVæ7F–öâÖ÷fT¦÷W&æW”G&uÂ†WfVçC¢&V7Eö–çFW$WfVçCÄ…DÔÄF—dVÆVÖVçCåÂ’Ç²…µÇ5Å5Ò£ò–gVæ7F–öâVæD¦÷W&æW”G&rò“òå³Òóò"#°¢76W'BæFöW4æ÷DÖF6‚‡7F'D¦÷W&æW”G&rÂ÷6WEö–çFW$6GW&Rò“°¢76W'BæÖF6‚†Ö÷fT¦÷W&æW”G&rÂö–bÂ‚G&uÂæÖ÷fVEÂ’ÇµµÇ5Å5Ò£öG&uÂæÖ÷fVBÒG'VSµµÇ5Å5Ò£öÆ—7EÂç6WEö–çFW$6GW&UÂ†WfVçEÂçö–çFW$–EÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆ—7EÂç67&öÆÄÆVgBÒG&uÂç67&öÆÄÆVgBÒF—7Fæ6Rò“°¢76W'BæÖF6‚‡6÷W&6RÂööåö–çFW$F÷vãÕÇ·7F'D¦÷W&æW”G&uÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂööåö–çFW$Ö÷fSÕÇ¶Ö÷fT¦÷W&æW”G&uÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂööåö–çFW%WÕÇ¶VæD¦÷W&æW”G&uÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂöWfVçEÂç&WfVçDFVfVÇEÂ…Â“µµÇ5Å5Ò£öWfVçEÂç7F÷&÷vF–öåÂ…Â’ò“°¢76W'BæÖF6‚†772ÂõÂæ¦÷W&æW’ÖæbÖÆ—7BÇµµÇ5Å5Ò£ö÷fW&fÆ÷r×ƒ¢WFóµµÇ5Å5Ò£ö÷fW&fÆ÷r×“¢†–FFVãµµÇ5Å5Ò£÷67&öÆÆ&"×v–GFƒ¢F†–ã²ò“°¢76W'BæÖF6‚†772ÂõÂæ¦÷W&æW’ÖæbÖÆ—7BÇµµÇ5Å5Ò£ö÷fW'67&öÆÂÖ&V†f–÷"×“¢æöæSµµÇ5Å5Ò£÷F÷V6‚Ö7F–öã¢â×ƒµµÇ5Å5Ò£ö7W'6÷#¢w&#²ò“°¢76W'BæÖF6‚†772ÂõÂæ¦÷W&æW’ÖæbÖÆ—7EÂæ—2ÖG&vv–ærÅµÇ5Å5Ò£ö7W'6÷#¢w&&&–æs²ò“°¢76W'BæÖF6‚†772ÂõÂæ¦÷W&æW’ÖæbÖ'WGFöåÂæ—2Ö7W'&VçBÇµµÇ5Å5Ò£ö&6¶w&÷VæC¢f%Â‚ÒÖ'&÷vâÖF&µÂ“²ò“°¢76W'BæÖF6‚†772ÂõÂæ¦÷W&æW’ÖæbÖ'WGFöåÂæ—2×VæF–ærÅµÇ5Å5Ò£õÂæ¦÷W&æW’ÖæbÖ'WGFöåÂæ—2×6¶—VBÇ²ò“°¢76W'BæÖF6‚†772ÂõÂæ¦÷W&æW’ÖæbÖ'WGFöåÂæ—2×VæF–ærÇµµÇ5Å5Ò£ö&÷&FW"×7G–ÆS¢F6†VC²ò“°¢76W'BæÖF6‚†772ÂôÖVF–Â†Ö‚×v–GFƒ¢sc…Â•µÇ5Å5Ò£õÂæ¦÷W&æW’ÖæbÖÆ&VÂÇµµÇ5Å5Ò£öF—7Æ“¢æöæS²ò“°§Ò“° §FW7B‚'6–ævÆR×6W'f–6R7V6–f–6F–öç2föÆÆ÷rF†Rf—6–&ÆR6W'f–6R÷&FW""Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“°¢6öç7Bf—'7DFW7F–æF–öâÒ6÷W&6RæÖF6‚‚ögVæ7F–öâvWDf—'7D–æ6ö×ÆWFU7V6–f–6F–öäFW7F–æF–öåÂ†ç7vW'3¢ç7vW'5Â’Ç²…µÇ5Å5Ò£ò•ÆåÇÒò“òå³Òóò"#°¢6öç7BæW‡DFW7F–æF–öâÒ6÷W&6RæÖF6‚‚ögVæ7F–öâvWDæW‡D–æ6ö×ÆWFU7V6–f–6F–öäFW7F–æF–öåÂ†ç7vW'3¢ç7vW'2Â7W'&VçE6W'f–6T–C¢7G&–æuÂ’Ç²…µÇ5Å5Ò£ò•ÆåÇÒò“òå³Òóò"#°¢6öç7BæW‡E6–ævÆTFW7F–æF–öâÒ6÷W&6RæÖF6‚‚ögVæ7F–öâvWDæW‡E6–ævÆU7V6–f–6F–öäFW7F–æF–öåÂ‚…µÇ5Å5Ò£ò•ÆâÇÒò“òå³Òóò"#° ¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWE6VÆV7FVE7V6–f–6F–öå6W'f–6W5Â†ç7vW'3¢ç7vW'5Â•µÇ5Å5Ò£÷&WGW&â6W'f–6W5Âæf–ÇFW"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B7V6–f–6F–öå6W'f–6W2ÒvWE6VÆV7FVE7V6–f–6F–öå6W'f–6W5Â†ç7vW'5Â’ò“°¢76W'BæÖF6‚†f—'7DFW7F–æF–öâÂõÂæf–æEÂ…Â‡6W'f–6UÂ’Óâ—57V6–f–6F–öä6ö×ÆWFTf÷$ç7vW'5Â†ç7vW'2Â6W'f–6UÂ•Â’ò“°¢76W'BæÖF6‚†æW‡DFW7F–æF–öâÂõÂåÂåÂç6VÆV7FVEÂç6Æ–6UÂ†7W'&VçD–æFW‚Â²Â’ÂÂåÂåÂç6VÆV7FVEÂç6Æ–6UÂƒÂ7W'&VçD–æFW…Â’ò“°¢76W'BæÖF6‚†æW‡DFW7F–æF–öâÂö6æF–FFW5Âæf–æEÂ…Â‡6W'f–6UÂ’Óâ—57V6–f–6F–öä6ö×ÆWFTf÷$ç7vW'5Â†ç7vW'2Â6W'f–6UÂ•Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ&Vv–å6W'f–6UVW7F–öç5Â…Â•µÇ5Å5Ò£övWE7V6–f–6F–öäFW7F–æF–öåÂ†ç7vW'2ÂæW‡E6W'f–6UÂ•µÇ5Å5Ò£öÖ÷fUÂ†FW7F–æF–öåÂç7FWÂFW7F–æF–öåÂçF6‚ÂW6W%FW‡EÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ7V&Ö—EVçF—F–W5Â…µÇ5Å5Ò£övWDf—'7D–æ6ö×ÆWFU7V6–f–6F–öäFW7F–æF–öåÂ†ç7vW'5Â•µÇ5Å5Ò£öÖ÷fUÂ†FW7F–æF–öåÂç7FWÂFW7F–æF–öåÂçF6‚ÂVçF—G•7VÖÖ'•Â’ò“°¢76W'BæÖF6‚†æW‡E6–ævÆTFW7F–æF–öâÂö6æF–FFW5Âæf–æEÂ…Â‡6W'f–6UÂ’Óâ6öæf—&ÖVD–G5Âæ–æ6ÇVFW5Â‡6W'f–6UÂæ–EÂ•Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ6öæf—&ÔV6öÖÖW&6TFWF–Ç5Â…µÇ5Å5Ò£öGfæ6U6–ævÆU7V6–f–6F–öåÂ†7F—fTV6öÖÖW&6U6W'f–6UÂæ–Bò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ6öæf—&Õ&–çDFWF–Ç5Â…µÇ5Å5Ò£öGfæ6U6–ævÆU7V6–f–6F–öåÂ†7F—fTFWF–ÆVE6W'f–6UÂæ–Bò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ6öæf—&Õ6W'f–6TFWF–Ç5Â…µÇ5Å5Ò£öGfæ6U6–ævÆU7V6–f–6F–öåÂ†7F—fU6W'f–6TFWF–Å6W'f–6UÂæ–Bò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂögVæ7F–öâæW‡DgFW%VçF—G—ÆgVæ7F–öâæW‡DgFW$V6öÖÖW&6TFWF–Ç2ò“°§Ò“° §FW7B‚&6FVv÷'’æB6W'f–6R6VÆV7F–öâÆ6W2&6²–ÖÖVF–FVÇ’ÆVgBöb6öæf—&Ò—FV×2"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢6öç7B&VæFW$6öçG&öÇ2Ò6÷W&6Rç6Æ–6R‡6÷W&6Ræ–æFW„öb‚&gVæ7F–öâ&VæFW$6öçG&öÇ2‚’"’“°¢6öç7B6FVv÷'•7FWÒ&VæFW$6öçG&öÇ2æÖF6‚‚ö66R&6FVv÷'’#¢…µÇ5Å5Ò£ò–66R'VçF—G’#¢ò“òå³Òóò"#°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B–æÆ–æT&6µ7FW2ÒæWr6WCÅ7FWåÂ…ÅµµÇ5Å5Ò£ò&6FVv÷'’"ò“°¢76W'BæÖF6‚†6FVv÷'•7FWÂö6Æ74æÖSÒ&×VÇF’×6VÆV7BÖ7F–öç2#åµÇ5Å5Ò£ş(i‹ùNY¹îKˆ®KˆjÚUµÇ5Å5Ò£ş™h¾Zx¾z+®Š¨Ş™Èk"(i"ò“°¢76W'BæÖF6‚†772ÂõÂæ×VÇF’×6VÆV7BÖ7F–öç2ÇµµÇ5Å5Ò£öF—7Æ“¢fÆWƒ²ò“°§Ò“° §FW7B‚&ÆÂW‡Æ–6—B&–Ö'’7F–öç2¶VW&6²–ÖÖVF–FVÇ’FòF†V—"ÆVgB"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢6öç7B–æÆ–æU7FW2Ò6÷W&6RæÖF6‚‚ö6öç7B–æÆ–æT&6µ7FW2ÒæWr6WCÅ7FWåÂ…Å²…µÇ5Å5Ò£ò•ÅÕÂ“²ò“òå³Òóò"#°¢f÷"†6öç7B7FWöb°¢&6FVv÷'’"À¢'VçF—G’"À¢&V6öÖÖW&6TFWF–Ç2"À¢'&–çDFWF–Ç2"À¢'6W'f–6TFWF–Ç2"À¢'&–çEW'÷6R"À¢'fW'6–öä6÷VçB"À¢'&–çDFVFÆ–æR"À¢'6÷W&6Tf–ÆR"À¢'&–çE&öGV7F–öâ"À¢&ÖöçF†Ç•&öf–ÆR"À¢&ÖöçF†Ç•6W'f–6W2"À¢&ÖöçF†Ç•föÇVÖR"À¢Ò’°¢76W'BæÖF6‚†–æÆ–æU7FW2ÂæWr&VtW‡†"G·7FWÒ&’“°¢Ğ¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ&çVÖ&W"Öf÷&ÒÖ7F–öç2#åµÇ5Å5Ò£ş(i‹ùNY¹îKˆ®KˆjÚUµÇ5Å5Ò£ö6Æ74æÖSÒ'6VæBÖ'WGFöâ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ'7FæFÆöæRÖ7F–öç2#åµÇ5Å5Ò£ş(i‹ùNY¹îKˆ®KˆjÚUµÇ5Å5Ò£ş{›Î{¨Â(i"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BW6W4–æÆ–æT&6´æf–vF–öâÒ–æÆ–æT&6µ7FW5Âæ†5Â‡7FWÂ’ò“°¢76W'BæÖF6‚†772ÂõÂæçVÖ&W"Öf÷&ÒÖ7F–öç2ÇµµÇ5Å5Ò£öF—7Æ“¢fÆWƒ²ò“°¢76W'BæÖF6‚†772ÂõÂç7FæFÆöæRÖ7F–öç2ÇµµÇ5Å5Ò£öF—7Æ“¢fÆWƒ²ò“°§Ò“° §FW7B‚'VW7F–öææ—&RöÖ—G2F†R6Æ–VçB'VFvWBVW7F–öâæBf–æ—6†W2F—&V7FÇ’"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“° ¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂõÇÂ&'VFvWB'Æ66R&'VFvWB'ÎŠŠŞŠˆš	zé~ûÈ˜Z¾ûÈ—Îiª¾i˜.KˆŞŠŠŞZé®š	zéwÆç7vW'5Âæ'VFvWGÎZê.h‹nš	zéwÎš	zé~x¸hX²ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ6öæf—&ÔÖöçF†Ç•6÷W&6Tf–ÆW5Â…Â•µÇ5Å5Ò£öÖ÷fUÂ‚'&W7VÇB"ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ6öæf—&Õ6–ævÆTFDöç5Â…Â•µÇ5Å5Ò£öÖ÷fUÂ‚'&W7VÇB"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö†56VÆV7FVE&–çE6W'f–6UÂ†ç7vW'5Â’Ãò'&–çE&öGV7F–öâ"¢'&W7VÇB"ò“°§Ò“° §FW7B‚&ÖöçF†Ç’Æç2&RÖF6†VBgFW"6W'f–6RVçF—F–W2&R6VÆV7FVB"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢6öç7B&VæFW$6öçG&öÇ2Ò6÷W&6Rç6Æ–6R‡6÷W&6Ræ–æFW„öb‚&gVæ7F–öâ&VæFW$6öçG&öÇ2‚’"’“°¢6öç7BÖöçF†Ç•6W'f–6W2Ò&VæFW$6öçG&öÇ2æÖF6‚‚ö66R&ÖöçF†Ç•6W'f–6W2#¢…µÇ5Å5Ò£ò–66R'6÷W&6Tf–ÆR#¢ò“òå³Òóò"#°¢6öç7BÖöçF†Ç•föÇVÖRÒ&VæFW$6öçG&öÇ2æÖF6‚‚ö66R&ÖöçF†Ç•föÇVÖR#¢…µÇ5Å5Ò£ò–66R&ÖöçF†Ç”6FVæ6R#¢ò“òå³Òóò"#° ¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6W'f–6W2ÂşjøşiÈŠŠŞŠˆ{XNi[ƒÅÂ÷7ããÂƒó§6VÆV7GÆ–çWB’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W2ÂşiŠşY
+nšinjÊYKÙÂò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W2Â÷6VÆV7DÖöçF†Ç”f—'7EF–ÖUÂ‡G'VUÂ’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W2Â÷6VÆV7DÖöçF†Ç”f—'7EF–ÖUÂ†fÇ6UÂ’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W2Âşz+®Š¨ŞYKÙÎ{H˜ÈN[èÎûÈÎ˜i8~iÈŞX¹ˆˆ~i[˜xşûÈÎ{;¾{[iÈ>ˆz®X¹^˜XŞ[Şikj‚ò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6W'f–6W2ÂöWFôÖF6†VE&–6WÆÖöçF†Ç”w&÷W÷F–öç2ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ6VÆV7DÖöçF†Ç”f—'7EF–ÖUÂ†ÖöçF†Ç”f—'7EF–ÖS¢&ööÆVåÂ•µÇ5Å5Ò£öÖF6„ÖöçF†Ç•ÆåFõ6W'f–6W2ò“°¢76W'BæÖF6‚†ÖöçF†Ç•föÇVÖRÂóÇ6VÆV7EµÇ5Å5Ò£şŠ¸¾˜i8~jøşiÈŠŠŞŠˆ{XNi[…µÇ5Å5Ò£ş{XNûÈşiÈ‚ò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•föÇVÖRÂ÷G—SÒ&çVÖ&W""ò“°¢76W'BæÖF6‚†772ÂõÂæçVÖ&W"Öf÷&Ò–çWBÅÇ2¥ÂæçVÖ&W"Öf÷&Ò6VÆV7Bò“°§Ò“° §FW7B‚'VW7F–öææ—&R'WGFöç26†&RF†R6ö×ÆWF–öâ7F–öâ&÷÷'F–öç2"Â7–æ2‚’Óâ°¢6öç7B772Òv—B&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“° ¢76W'BæÖF6‚†772Âö'WGFöåÂç6VæBÖ'WGFöâÅÇ2¦'WGFöåÂæ–æÆ–æRÖ&6²Ö'WGFöâÅÇ2¦'WGFöåÂç&W7öç6RÖ&6²Ö'WGFöâÇµµÇ5Å5Ò£öföçBÖfÖ–Ç“¢f%Â‚Ò×7V6–f–6F–öâ×V’×6ç5Â“µµÇ5Å5Ò£öföçB×6—¦S¢ÂãsG&VÓµµÇ5Å5Ò£öföçB×vV–v‡C¢cSµµÇ5Å5Ò£öÆ–æRÖ†V–v‡C¢ÂãC²ò“°¢76W'BæÖF6‚†772ÂõÂç6VæBÖ'WGFöâÇµµÇ5Å5Ò£öÖ–âÖ†V–v‡C¢S'ƒµµÇ5Å5Ò£ö&÷&FW"×&F—W3¢ƒ²ò“°¢76W'BæÖF6‚†772ÂõÂæ–æÆ–æRÖ&6²Ö'WGFöâÇµµÇ5Å5Ò£öÖ–âÖ†V–v‡C¢S'ƒµµÇ5Å5Ò£ö&÷&FW"×&F—W3¢ƒ²ò“°¢76W'BæÖF6‚†772ÂõÂç&W7öç6RÖ&6²Ö'WGFöâÇµµÇ5Å5Ò£öÖ–âÖ†V–v‡C¢S'ƒµµÇ5Å5Ò£ö&÷&FW"×&F—W3¢ƒ²ò“°¢76W'BæÖF6‚†772ÂõÂæ6ö×7BÖ6†V6²ÇµµÇ5Å5Ò£öÖ–âÖ†V–v‡C¢CwƒµµÇ5Å5Ò£ö&÷&FW"×&F—W3¢ƒ²ò“°¢76W'BæFöW4æ÷DÖF6‚†772ÂõÂæ×VÇF’×6VÆV7BÖfö÷FW"Âç6VæBÖ'WGFöâÇµµçÕÒ¦Ö–âÖ†V–v‡C¢ò“°¢76W'BæFöW4æ÷DÖF6‚†772ÂõÂæ6ö×7BÖ6&BÖfö÷FW"Âç6VæBÖ'WGFöâÇµµçÕÒ¦Ö–âÖ†V–v‡C¢ò“°¢76W'BæÖF6‚†772ÂõÂç6VæBÖ'WGFöâÅÇ2¥Âæ–æÆ–æRÖ&6²Ö'WGFöâÅÇ2¥Âç&W7öç6RÖ&6²Ö'WGFöâÇµÇ2¦Ö–âÖ†V–v‡C¢Cwƒ²ò“°§Ò“° §FW7B‚&ÖF6†VBÖöçF†Ç’Æç26†÷r6ö×7B7V6–f–6F–öâ7VÖÖ'’"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢6öç7B&VæFW$6öçG&öÇ2Ò6÷W&6Rç6Æ–6R‡6÷W&6Ræ–æFW„öb‚&gVæ7F–öâ&VæFW$6öçG&öÇ2‚’"’“°¢6öç7BÖöçF†Ç•6W'f–6W57FWÒ&VæFW$6öçG&öÇ2æÖF6‚‚ö66R&ÖöçF†Ç•6W'f–6W2#¢…µÇ5Å5Ò£ò–66R'6÷W&6Tf–ÆR#¢ò“òå³Òóò"#° ¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂö6Æ74æÖSÒ&ÖF6†VB×ÆâÖ6&B"ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂö6Æ74æÖSÒ&×VÇF’×6VÆV7B×w&ÖöçF†Ç’×6W'f–6R×6VÆV7F÷"%µÇ5Å5Ò£ö6Æ74æÖSÒ&ÖF6†VB×ÆâÖ6&B"ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşKéŞiÈŞX¹ˆz®X¹^[‹nXZUµÇ5Å5Ò£õÇ·ÆåÂææÖUÇÒò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşjøşiÈi[˜xõµÇ5Å5Ò£şŠˆzé~ik[ÈõµÇ5Å5Ò£şiÈŞX¹zøNYÈÕµÇ5Å5Ò£şKªNK¹Zèhé"ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂóÆFCîKéŞYjîjÊŠŠŞŠˆ‹+¾YŠˆƒÅÂöFCâò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşKªNK¹‚¥~ûÈõä~ûÈõDbZèÎz‹òò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö–æ6ÇVFW5&W6—¦WÎ‹H˜â¥&W6—¦WÅ&W6—¦Râ®‹H˜ò“°¢76W'BæÖF6‚†772ÂõÂæÖF6†VB×Æâ×7V72ÇµµÇ5Å5Ò£öw&–B×FV×ÆFRÖ6öÇVÖç3¢&WVEÂƒ"ÂÖ–æÖ…ÂƒÂg%Â•Â’ò“°§Ò“° §FW7B‚&ÖöçF†Ç’Æç2ÆÆö6FR6W'f–6RVçF—F–W2v—F†÷WBW†6VVF–ærÆâ'VÆW2"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢6öç7B&VæFW$6öçG&öÇ2Ò6÷W&6Rç6Æ–6R‡6÷W&6Ræ–æFW„öb‚&gVæ7F–öâ&VæFW$6öçG&öÇ2‚’"’“°¢6öç7BÖöçF†Ç•6W'f–6W57FWÒ&VæFW$6öçG&öÇ2æÖF6‚‚ö66R&ÖöçF†Ç•6W'f–6W2#¢…µÇ5Å5Ò£ò–66R'6÷W&6Tf–ÆR#¢ò“òå³Òóò"#°¢6öç7BÖöçF†Ç”w&÷W2Ò6÷W&6RæÖF6‚‚ö6öç7BÖöçF†Ç•6W'f–6Tw&÷W2ÒÅ²…µÇ5Å5Ò£ò•ÅÓ²ò“òå³Òóò"#°¢6öç7BÖöçF†Ç•6ö6–ÄF§W7FÖVçBÒ6÷W&6RæÖF6‚‚ögVæ7F–öâF§W7DÖöçF†Ç•6ö6–Ä–ÖvT6÷VçEÂ…µÇ5Å5Ò£õÆâÕÆåÆâgVæ7F–öâF§W7DÖöçF†Ç•&öGV7Dg&ÖU&öGV7D6÷VçBò“òå³Òóò"#° ¢76W'BæÖF6‚‡6÷W&6RÂöÖ÷fUÂ‚&ÖöçF†Ç•6W'f–6W2"ÂÇµµÇ5Å5Ò£öÖöçF†Ç•Æä–C¢ÖF6†VEÆåÃõÂæ–Bò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâF§W7DÖöçF†Ç•6W'f–6UVçF—G•Â‡6W'f–6T–C¢7G&–ærÂ6†ævS¢ÓÇÂÂ’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂögVæ7F–öâvWDÖöçF†Ç•6W'f–6UVæ—Dæ÷FUÂ‡6W'f–6S¢6W'f–6UÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWDÖöçF†Ç•6W'f–6Tw&÷W6÷7EÂ…÷6W'f–6S¢6W'f–6UÂ’ÇµÇ2§&WGW&âµÇ2¥ÇÒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂögVæ7F–öâvWDÖöçF†Ç•6W'f–6Tw&÷W6÷7EµÇ5Å5Ò£ö–bÂ‡6W'f–6UÂæ–BÓÓÒ'&W6—¦R%Â’&WGW&âÂãRò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂö–bÂ‡6W'f–6UÂæ–BÓÓÒ&&ææW"%Â’&WGW&â"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷6W'f–6UÂæ6FVv÷'’ÓÓÒ'&–çB%Â’&WGW&â"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÖ†–×VÒÒ6W'f–6UÂæ–BÓÓÒ&&ææW""Ãò$ääU%ôÔ”åõd•5TÅôÄ”Ô•B¢6W'f–6UÂæ6FVv÷'’ÓÓÒ'&–çB"Ãò"¢ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UÂæ6FVv÷'’ÓÓÒ&÷F†W""ò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆÆö6FVE&–çDw&÷W2Â²w&÷W6÷7Bâ"Â²Âãò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆÆö6FVBÂ²w&÷W6÷7BâÂ²Âãò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâÖF6„ÖöçF†Ç•ÆåFõ6W'f–6W5Â†ç7vW'3¢ç7vW'5Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6äÖF6…ÆâÒ—5v†öÆTw&÷WbbÆÆö6FVDw&÷W2ãÒÖ–æ–×VÔw&÷W2bbÆÆö6FVDw&÷W2ÃÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&WGW&âÇ²ÂåÂåÂæç7vW'2ÂÖöçF†Ç”w&÷W6÷VçBÂÖöçF†Ç•Æä–C¢ÖF6†VEÆåÃõÂæ–BÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ6öæf—&ÔÖöçF†Ç•6W'f–6W5Â…Â•µÇ5Å5Ò£ö–bÂ‚ÖöçF†Ç”F—7G&–'WF–öä6ö×ÆWFUÂ’&WGW&ãµµÇ5Å5Ò£öÖ÷fUÂ‚'6÷W&6Tf–ÆR"ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂöÖöçF†Ç•6W'f–6Tw&÷W5ÂæÖµÇ5Å5Ò£öÖöçF†Ç’×6W'f–6R×VçF—G’ÖÆ—7Bò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂ÷6W'f–6RÖ6FVv÷'’ÖÆ—7BÖöçF†Ç’×6W'f–6RÖ6FVv÷'’ÖÆ—7Bò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂ÷6W'f–6RÖ6FVv÷'’×æVÂò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂöÖöçF†Ç’×6W'f–6RÖÆ—7BÕÂEÇ¶w&÷WÂæ¶W•ÇÒò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂ÷6WDW‡æFVE6W'f–6T6FVv÷'•Â†—4W‡æFVBÃòçVÆÂ¢w&÷WÂæ¶W•Â’ò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂöÖöçF†Ç’Ö6FVv÷'’×F'7ÆÖöçF†Ç•6W'f–6T6FVv÷'’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂö6†ö–6RÖöçF†Ç’×6W'f–6R×VçF—G’ÖöçF†Ç’×6W'f–6RÖ6†ö–6Rò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂóÇ6ÖÆÃåÇ¶—FVÕÂæFW67&—F–öåÇÓÅÂ÷6ÖÆÃâò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşYjîjÊX;jÎXø>ˆ>ûÉ¥Ç¶vWE6W'f–6TF—7Æ•&–6UÂ†—FVÕÂ•ÇÒò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşk‰¾[	ÂEÇ¶—FVÕÂææÖUÇÕµÇ5Å5Ò£şZ)îXªÂEÇ¶—FVÕÂææÖUÇÒò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşXÚÂEÇ¶w&÷W6÷7EÇÒ{XGÎXÚ{XGÎXÚ"{XBò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂş[›>™Ú.ŠŠŞŠˆjøşiÈYŠˆ™™"{XNûÈÎiÊ®KÛşyJ{XNi[KˆŞ{Jşz˜Òò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂõ&W6—¦^8xZ~x˜~[èÎŠ;Şˆˆ~jŠiÛşŠŠŞŠˆŠ¸¾KÛşyJYjîjÊKËX;’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂö&Æö6¶VD'•&–çDÆ–Ö—Bò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂö6öç7BÖ†–×VÕVçF—G’Ò—FVÕÂæ–BÓÓÒ&&ææW""Ãò$ääU%ôÔ”åõd•5TÅôÄ”Ô•B¢—FVÕÂæ6FVv÷'’ÓÓÒ'&–çB"Ãò"¢ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂö6öç7BÖ†–×VÕ&V6†VBÒVçF—G’ãÒÖ†–×VÕVçF—G’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö7F—fTV6öÖÖW&6U6W'f–6UÂæ–BÓÓÒ&&ææW""Ãò&WV—&VEVçF—G”÷F–öç5Âç6Æ–6UÂƒÂ$ääU%ôÔ”åõd•5TÅôÄ”Ô•EÂ’¢&WV—&VEVçF—G”÷F–öç2ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂ÷&WV—&VEvT6÷VçD÷F–öç5Âæf–ÇFW%Â…Â†6÷VçEÂ’Óâ6÷VçBãÒÖ–æ–×VÕvT6÷VçEÂ•ÂæÖò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂöF—6&ÆVCÕÇ¶ç7vW'5ÂæÖöçF†Ç”f—'7EF–ÖRÓÓÒVæFVf–æVBÇÅÇÂÖöçF†Ç•&VÖ–æ–æt66—G’Â²ÂãÂw&÷W6÷7BÇÅÇÂÖ†–×VÕ&V6†VBÇÅÇÂ&Æö6¶VD'•&–çDÆ–Ö—EÇÒò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂöF—6&ÆVCÕÇ²ÖöçF†Ç”F—7G&–'WF–öä6ö×ÆWFUÇÕµÇ5Å5Ò£şz+®Š¨ŞKŠn[‹nXZ^ikj‚(i"ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâf÷&ÖDÖöçF†Ç•6W'f–6UVçF—G•Â‡6W'f–6S¢6W'f–6RÂVçF—G“¢çVÖ&W"Â6öæ6—6RÒfÇ6RÂç7vW'5Ãó¢ç7vW'5Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UÂæ–BÓÓÒ&FÒ"ÇÅÇÂ6W'f–6UÂæ–BÓÓÒ&ÖVçR"ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWDÖöçF†Ç•&–çDFWF–Ç5Â†ç7vW'3¢ç7vW'2Â6W'f–6T–C¢&FÒ"ÇÂ&ÖVçR"ÂVçF—G“¢çVÖ&W%Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6fVDFWF–Ç5Å¶–æFW…ÅÒÃõÃòÂ†–æFW‚ÓÓÒÃòÆVv7”FWF–ÂÃõÃòÇµÇÒ¢ÇµÇÕÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöFWF–Ç5Âæ¦ö–åÂ‚.ûÉ²%Â’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂôÖöçF†Ç•6W'f–6TÖöFWÆÖöçF†Ç•6W'f–6TÖöFW7ÇWFFTÖöçF†Ç•6W'f–6TÖöFWÎYÎKˆK»ŞZI®šò“°¢76W'BæÖF6‚‡6÷W&6RÂşš^yºîûÉ¥ÂEÇ·6VÆV7FVE6W'f–6W5ÂæÖÂ…Â†—FVÕÂ’Óâf÷&ÖDÖöçF†Ç•6W'f–6UVçF—G’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşjøşzø~‹+Îih~™ÈŠh[›î[Ë^YÉnûÉòò“°¢76W'BæÖF6‚‡6÷W&6RÂö–bÂ†æW‡E÷7D6÷VçBâÂ’VçF—F–W5Âç6ö6–ÂÒæW‡E÷7D6÷VçBò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&WGW&âÂEÇ¶æÖUÇÒ9uÂEÇ·÷7D6÷VçEÇÒzø~ûÈX[ÂEÇ·F÷FÄ–ÖvW5ÇÒ[Ë^ûÈ–ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6ö6–ÄF§W7FÖVçBÂ÷&WGW&âÇ²ÂåÂåÂæ7W'&VçBÂ6ö6–Å÷7D–ÖvT6÷VçG3¢–ÖvT6÷VçG2ÇÒò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6ö6–ÄF§W7FÖVçBÂövWDÖöçF†Ç”ÆÆö6FVDw&÷W7ÇVçF—F–W7ÆÖF6„ÖöçF†Ç•ÆåFõ6W'f–6W2ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşzø~XZ~[Ë^i[KˆŞZ)îXªiÈikj{XNi[‚ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşZ)îXªzÊÂÂEÇ¶–æFW‚Â²ÇÒzø~YÉnx˜~[Ë^i[†ÒF—6&ÆVCÕÇ¶–ÖvT6÷VçBãÒ4ô4”Åô”ÔtU5õU%õõ5EôÄ”Ô•EÇÒò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşjøşzø~iÈZI¢[Ë^YÉnKŠnŠˆ‚{XBò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşYÎzø~zÊÂ"[Ë^‹[rÂC#SûÙåÂCSûÈş[ËRò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşjøşx˜YÉnjn™ÈŠhZY~yJ[›îš^yJ.Y8ûÉòò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşzÊÂÂEÇ¶–æFW‚Â²ÇÒx˜YÉnjnyJ.Y8i[˜xòò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşjøşx˜Y
+²š^yJ.Y8ûÉ¾jøş‹ûŞXªšRÂµÂCsûÈÎKˆŞZ)îXªiÈikj{XNi[‚ò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşZY~yJyJ.Y8{‹Şi[‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWDÖöçF†Ç”6&DFWF–Ç5Â†ç7vW'3¢ç7vW'2ÂVçF—G“¢çVÖ&W%Â’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂöÖöçF†Ç”6&DFWF–Ç5ÂæÖÂ…Â†ÖöçF†Ç”6&DFWF–ÂÂfW'6–öä–æFW…Â’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂş[{.˜‚Ç·VçF—G•ÇÒjËîûÈÎŠ¸¾XˆnXŠ^˜i8~jøşjËîy¨NŠhşjÂò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşiÈikjYŞx˜~ûÈşiÈ>Y:XÚzÊÅÂEÇ·fW'6–öä–æFW‚Â²ÇŞjËîYjî™Ú.h‰n™¹™Ú"ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂóÆ÷F–öâfÇVSÒ'6–ævÆR#îYjî™Ú#ÅÂö÷F–öãåµÇ5Å5Ò£óÆ÷F–öâfÇVSÒ&F÷V&ÆR#î™¹™Ú#ÅÂö÷F–öãâò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşYjî™Ú"ÂCÃûÙåÂCÃSûÈşjËçÎ™¹™Ú"ÂCÃ#ûÙåÂC"Ã#ûÈşjËçÎjøşjËâÂµÂC3ò“°¢76W'BæÖF6‚‡6÷W&6RÂövWDÖöçF†Ç”6&DFWF–Ç5Â†ç7vW'2ÂVçF—G•Â•Âæf÷$V6…Â…Â†FWF–ÅÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VfW&Væ6UÂæFW6–väÆ÷rÂ³Ò&ævUÂæÆ÷rò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VfW&Væ6UÂæFW6–vä†–v‚Â³Ò&ævUÂæ†–v‚ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂöÖöçF†Ç•&–çE6W'f–6T–BÒ—FVÕÂæ–BÓÓÒ&FÒ"ÇÅÇÂ—FVÕÂæ–BÓÓÒ&ÖVçR"Ãò—FVÕÂæ–B¢VæFVf–æVBò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂöÖöçF†Ç•&–çDFWF–Ç5ÂæÖÂ…Â†ÖöçF†Ç•&–çDFWF–ÂÂfW'6–öä–æFW…Â’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂş[{.˜‚Ç·VçF—G•ÇÒš^ûÈÎŠ¸¾XˆnXŠ^Z¾Zú¾jøşX¾x˜iÊÎy¨NŠhşjÂò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂö&–ÖÆ&VÃÕÇ¶iÈikj…ÂEÇ¶—FVÕÂææÖUÇŞzÊÅÂEÇ·fW'6–öä–æFW‚Â²ÇŞš^h‰Y8{Yjx¶ÇÒò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂövWE&–çE7G'V7GW&T÷F–öç5Â†ÖöçF†Ç•&–çE6W'f–6T–EÂ’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂö&–ÖÆ&VÃÕÇ¶iÈikj…ÂEÇ¶—FVÕÂææÖUÇŞzÊÅÂEÇ·fW'6–öä–æFW‚Â²ÇŞš^h©šik[ÈöÇÒò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂö&–ÖÆ&VÃÕÇ¶iÈikj…ÂEÇ¶—FVÕÂææÖUÇŞzÊÅÂEÇ·fW'6–öä–æFW‚Â²ÇŞš^[®Zûˆˆ~ikY	ÇÒò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşhùKé¾X‰Şz‹şhé.zˆ·ÇF–ÖVÆ–æTÆ&VÇ7ÆFÔFWF–ÅÂçF–ÖVÆ–æRò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂôföÆD6†ö–6R¶W“×·fÇVWÒföÆC×·fÇVWÒò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşK‹¾ŠhyJ˜	NûÈYjî˜ûÈ’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂöæÖSÕÇ¶ÖöçF†Ç’ÕÂEÇ¶ÖöçF†Ç•&–çE6W'f–6T–EÇÒÕÂEÇ·fW'6–öä–æFW…ÇÒ×W'÷6VÇÒò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂ÷FövvÆTÖöçF†Ç”FÕW'÷6WÇ6VÆV7DÖöçF†Ç”FÕW'÷6WÎK‹¾ŠhyJ˜	NûÈXúşŠH~˜ûÈ’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşih~ZÙ~XZ~Zë•µÇ5Å5Ò£ş{JiÙx¸k8µÇ5Å5Ò£ş[»nKËx˜iÊÅµÇ5Å5Ò£şŠinŠk®ŠH~™¹Î[ªeµÇ5Å5Ò£şZèÎz‹şiÉş™™ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşZY~yJ[‹Šh¾[®Zû‚ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂş{‹ŞŠŠŞŠˆši[‚Ç6ÖÆÃîûÈY
+¾[™Ú.8[[©^ûÈ“ÅÂ÷6ÖÆÃâò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂö&–ÖÆ&VÃÕÇ¶iÈikj…ÂEÇ¶—FVÕÂææÖUÇŞzÊÅÂEÇ·fW'6–öä–æFW‚Â²ÇŞš^{‹ŞŠŠŞŠˆši[†ÇÕµÇ5Å5Ò£÷&WV—&VEvT6÷VçD÷F–öç5Âæf–ÇFW%Â…Â†6÷VçEÂ’Óâ6÷VçBãÒÖ–æ–×VÕvT6÷VçEÂ•ÂæÖò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂóÆ÷F–öâfÇVSÒ&7W7FöÒ#îˆz®Šˆ.ši[ƒÅÂö÷F–öãâò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂö&–ÖÆ&VÃÕÇ¶iÈikj…ÂEÇ¶—FVÕÂææÖUÇŞzÊÅÂEÇ·fW'6–öä–æFW‚Â²ÇŞš^ˆz®Šˆ.{‹ŞŠŠŞŠˆši[†ÇÒò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂö6Æ74æÖSÒ&7W7FöÒ×vRÖ6÷VçBÖ–çWB"ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂ÷vT6÷VçC¢'6T÷F–öæÅ÷6—F—fT–çFVvW%Â†WfVçEÂçF&vWEÂçfÇVUÂ’ò“°¢76W'BæÖF6‚†ÖöçF†Ç•6W'f–6W57FWÂşši[KˆŞZ)îXªiÈikj{XNi[ûÉ¾zÊÂ"š‹[~KéŞ‹ûŞXªšX;jÎŠˆzé~ûÈÎKŠnZY~yJiÈikjXJ®h:ò“°¢76W'BæÖF6‚‡6÷W&6RÂövWDÖöçF†Ç•&–çDFWF–Ç5Â†ç7vW'2Â—FVÕÂæ–BÂVçF—G•Â•ÂæfÆDÖò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷VçF—G’âÃòÂEÇ¶—FVÕÂææÖUÇŞzÊÂÂEÇ¶–æFW‚Â²ÇÒšV¢—FVÕÂææÖRò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşX+>YjîûÈôDŞhùKé¾X‰Şz‹şhé.zˆ²ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÂ…Å²&FÒ"Â&ÖVçR%ÅÒ26öç7EÂ•Âæf÷$V6‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B&Vf—‚ÒVçF—G’âÃòÂEÇ·6W'f–6UÂææÖUÇŞzÊÂÂEÇ¶–æFW‚Â²ÇÒšV¢6W'f–6UÂææÖRò“°¢76W'BæÖF6‚‡6÷W&6RÂöÂEÇ·&Vf—…ÇŞyJ˜	NûÉ¥ÂEÇ¶FWF–ÅÂçW'÷6W2ò“°¢76W'BæÖF6‚‡6÷W&6RÂöÂEÇ·&Vf—…ÇŞŠhşjÎûÉ¥ÂEÇ·7V6–f–6F–öåÂæ¦ö–âò“°¢76W'BæÖF6‚‡6÷W&6RÂöÂEÇ·&Vf—…ÇŞXZ~ZëûÉ¥ÂEÇ¶6öçFVçEÂæ¦ö–âò“°¢76W'BæÖF6‚‡6÷W&6RÂöÂEÇ·&Vf—…ÇŞŠinŠk®ûÈşZèÎz‹şûÉ¥ÂEÇ·66†VGVÆUÂæ¦ö–âò“°¢76W'BæÖF6‚‡6÷W&6RÂöFWF–ÅÂç7G'V7GW&RÓÓÒ&×VÇF—vR"bbFWF–ÅÂçvT6÷VçEµÇ5Å5Ò£öÂEÇ·7G'V7GW&UÇŞ8;µÂEÇ¶FWF–ÅÂçvT6÷VçEÇÒšò“°¢76W'BæÖF6‚‡6÷W&6RÂöÖöçF†Ç”Ö—76–ætFWF–ÄÆ&VÇ2ò“°¢76W'BæÖF6‚†772ÂõÂæÖöçF†Ç’×6W'f–6R×6VÆV7F÷"ÇµµÇ5Å5Ò£ö&÷&FW"×&F—W3¢7ƒ²ò“°¢76W'BæÖF6‚†772ÂõÂæÖöçF†Ç’×VçF—G’×7FWW"ÇµµÇ5Å5Ò£öw&–B×FV×ÆFRÖ6öÇVÖç3¢3G‚3‚3G‚ò“°¢76W'BæÖF6‚†772ÂõÂæÖöçF†Ç’×&–çB×fW'6–öâÖÆ—7BÇµµÇ5Å5Ò£öF—7Æ“¢w&–C²ò“°¢76W'BæÖF6‚†772ÂõÂæÖöçF†Ç’×&–çB×fW'6–öâÇµµÇ5Å5Ò£ö&÷&FW"×&F—W3¢ƒ²ò“°¢76W'BæÖF6‚†ÖöçF†Ç”w&÷W2Âö¶W“¢&V6öÖÖW&6R%µÇ5Å5Ò£ö¶W“¢'&–çB"ò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç”w&÷W2Âö¶W“¢'&W6—¦R'Ç6W'f–6T–G3¢Å²'&W6—¦R%ÅÒò“°¢76W'BæFöW4æ÷DÖF6‚†ÖöçF†Ç”w&÷W2Âö¶W“¢&÷F†W"'ÎX[nK¹nŠŠŞŠˆiÈŞX¹’ò“°§Ò“° §FW7B‚&ÖöçF†Ç’&–6–ærF—66÷VçG2F†R6VÆV7FVBöæR×F–ÖR6W'f–6W2v—F†÷WBF—66÷VçF–ærFBÖöç2"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÖöçF†Ç”F—66÷VçE&FW3¥µÇ5Å5Ò£ó3¢Âã“UµÇ5Å5Ò£óC¢Âã“%µÇ5Å5Ò£óc¢Âã•µÇ5Å5Ò£óƒ¢Âãƒ…µÇ5Å5Ò£ó¢Âãƒ‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWDÖöçF†Ç”F—66÷VçE&FRò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÖöçF†Ç•&VfW&Væ6RÒvWDÖöçF†Ç•&–6–æu&VfW&Væ6UÂ†ç7vW'5Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BF—66÷VçFVDFW6–vâÒvWDÖöçF†Ç”F—66÷VçFVDFW6–vå&ævUÂ†ç7vW'5Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6ö6–ÅföÇVÖTF—66÷VçEW&6VçBÒRò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöÖöçF†Ç”6öÖ&–æVDF—66÷VçEW&6VçD6ÆvWDÖöçF†Ç•6ö6–Ä6öÖ&–æVDF—66÷VçEW&6VçGÆ†4ÖöçF†Ç•6ö6–Ä6öÖ&–æVDF—66÷VçGÇ6ö6–Å–&ÆU&FRò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆ÷s¢&÷VæDÖöçF†Ç•&–6UÂ‡&VfW&Væ6UÂæFW6–väÆ÷rÂ¢F—66÷VçE&FUÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöç7vW'5Âç&ö¦V7EG—RÓÓÒ'6–ævÆR"bb6W'f–6UÂæ–BÓÓÒ'6ö6–Â"bbVçF—G’ãÒò“°¢76W'BæÖF6‚‡6÷W&6RÂö&6TÆ÷rÒF—66÷VçFVDFW6–väÆ÷rò“°¢76W'BæÖF6‚‡6÷W&6RÂöFFöäÆ÷rÒÖöçF†Ç•&VfW&Væ6UÂæFFöäÆ÷rò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWDÖöçF†Ç•&–6–æu&VfW&Væ6Rò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BvT6÷VçBÒFWF–ÅÂç7G'V7GW&RÓÓÒ&×VÇF—vR%µÇ5Å5Ò£ôÖF…ÂæÖ…ÂƒÂFWF–ÅÂçvT6÷VçBÃõÃòÂ’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂôÖF…ÂæÖ…Âƒ"ÂFWF–ÅÂçvT6÷VçBÃõÃò%Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂövWDÖöçF†Ç•&–çDFWF–Ç5Â†ç7vW'2Â6W'f–6UÂæ–BÂVçF—G•Â•Âæf÷$V6…Â…Â†FWF–ÅÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VfW&Væ6UÂæFW6–väÆ÷rÂ³Ò6W'f–6UÂæÆ÷rÂ²W‡G&vT6÷VçBÂ¢cò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VfW&Væ6UÂæFW6–vä†–v‚Â³Ò6W'f–6UÂæ†–v‚Â²W‡G&vT6÷VçBÂ¢ƒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷&VfW&Væ6UÂæFFöäÆ÷rÂ³ÒW‡G&vT6÷VçBÂ¢cò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷&VfW&Væ6UÂæFFöä†–v‚Â³ÒW‡G&vT6÷VçBÂ¢ƒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&WGW&âF÷FÂÂ²ÖF…ÂæÖ…ÂƒÂç7vW'5ÂçVçF—F–W5Å·6W'f–6T–EÅÒÃõÃòÂ’Â¢vWDÖöçF†Ç•6W'f–6Tw&÷W6÷7EÂ‡6W'f–6UÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWDÖöçF†Ç•6–ævÆU&VfW&Væ6Rò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWDÖöçF†Ç”6ö×&—6öâò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6–ævÆU6ö6–Å–&ÆU&FRÒÂƒÒ6ö6–ÅföÇVÖTF—66÷VçEW&6VçEÂ’Âòò“°¢76W'BæÖF6‚‡6÷W&6RÂşYjîjÊYŠˆXø>ˆ>[{.ZY~yJzKî{êNYÉnih~{‹ŞYÉnk»ò[Ë^y¨BRRXJ®h:ûÉ¾iÈikjK¸ŞXú®ZY~yJ{XNi[h©hš2ò“°¢76W'BæÖF6‚‡6÷W&6RÂşYjîjÊk»ò[Ë^[{.ZY~yJ‚RRXJ®h:ò“°¢76W'BæÖF6‚‡6÷W&6RÂşˆˆ~YjîjÊXJ®h:[èÎy»‹ùò“°¢76W'BæÖF6‚‡6÷W&6RÂşYXnY8K‹¾YÉnZY~x˜ûÙÎ‹ûŞXªyJ.Y8ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂş{k.š&ææW.ûÙÎK‹¾ŠinŠk®[»nKËXª‹;Âò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂõÂEÇ·6W'f–6UÂææÖUÇŞûÙÎ‹ûŞXªši[‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂş{k.z¹K‹¾ŠinŠk®[»nKËˆˆ~Zê>X+>YjîûÈşˆùÎYjîZI®šKéŞXªX;Šˆzé~KŠnZY~yJiÈikjXJ®h:ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6W'f–6TFFöå&÷w2ÒÖöçF†Ç”FFöä'&V¶F÷våÂæf–ÇFW%Â…Â†—FVÕÂ’Óâ—FVÕÂæÆ&VÅÂç7F'G5v—F…Â†ÂEÇ·6W'f–6UÂææÖUÇŞûÙÆÂ•Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&WGW&âÅ¶FW6–väfVU&÷rÂÂåÂåÂç6W'f–6TFFöå&÷w5ÅÒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂõÂåÂåÂæÖöçF†Ç”FFöä'&V¶F÷vâÅÆåÇ2¥ÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BFFöå&÷w2ÒÖöçF†Ç•FdFFöå&÷w5µÇ5Å5Ò£ö—FVÕÂæÆ&VÅÂç7F'G5v—F…Â†ÂEÇ·6W'f–6UÂææÖUÇŞûÙÆÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆ&VÃ¢—FVÕÂæÆ&VÅÂç&WÆ6UÂ†ÂEÇ·6W'f–6UÂææÖUÇŞûÙÆÂš^jÊÂEÇ·6W'f–6T–æFW‚Â²ÇŞ8;¶Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşKˆŞZY~yJiÈikjh©hš2ò“°¢76W'BæÖF6‚‡6÷W&6RÂş[{.ZY~yJiÈikj‚ÂEÇ¶f÷&ÖDÖöçF†Ç”F—66÷VçEÂ†F—66÷VçE&FUÂ•ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂô”~ûÈôd"zKî{êNYÉnih~{‹ŞYÉnk»ò[Ë^y¨BRRXJ®h:X8^˜yJYjîjÊiÈŞX¹ûÈÎiÈikjKˆŞ˜yJ‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂş{‹ŞYÉnk»ò[Ë^y¨BRRXJ®h:X8^˜yJYjîjÊiÈŞX¹ûÈÎiÈikjKˆŞ˜yJ‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂşXéşZx¾j©NXúnŠÎz+®Š¨ŞûÉ¾Kº>‹ênXÛX‹~ikÎYKÙÎz+®Š¨Şi˜.XúnŠÎKËX;ûÈÎYØ~KˆŞŠˆXZ^{k.z¹X‰ŞKËò“°¢76W'BæÖF6‚‡6÷W&6RÂşYjîjÊZyNŠ‰~Xø>ˆ2ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÕÇ¶ÖöçF†Ç’Ö6ö×&—6öâò“°¢76W'BæÖF6‚†772ÂõÂæÖöçF†Ç’Ö6ö×&—6öâÇ²ò“°§Ò“° §FW7B‚&6Æ7VÆF÷"æBDb7FFR6ö÷W&F–öâFW&×2v—F†÷WBF‚æB–çfö–6Rv÷&F–ær"Â7–æ2‚’Óâ°¢6öç7B6÷W&6RÒv—B&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"“° ¢76W'BæÖF6‚‡6÷W&6RÂşK¹jËîik[ÈşûÉ£#RŠˆ.˜y8ƒR[îjËâò“°¢76W'BæÖF6‚‡6÷W&6RÂşjøşjY
+²2jÊ{KzøKúîiKûÈÎKˆŞY
+¾˜xŞikŠŠŞZé®K‹¾ŠinŠk®ikY	ûÉ¾‹h^X{¢2jÊûÈÎ‹+¾yJ‚ÂC3‹[~ûÈşjÊò“°¢76W'BæÖF6‚‡6÷W&6RÂşjøş{XNY
+²2jÊ{KzøKúîiKûÈÎKˆŞY
+¾˜xŞikŠŠŞZé®K‹¾ŠinŠk®ikY	ûÉ¾‹h^X{¢2jÊûÈÎ‹+¾yJ‚ÂC3‹[~ûÈşjÊò“°¢76W'BæÖF6‚‡6÷W&6RÂşYjîjÊiÈŞX¹z+®Š¨ŞYKÙÎKŠniJşK¹Šˆ.˜y[èÎûÈÎZh.XùnkhYKÙÎûÈÃ#RŠˆ.˜yKˆŞK¨˜˜(Bò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂş˜.XZ^Š;ŞKÙÎ[èÎh^KˆŞ˜jËâò“°¢76W'BæÖF6‚‡6÷W&6RÂşiÈikjZh.™ÈXùnkhh‰nŠ«şi[NûÈÎiÈi™®ikÎŠ;ŞKÙÎX˜Ò"iz^Y®yú^ûÉ¾[{.™h¾Zx¾Š;ŞKÙÎy¨N˜:XˆnKˆŞK¨˜jËâò“°¢76W'BæÖF6‚‡6÷W&6RÂşX8^[	®iÊ®™h¾Zx¾Š;ŞKÙÎy¨N˜:XˆnXúşKéŞZún™©¾˜.[ªnŠ™^KË˜jËâò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6–ævÆUFeFW&×5&÷w3¥µÇ5Å5Ò£şjøşjY
+²2jÊ{KzøKúîiKûÉ¾i»Nhù¾i[Nš¹NikY	h‰n‹h^˜îjÊi[[~XúnŠÎZX;8%µÇ5Å5Ò£şz+®Š¨ŞYKÙÎ[èÎZh.XùnkhûÈÃ#RŠˆ.˜yKˆŞ˜8%µÇ5Å5Ò£öÆ&VÃ¢.K¹jËîik[Èò"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÖöçF†Ç•FeFW&×5&÷w3¥µÇ5Å5Ò£şjøş{XNY
+²2jÊ{KzøKúîiKûÉ¾i»Nhù¾i[Nš¹NikY	h‰n‹h^˜îjÊi[[~XúnŠÎZX;8%µÇ5Å5Ò£şXùnkhh‰nŠ«şi[NŠ¸¾ikÎŠ;ŞKÙÎX˜Ò"iz^Y®yú^ûÉ¾[{.™h¾Zx¾Š;ŞKÙÎy¨N˜:XˆnKˆŞ˜jËî8%µÇ5Å5Ò£şXéşZx¾j©Nˆˆ~Kº>‹ênXÛX‹~‹+¾yJXúnŠˆ8%µÇ5Å5Ò£öÆ&VÃ¢.K¹jËîik[Èò"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşiÊ®Yû~ŠÎ˜:XˆnXúşŠ™^KË˜jËçÎˆº^[	®iÊ®ZèÎh‰ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BFe7VÖÖ'”Æ–æW2Ò7VÖÖ'”Æ–æW5Âç6Æ–6UÂƒÂÓÂ’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşzˆ^˜yˆˆ~y›ÎzZ‚ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂóCRŠˆ.˜yÃcR[îjËâò“°§Ò“° §FW7B‚'&Wf–WvVB7VÖÖ&–W2æBDg2öÖ—B&VGVæFçB÷"V×G’–æf÷&ÖF–öâ"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöÖöçF†Ç”6öçFVçGÆÖöçF†Ç”6öçFVçDÆ&VÇ7ÎK‹¾ŠhŠŠŞŠˆšîYè²ò“°¢76W'BæÖF6‚‡6÷W&6RÂöç7vW'5Âç&ö¦V7EG—RÓÓÒ&ÖöçF†Ç’%µÇ5Å5Ò£ò.hé.zˆ¾X˜Şz+®Š¨Ò"ò“°¢76W'BæÖF6‚‡6÷W&6RÂöç7vW'5Âç&ö¦V7EG—RÓÓÒ&ÖöçF†Ç’"bbÆâÃò.[	®iÊ®˜i8~iÈŞX¹’"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöç7vW'5Âæ'VFvWGÃÆGCîš	zé~x¸hX³ÅÂöGCçÎZê.h‹nš	zérò“°¢76W'BæÖF6‚‡6÷W&6RÂö7F—fU6W'f–6TFWF–Å6W'f–6UÂæ–BÓÓÒ'†÷Fò"Ãò.ZY~yJ[‹Šh¾ŠŠŞZé¢"¢.ZY~yJ[‹Šh¾[®Zû‚"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂõÂEÇ·6W'f–6UÂææÖUÇŞ[è^z+®Š¨ŞûÉ¥ÂEÇ·VæF–æuÂæ¦ö–åÂ‚.8%Â•ÇÒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂöÆ–æUÂç7F'G5v—F…Â†ÂEÇ·6W'f–6UÂææÖUÇŞ[è^z+®Š¨ŞûÉ¦Â’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşih~j[	®iÊ®z+®Zé§Î{JiÙ[	®iÊ®z+®Zé§ÎŠ;ŞKÙÎzˆ¾[ªn[	®iÊ®z+®Zé§ÎŠinŠk®[	®iÊ®z+®Zé¢ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâf÷&ÖDW‡FVç6–öå7VÖÖ'’ò“°¢76W'BæÖF6‚‡6÷W&6RÂş[»nKËx˜iÊÂ9uÂEÇ¶6÷VçEÇŞûÈYÎx˜hù¾XZ~ZëûÉ¾KˆŞY
+¾˜xŞhé.ûÈõ&W6—¦^ûÈ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşXJ®h:[˜^[ªnûÉ®YjîjÊŠŠŞŠˆ‹+¾YŠˆûÈY
+²&ææW"K‹¾ŠinŠk®[»nKËˆˆrDŞûÈşˆùÎYjîZI®šûÈœ9rÂEÇ¶f÷&ÖDÖöçF†Ç”F—66÷VçBò“°¢76W'BæÖF6‚‡6÷W&6RÂşx›jè®ŠˆX;ûÉ¥ÂEÇ¶ÖöçF†Ç”6ö÷W&F–öäæ÷FW5Å³ÅÕÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B7VÖÖ'•6W'f–6T—FV×2Ò6VÆV7FVE6W'f–6W5ÂæÖò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâf÷&ÖDÆ—fU7VÖÖ'•6W'f–6UVçF—G’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6UÂç&–6–ærÓÓÒ&FÒ%µÇ5Å5Ò£ü9uÂEÇ·VçF—G•ÇÒšò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷7VÖÖ'•6W'f–6T—FV×5ÂæÖÂ…Â†—FVÕÂ’ÓâÇ7â¶W“ÕÇ¶—FVÕÇÓåÇ¶—FVÕÇÓÅÂ÷7ãåÂ’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂş‹H˜â¥&W6—¦WÅ&W6—¦Râ®‹H˜Å&W6—¦R[ËRò“°¢76W'BæÖF6‚‡6÷W&6RÂóÆGCîXéşZx¾j©CÅÂöGCåµÇ5Å5Ò£õÇ¶ÖöçF†Ç•6÷W&6Tf–ÆT6÷VçEÇÒK»Ş8;¾‹+¾yJXúnŠÎz+®Š¨Òò“°¢76W'BæÖF6‚‡6÷W&6RÂóÆGCî˜XŞ[ŞikjƒÅÂöGCåµÇ5Å5Ò£÷ÆåÂææÖUµÇ5Å5Ò£öç7vW'5ÂæÖöçF†Ç”w&÷W6÷VçBò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂóÆGCîikjjùN‹È3ÅÂöGCâò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6VÆV7FVE6W'f–6W5Âç6öÖUÂ…Â‡6W'f–6UÂ’Óâ6W'f–6UÂæ6FVv÷'’ÓÓÒ'&–çB%Â•µÇ5Å5Ò£ş[›>™Ú.ŠŠŞŠˆjøşiÈYŠˆ™™"{XBò“°¢76W'BæÖF6‚‡6÷W&6RÂşiÈikjXéşZx¾j©NXª‹;ÎûÈ…ÂEÇ·6÷W&6Tf–ÆU6VÆV7F–öç5ÂæÖò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşh©zé~[èÎŠŠŞŠˆ‹+²9rSWÎXZi[Xª‹;ÎYŠˆiÈš¹‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂş{I[Ë^ûÈ˜Z¾ûÈ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşXª[z^ûÈ˜Z¾ûÈ’ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşXÛ˜xş[è^z+®Š¨×Î{I[Ë^[è^z+®Š¨×ÎXª[z^[è^z+®Š¨Òò“°¢76W'BæÖF6‚‡6÷W&6RÂşXÛ˜xş8{I[Ë^ˆˆ~Xª[z^y¨nXúşyYz›®ûÈÎjÚ>[ÈşYKÙÎi˜.XhŞz+®Š¨Òò“°¢76W'BæÖF6‚‡6÷W&6RÂşz+®Š¨ŞYKÙÎ{H˜ÈN[èÎûÈÎ˜i8~iÈŞX¹ˆˆ~i[˜xşûÈÎ{;¾{[iÈ>ˆz®X¹^˜XŞ[Şikj‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂóÇ7VÖÖ'“îiú^yÈ¾YjîjÊˆˆ~iÈikjjùN‹È3ÅÂ÷7VÖÖ'“âò“°¢76W'BæÖF6‚‡6÷W&6RÂóÇ7VÖÖ'“îiú^yÈ¾YKÙÎˆˆ~K¹jËî˜xŞ›¹ãÅÂ÷7VÖÖ'“âò“°¢76W'BæÖF6‚‡6÷W&6RÂóÇ7VÖÖ'“îiú^yÈ¾ŠˆX;ŠhşX˜sÅÂ÷7VÖÖ'“âò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆ&VÃ¢š^jÊÂEÇ·6W'f–6T–æFW‚Â²ÇŞ8;µÂEÇ·&÷uÂæÆ&VÅÇÖò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆ&VÂÓÒ.š^yºâ"bbÆ&VÂÓÒ.XéşZx¾j©B"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öæ6—6TÆ&VÂÓÓÒ.ŠinŠk®ûÈşhé.zˆ²%µÇ5Å5Ò£õÃò.hé.zˆ²"ò“°¢76W'BæÖF6‚‡6÷W&6RÂöÂEÇ·7G'V7GW&UÇŞ8;µÂEÇ¶FWF–ÅÂçvT6÷VçEÇÒšò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷7V6–f–6F–öåÃõÂç7W÷'BÃòÇ²ÂåÂåÂç7V6–f–6F–öâÂ7W÷'C¢G'VRÇÒ¢Ç²7W÷'C¢fÇ6RÇÒò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷7V6–f–6F–öåÂç7W÷'BbbÂ‚7V6–f–6F–öåÂçW"ÇÅÇÂ7V6–f–6F–öåÂæf–æ—6…Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂş[éî™Èk.™h¾Zx¾˜	š^z+®Š¨ŞûÈÎŠé>ŠH~™¹Îy¨NŠŠŞŠˆKËX;Šè®[é~i»Nkˆ^jY®8"ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂõÆBµ¾ûÙçåÕÆB²Xˆn™	‡ÎYjîš^{HBâ®Xˆn™	‚ò“°¢76W'BæÖF6‚†772ÂõÂç&–6RÖ'&V¶F÷vâÖ6÷’ÇµµÇ5Å5Ò£÷v†—FR×76S¢&RÖÆ–æS²ò“°§Ò“° §FW7B‚&Æ—fR7VÖÖ'’æBF÷væÆöFVBDbW‡Æ–âV6‚&–6R6Æ7VÆF–öâ"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚‡6÷W&6RÂ÷G—R&–6T'&V¶F÷vä—FVÒÒÇµµÇ5Å5Ò£öFWF–Ã¢7G&–ærò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâvWE6W'f–6U&–6T&6—2ò“°¢76W'BæÖF6‚‡6÷W&6RÂşjøşzø~šin[Ë^ûÈÎX[ÂEÇ·6ö6–Å&–6–æuÂç÷7D6÷VçEÇÒ[ËR9rò“°¢76W'BæÖF6‚‡6÷W&6RÂş‹ûŞXªyJ.Y8ÂEÇ¶W‡G&&öGV7D6÷VçEÇÒšR9rÂCsò“°¢76W'BæÖF6‚‡6÷W&6RÂşŠ›.š^ŠŠŞŠˆ‹+²9rSRò“°¢76W'BæÖF6‚‡6÷W&6RÂşŠ›.š^ŠŠŞŠˆ‹+²9rRRò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ&Æ—fRÖ'&V¶F÷vâ"&–ÖÆ&VÃÒ.XÛ>i˜.‹+¾yJiˆî{K"&–ÖÆ—fSÒ'öÆ—FR"ò“°¢76W'BæÖF6‚‡6÷W&6RÂöFWF–ÅÂç7G'V7GW&RÓÓÒ&×VÇF—vR%µÇ5Å5Ò£öFWF–ÅÂçvT6÷VçBÃòÂEÇ¶FWF–ÅÂçvT6÷VçEÇÒš¢.ši[[è^Z²"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷V÷FUÂæ'&V¶F÷våÂæÖÂ…Â†—FVÕÂ’ÓâÂEÇ¶—FVÕÂæÆ&VÅÇÓ¥ÂEÇ¶—FVÕÂæFWF–ÅÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂşXû>XNx+®[şŠˆ‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6ö×7E7VÖÖ'•6W'f–6TæÖW5Â†—FVÕÂæÆ&VÅÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂóÇ6ÖÆÃåÇ¶—FVÕÂæFWF–ÅÇÓÅÂ÷6ÖÆÃâò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆ–æW5ÂçW6…Â†ÂEÇ¶—FVÕÂæÆ&VÅÇŞûÉ¥ÂEÇ¶—FVÕÂæFWF–ÅÇÕÅÆåÂEÇ¶f÷&ÖE&–6U&ævRò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6W'f–6U&÷w5ÂçW6…Â…Ç²Æ&VÃ¢.Šˆzé~KéŞi9¢"ÂfÇVS¢vWE6W'f–6U&–6T&6—5Â†ç7vW'2Â6W'f–6UÂ’ÇÕÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşXéşZx¾j©NXª‹;ÎûÉ¥ÂEÇ¶vWE6÷W&6Tf–ÆU&–6T&6—5Â‡6W'f–6RÂVçF—G•Â•ÇÒÒò“°¢76W'BæÖF6‚‡6÷W&6RÂşXÛX‹~Kº>‹êniÈŞX¹‹+¾ûÉ®ŠŠŞŠˆ‹+²9rRRÒò“°¢76W'BæÖF6‚†772ÂõÂæÆ—fRÖ'&V¶F÷vâÖÆ—7BÇµµÇ5Å5Ò£öÖ‚Ö†V–v‡C¢s‡‚ò“°¢76W'BæÖF6‚†772ÂõÂç7VÖÖ'’ÖÆ—7BÅµÇ5Å5Ò£õÂæÆ—fRÖ'&V¶F÷vâÅµÇ5Å5Ò£õÂç7VÖÖ'’Ö†VÇò“°§Ò“° §FW7B‚&–çV—'’6GW&RW6W2öæR&WV—&VB6öçF7BÖWF†öBæBF‡&VRÖF’&WÇ’v–æF÷r"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ’Â&V6÷&BÂF6†&ö&BÂv÷&¶W%ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöö’ö–çV—&–W2÷&÷WFRçG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2õ¶–EÒö–çV—'’×&V6÷&BçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2ö–çV—'’ÖF6†&ö&BçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââ÷v÷&¶W"ö–æFW‚çG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚‡6÷W&6RÂş˜	®[‹ikÂ2X¾[z^KÙÎiz^XZ~Y¹îŠhbò“°¢76W'BæÖF6‚‡6÷W&6RÂş™Èk.[{.˜X{®ûÈÎ[~iÈ>yº[ú¾ˆˆ~h*ˆş{Zò“°¢76W'BæÖF6‚‡6÷W&6RÂş˜X{®[èÎiÈ>KùŞyYiÊÎjÊŠšnzé~XZ~ZëûÈÎKŠnYÎjÚ^X‹™Èk.zêyn[èÎXûûÈÎ[èÎ{¨Î[~iÈ>ˆˆ~h*ˆş{š²ò“°¢76W'BæÖF6‚‡6÷W&6RÂóÆFWF–Ç26Æ74æÖSÒ&–çV—'’Ö6GW&R"÷Vãâò“°¢76W'BæÖF6‚‡6÷W&6RÂò.˜X{®™Èk"(i""ò“°¢76W'BæÖF6‚‡6÷W&6RÂö‡GG3¥ÂõÂ÷6ÖFW6–vâ×VW7F–öææ—&UÂç6ÖFW6–vâ×7GVF–õÂçv÷&¶W'5ÂæFWeÂö•Âö–çV—&–W2ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂ÷W6W57FF–46öçF7DfÆ÷wÇ6WEW6W57FF–46öçF7DfÆ÷rò“°¢76W'BæÖF6‚‡6÷W&6RÂş[‹n‰~™Èk.ˆˆ~h‰ˆş{š²ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ6÷”Æ–æT–çV—'•7VÖÖ'•Â…Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÆ–æT–çV—'•7VÖÖ'”Æ–æW2ÒW6TÖVÖòò“°¢76W'BæÖF6‚‡6÷W&6RÂşh*Z[ŞûÈÎh‰h;>Šš.YXşjÚ>[ÈşZX;ˆˆ~j©NiÉş8"ò“°¢76W'BæÖF6‚‡6÷W&6RÂşYKÙÎik[ÈşûÉ¥ÂEÇ¶—4ÖöçF†Ç’Ãò.iÈikj‚"¢.YjîjÊŠŠŞŠˆ‚%ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂş™Èk.ûÉ¥ÂEÇ·6W'f–6U7VÖÖ'•ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂşKªNiÉşûÉ®{HBÂEÇ·66†VGVÆW5Âæ¦ö–åÂ‚.ûÈò%Â•ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂşX‰ŞKËûÉ¥ÂEÇ¶f÷&ÖE&–6U&ævUÂ‡V÷FUÂæÆ÷rÂV÷FUÂæ†–v…Â•ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂöæf–vF÷%Âæ6Æ—&ö&EÂçw&—FUFW‡EÂ†Æ–æT–çV—'•7VÖÖ'”Æ–æW5Âæ¦ö–åÂ‚%ÅÆâ%Â•Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂööä6Æ–6³ÕÇµÂ…Â’ÓâÇ²fö–B6÷”Æ–æT–çV—'•7VÖÖ'•Â…Â“²ÇÕÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂş™Èk.iŠh[{.ŠH~Š;ŞûÉ¾˜.XZRÄ”äRˆ®ZJZêN[èÎŠ¸¾‹+ÎKˆ¢ò“°¢76W'BæÖF6‚‡6÷W&6RÂş›¹îi8®ˆş{š¾hÈ˜‰^iÈ>XXŠH~Š;Ş™Èk.iŠhûÉ¾˜.XZRÄ”äRˆ®ZJZêN[èÎŠ¸¾‹+ÎKˆ¢ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂş˜	®[‹ikÂX¾[z^KÙÎiz^XZ~Y¹îŠhgÎh‰X	iÈ>yº[ú¾ˆˆ~KÚˆş{ZÆæÖSÒ&VÖ–Â'ÄVÖ–ÂÂ¢ò“°¢76W'BæFöW4æ÷DÖF6‚‡6÷W&6RÂşXK.ZÙ˜	K»Ş™Èk.ûÈÎKªN{Znh‰X	hê^{¨Îz+®Š¨×Î[‹n‰~™Èk.X˜Ş[èÄ”äRò“°¢76W'BæÖF6‚‡6÷W&6RÂóÇ7ãîh*y¨Nˆş{Zik[ÈòÂ£ÅÂ÷7ããÆ–çWBæÖSÒ&6öçF7B%µÇ5Å5Ò£÷&WV—&VBò“°¢76W'BæÖF6‚‡6÷W&6RÂşY8x˜ÎûÈşXZÎXûûÈ˜Z¾ûÈ•µÇ5Å5Ò£÷Æ6V†öÆFW#Ò.XúşyYz›¢"ò“°¢76W'BæÖF6‚†’Âö–bÂ‚6Æ–VçDæÖRÇÅÇÂ6öçF7BÇÅÇÂ&ö¦V7EG—RÇÅÇÂ6W'f–6W5ÂæÆVæwF‚ÓÓÒÂ’ò“°¢76W'BæÖF6‚†’ÂşŠ¸¾Z¾Zú¾Zy>YŞˆˆ~ˆş{Zik[ÈşûÈÎKŠnZèÎh‰™Èk.Ššnzérò“°¢76W'BæÖF6‚†’Âö‡GG3¥ÂõÂ÷6Ó##3“SsuÂæv—F‡V%Âæ–òò“°¢76W'BæÖF6‚†’ÂöW‡÷'B7–æ2gVæ7F–öâõD”ôå5Â‡&WVW7C¢&WVW7EÂ’ò“°¢76W'BæÖF6‚†’Âö66W72Ö6öçG&öÂÖÆÆ÷rÖ÷&–v–âò“°¢76W'BæÖF6‚‡v÷&¶W"ÂõÅ²%õ5B"Â$õD”ôå2%ÅÕÂæ–æ6ÇVFW5Â‡&WVW7EÂæÖWF†öEÂ’ò“°¢76W'BæÖF6‚‡&V6÷&BÂö6öç7B6öçF7EfÇVRÒ–çV—'•Âæ6öçF7BÇÅÇÂ–çV—'•ÂæVÖ–ÂÇÅÇÂ.iÊ®Z¾Zú²"ò“°¢76W'BæÖF6‚‡&V6÷&BÂóÇ7ãîh*y¨Nˆş{Zik[ÈóÅÂ÷7ããÆ'WGFöâ6Æ74æÖSÕÇ¶&V6÷&BÖ6öçF7BÖ6÷•µÇ5Å5Ò£óÇ7G&öæsåÇ¶6öçF7EfÇVUÇÓÅÂ÷7G&öæsâò“°¢76W'BæFöW4æ÷DÖF6‚‡&V6÷&BÂşX[nK¹nˆş{Zik[È÷ÎZøN˜VÖ–Âò“°¢76W'BæÖF6‚†F6†&ö&BÂö6öçF7C¢&÷uÂæ6öçF7BÇÅÇÂ&÷uÂæVÖ–ÂÇÅÇÂ.iÊ®Z¾Zú²"ò“°¢76W'BæÖF6‚†F6†&ö&BÂõÅ².{z‰™ò"Â.iKnX‹i˜.™i2"Â.Zê.h‹b"Â.Y8x˜ÎûÈşXZÎXû‚"Â.ˆş{Zik[Èò"ò“°§Ò“° §FW7B‚&–çV—'’F6†&ö&BW6W2F6²Öfö7W6VBw&÷W2æBÆ–âÖÆæwVvR6öçG&öÇ2"Â7–æ2‚’Óâ°¢6öç7B¶F6†&ö&BÂ&V6÷&BÂv÷&¶fÆ÷rÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2ö–çV—'’ÖF6†&ö&BçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2õ¶–EÒö–çV—'’×&V6÷&BçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2÷v÷&¶fÆ÷rÖ÷F–öç2çG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2ö–çV—&–W2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚†F6†&ö&BÂ÷G—R7FGW5f–WrÒ'FöFò"ÇÂ&7F—fR"ÇÂ&FöæR"ÇÂ&ÆÂ"ò“°¢76W'BæÖF6‚†F6†&ö&BÂõÇ²¶W“¢&7F—fR"ÂÆ&VÃ¢.‹ûŞ‹šNKŠÒ"ÇÒò“°¢76W'BæÖF6‚†F6†&ö&BÂõÇ²¶W“¢&FöæR"ÂÆ&VÃ¢.[{.ZèÎh‰"ÇÒò“°¢76W'BæÖF6‚†F6†&ö&BÂö7F—fTf–ÇFW"ÓÓÒ&7F—fR"bbÅ²'v—F–æuö6Æ–VçB"Â'66†VGVÆVB"Â'W6VB%ÅÕÂæ–æ6ÇVFW2ò“°¢76W'BæÖF6‚†F6†&ö&BÂóÇ7ãîiKnX‹i˜.™i3ÅÂ÷7ããÇ6VÆV7BfÇVSÕÇ¶FFTf–ÇFW%ÇÒò“°¢76W'BæÖF6‚†F6†&ö&BÂóÆƒîZê.h‹n[z^KÙÎXûÅÂöƒâò“°¢76W'BæÖF6‚†F6†&ö&BÂóÆƒ#îZê.h‹nˆˆ~™Èk#ÅÂöƒ#âò“°¢76W'BæÖF6‚†F6†&ö&BÂóÇFƒî{k.z¹X‰ŞKËÅÂ÷FƒãÇFƒîY¹îŠhnx¸k8ÅÂ÷FƒãÇFƒîKˆ¾jÊ‹ûŞ‹šCÅÂ÷FƒãÇFƒîjK»n˜.[ªcÅÂ÷Fƒâò“°¢76W'BæÖF6‚†F6†&ö&BÂóÆƒ"–CÒ&föÆÆ÷r×W×F—FÆR#î‹ùiÉş‹ûŞ‹šNhé.zˆ³ÅÂöƒ#âò“°¢76W'BæÖF6‚†F6†&ö&BÂş[è^h‰Y¹îŠhbò“°¢76W'BæÖF6‚†F6†&ö&BÂşzØ[è^Zê.h‹bò“°¢76W'BæÖF6‚†F6†&ö&BÂşK¸®iz^‹ûŞ‹šBò“°¢76W'BæÖF6‚†F6†&ö&BÂş[{.˜îiÉòò“°¢76W'BæÖF6‚†F6†&ö&BÂóÇ7ãî[ú¾˜	ş‰™^ycÅÂ÷7ãâò“°¢76W'BæÖF6‚†F6†&ö&BÂşŠè®i»NZèhé"ò“°¢76W'BæÖF6‚†F6†&ö&BÂ÷V–6µv÷&¶fÆ÷t÷Vâò“°¢76W'BæÖF6‚†F6†&ö&BÂşZY~yJZèhé"ò“°¢76W'BæÖF6‚†F6†&ö&BÂöæÖSÒ&æW‡D7F–öâ"fÇVSÕÇ¶7F–öåÂçfÇVUÇÒò“°¢76W'BæFöW4æ÷DÖF6‚†F6†&ö&BÂöföÆÆ÷uW&W6WG5ÂæÖÎ‹ûŞ‹šNi˜.™i>ŠŠŞx+£2ZJ[èÇÎ‹ûŞ‹šNi˜.™i>ŠŠŞx+£RZJ[èÂò“°¢76W'BæÖF6‚†F6†&ö&BÂşŠ«şi[Niz^iÉòò“°¢76W'BæÖF6‚†F6†&ö&BÂóîX[nK¹n‰™^ycÂò“°¢76W'BæFöW4æ÷DÖF6‚†F6†&ö&BÂöæÖSÒ&æW‡D7F–öâ"Ö„ÆVæwF‚ò“°¢76W'BæÖF6‚†F6†&ö&BÂş˜	KØŞZê.h‹nXúniÈ’Ç·&VÆFVD–çV—&–W5ÂæÆVæwF…ÇÒzØn™Èk"ò“°¢76W'BæFöW4æ÷DÖF6‚†F6†&ö&BÂş˜	KØŞZê.h‹ny¨NjÛ~Xû.™Èk'ÎZøN˜VÖ–ÇÃÆƒ3îˆş{Zˆˆ~‹*‹*ÃÅÂöƒ3âò“°¢76W'BæÖF6‚†F6†&ö&BÂöFWF–Ä–çV—'•Âç6W'f–6W5Âç6Æ–6UÂƒÂ%Â’ò“°¢76W'BæÖF6‚†F6†&ö&BÂöFWF–Ä–çV—'•Âç7VÖÖ'•Âç6Æ–6UÂƒÂ5Â’ò“°¢76W'BæÖF6‚†F6†&ö&BÂóîiú^yÈ¾™Èk#ÅÂö'WGFöãâò“°¢76W'BæÖF6‚†F6†&ö&BÂóîiú^yÈ¾ZèÎi[NXZ~Zë“ÅÂöâò“°¢76W'BæÖF6‚†F6†&ö&BÂóîKˆ¾‹È‹8~ii“ÅÂö'WGFöãâò“°¢76W'BæÖF6‚†F6†&ö&BÂóîi»Nikx¸hX³ÅÂö'WGFöãâò“°¢76W'BæFöW4æ÷DÖF6‚†F6†&ö&BÂş˜.ŠÎKŠŞy¨NkKŞŠ¸wÎXJ®XX[N{I§Î[ú¾˜	şiú^yÈ·Î™h¾YYşZèÎi[N‹8~ii—ÎXÊşX{¢55bò“°¢76W'BæÖF6‚‡&V6÷&BÂóÇ7ãîXJ®XXšn[¨óÅÂ÷7ãâò“°¢76W'BæÖF6‚‡&V6÷&BÂóÆƒ#îˆş{Zˆˆ~hé.zˆ³ÅÂöƒ#âò“°¢76W'BæÖF6‚‡&V6÷&BÂö&–ÖÆ&VÃÒ.{k.z¹X‰ŞKËiÈKØî˜yšÒ"ò“°¢76W'BæÖF6‚‡&V6÷&BÂö&–ÖÆ&VÃÒ.{k.z¹X‰ŞKËiÈš¹˜yšÒ"ò“°¢76W'BæÖF6‚‡&V6÷&BÂö&–ÖÆ&VÃÒ.Zê.h‹nš	zé~˜yšÒ"ò“°¢76W'BæÖF6‚‡&V6÷&BÂşXK.ZÙ˜yšÒò“°¢76W'BæÖF6‚‡&V6÷&BÂ÷6fUF6…Â…Ç²W7F–ÖFTÆ÷rÂW7F–ÖFT†–v‚Â'VFvWC¢–çV—'•Âæ'VFvWBÇÕÂ’ò“°¢76W'BæÖF6‚‡&V6÷&BÂşj‰Š‰[{.Y¹îŠhnZê.h‹bò“°¢76W'BæÖF6‚‡&V6÷&BÂ÷&V6÷&DæW‡D7F–öâò“°¢76W'BæFöW4æ÷DÖF6‚‡&V6÷&BÂ÷&V6÷&BÖæW‡BÖ7F–öåµåÆåÒ£Ç7ãîKˆ¾KˆjÚ^K¨¾šSÅÂ÷7ããÆ–çWBò“°¢76W'BæÖF6‚‡&V6÷&BÂóî‹ùNY¹îXZ˜:™Èk#ÅÂöâò“°¢f÷"†6öç7BÆ&VÂöb².ik™Èk""Â.ZX;kKŞŠ¸r"Â.YKÙÎz+®Š¨Ò"Â.Š;ŞKÙÎKŠÒ"Â.KªNK¹KŠÒ"Â.[{.ZèÎh‰"Â.z+®Š¨ŞZê.h‹n™Èk""Â.Š;ŞKÙÎjÚ>[ÈşZX;’"Â.zØ[è^Šˆ.˜y"Â.zØ[è^Zê.h‹nhùKé¾{JiÙ"Â.ZøN˜X‰Şz‹ò"Â.ZøN˜KúîiKz‹ò"Â.zØ[è^[îjËâ"Â.KªNK¹h‰Y8"Â.ZèÎh‰KŠn{Yj‚"Â.iª¾{z‹ûŞ‹šB"Â.iÊ®YKÙÂ"Â.[ZÙjK»b%Ò’°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂæWr&VtW‡†Æ&VÂ’“°¢Ğ¢76W'BæFöW4æ÷DÖF6‚†F6†&ö&BÂö6Æ74æÖSÒ'v÷&¶fÆ÷r×7FvR×–6¶W"'ÇV–6´66U7FvRò“°¢76W'BæÖF6‚‡&V6÷&BÂö6Æ74æÖSÒ'v÷&¶fÆ÷r×7FvR×–6¶W""ò“°¢76W'BæÖF6‚†F6†&ö&BÂövWEV–6µv÷&¶fÆ÷t7F–öç4f÷%7FvUÂ†FWF–Ä–çV—'•Âç7FGW2ÂFWF–Ä–çV—'•ÂææW‡D7F–öåÂ’ò“°¢76W'BæÖF6‚†F6†&ö&BÂövWD÷F†W%v÷&¶fÆ÷t7F–öç4f÷%7FvUÂ†FWF–Ä–çV—'•Âç7FGW2ÂV–6µv÷&¶fÆ÷t7F–öç5Â’ò“°¢76W'BæÖF6‚‡&V6÷&BÂövWEv÷&¶fÆ÷t7F–öç4f÷%7FvUÂ‡6VÆV7FVD66U7FvUÂ’ò“°¢76W'BæÖF6‚†F6†&ö&BÂ÷7FGW3¢v÷&¶fÆ÷t7F–öåÂæ66U7FvRò“°¢76W'BæÖF6‚‡&V6÷&BÂ÷7FGW3¢v÷&¶fÆ÷t7F–öåÂæ66U7FvRò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂöæ÷&ÖÆ—¦T66U7FvRò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂö6öçF7FVC¢&æVv÷F–F–ær"ò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂ÷V÷FVC¢&æVv÷F–F–ær"ò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂ÷vöã¢&6öæf—&ÖVB"ò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂşZøN˜X‰Şz‹ó¢.zØ[è^Zê.h‹nY¹îŠhb"ò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂşZøN˜KúîiKz‹ó¢.zØ[è^Zé®z‹şz+®Š¨Ò"ò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂşKªNK¹h‰Y8¢.zØ[è^KªNK¹z+®Š¨Ò"ò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂşzØ[è^Zê.h‹nz+®Š¨ŞYKÙÃ¢.zØ[è^Šˆ.˜y"ò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂşzØ[è^Zé®z‹şz+®Š¨Ó¢.zØ[è^[îjËâ"ò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂşzØ[è^KªNK¹z+®Š¨Ó¢.ZèÎh‰KŠn{Yj‚"ò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂöföÆÆ÷uWF—3¢Bò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂöföÆÆ÷uWF—3¢çVÆÂò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂõÇ²fÇVS¢#R"ÂÆ&VÃ¢#RZJ[èÂ"ÂF—3¢RÇÒò“°¢76W'BæÖF6‚‡v÷&¶fÆ÷rÂ÷&WÇ•7FGW3¢'v—F–æuö6Æ–VçB"ò“°¢76W'BæÖF6‚†772ÂõÂç&W7öç6R×F&ÆRÇµµçÕÒ¦föçB×6—¦S¢ÂãƒsW&VÒò“°¢76W'BæÖF6‚†772ÂõÂçV–6²ÖFWF–Â×7VÖÖ'’Æ’ÇµµçÕÒ¦föçB×6—¦S¢ÂãƒsW&VÒò“°¢76W'BæÖF6‚†772ÂõÂæföÆÆ÷r×WÖ&ö&BÇ²ò“°¢76W'BæÖF6‚†772ÂõÂç&WÇ’ÖæVVG5÷&WÇ’Ç²ò“°¢76W'BæÖF6‚†772ÂõÂçv÷&¶fÆ÷rÖ7F–öâÖ÷F–öç2Ç²ò“°¢76W'BæÖF6‚†772ÂõÂçv÷&¶fÆ÷r×7FvR×–6¶W"Ç²ò“°¢76W'BæÖF6‚†772ÂõÂçV–6²Ö÷F†W"×v÷&¶fÆ÷rÖ7F–öç2Ç²ò“°¢76W'BæÖF6‚†772ÂõÂçV–6²×v÷&¶fÆ÷rÖWFòÖæ÷FRÇ²ò“°¢76W'BæÖF6‚†772ÂõÂæföÆÆ÷r×W×&W6WBÖ÷F–öç2Ç²ò“°§Ò“° §FW7B‚&–çV—'’&6¶VæB7F÷&W2&WÇ’G&6¶–æræBföÆÆ÷r×W66†VGVÆRf–VÆG2"Â7–æ2‚’Óâ°¢6öç7B¶FF&6RÂ66†VÖÂÆ—7D’ÂFWF–Ä•ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââöF"ö–æFW‚çG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöF"÷66†VÖçG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöö’ö–çV—&–W2÷&÷WFRçG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöö’ö–çV—&–W2õ¶–EÒ÷&÷WFRçG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢f÷"†6öç7Bf–VÆBöb²'&WÇ•÷7FGW2"Â&Æ7Eö6öçF7EöB"Â&æW‡EöföÆÆ÷u÷WöB"Â&æW‡Eö7F–öâ%Ò’°¢76W'BæÖF6‚†FF&6RÂæWr&VtW‡†f–VÆB’“°¢76W'BæÖF6‚‡66†VÖÂæWr&VtW‡†f–VÆB’“°¢76W'BæÖF6‚†Æ—7D’ÂæWr&VtW‡†f–VÆB’“°¢76W'BæÖF6‚†FWF–Ä’ÂæWr&VtW‡†f–VÆB’“°¢Ğ¢76W'BæÖF6‚†FWF–Ä’ÂöÆÆ÷vVE&WÇ•7FGW6W2ò“°¢76W'BæÖF6‚†FWF–Ä’Â÷&WÇ•÷7FGW2ÒÃòò“°¢76W'BæÖF6‚†FWF–Ä’ÂöæW‡EöföÆÆ÷u÷WöBÒÃòò“°¢76W'BæÖF6‚†FWF–Ä’ÂöW7F–ÖFUöÆ÷rÒÃòò“°¢76W'BæÖF6‚†FWF–Ä’ÂöW7F–ÖFUö†–v‚ÒÃòò“°¢76W'BæÖF6‚†FWF–Ä’Âö'VFvWBÒÃòò“°§Ò“° §FW7B‚&FÖ–â6âÖçVÆÇ’FB7W7FöÖW"v—F†÷WB6VæF–ærV&Æ–2V÷FRæ÷F–f–6F–öâ"Â7–æ2‚’Óâ°¢6öç7B¶F6†&ö&BÂ’Â775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2ö–çV—'’ÖF6†&ö&BçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöö’ö–çV—&–W2÷&÷WFRçG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2ö–çV—&–W2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚†F6†&ö&BÂóîikZ)îZê.h‹cÅÂö'WGFöãâò“°¢76W'BæÖF6‚†F6†&ö&BÂö–CÒ&7&VFRÖ7W7FöÖW"×F—FÆR#îikZ)îZê.h‹cÅÂöƒ#âò“°¢76W'BæÖF6‚†F6†&ö&BÂ÷6÷W&6S¢&FÖ–â"ò“°¢76W'BæÖF6‚†F6†&ö&BÂö6Æ–VçDæÖS¢7G&–æuÂ†f÷&ÔFFÂævWEÂ‚&6Æ–VçDæÖR%Â’ò“°¢76W'BæÖF6‚†F6†&ö&BÂö6öçF7C¢7G&–æuÂ†f÷&ÔFFÂævWEÂ‚&6öçF7B%Â’ò“°¢76W'BæÖF6‚†F6†&ö&BÂöæÖSÒ&W7F–ÖFTÆ÷r"G—SÒ&çVÖ&W""ò“°¢76W'BæÖF6‚†F6†&ö&BÂöæÖSÒ&W7F–ÖFT†–v‚"G—SÒ&çVÖ&W""ò“°¢76W'BæÖF6‚†F6†&ö&BÂöæÖSÒ&'VFvWB"G—SÒ&çVÖ&W""ò“°¢76W'BæÖF6‚†F6†&ö&BÂöW7F–ÖFTÆ÷rÂò“°¢76W'BæÖF6‚†F6†&ö&BÂöW7F–ÖFT†–v‚Âò“°¢76W'BæÖF6‚†F6†&ö&BÂö'VFvWBÂò“°¢76W'BæÖF6‚†F6†&ö&BÂşX‰ŞKËiÈš¹˜yšŞKˆŞXúşKØîikÎiÈKØî˜yšÒò“°¢76W'BæÖF6‚†F6†&ö&BÂ÷6WD–çV—&–W5Â…Â†7W'&VçEÂ’ÓâÅ¶7&VFVD–çV—'’ÂÂåÂåÂæ7W'&VçEÅÕÂ’ò“°¢76W'BæÖF6‚†F6†&ö&BÂ÷6WDFWF–Ä–çV—'”–EÂ†7&VFVD–çV—'•Âæ–EÂ’ò“°¢76W'BæÖF6‚†F6†&ö&BÂş[	®iÊ®KËX;’ò“°¢76W'BæÖF6‚†’Âö—4ÖçVÄVçG'’bbÂ†v—B6äÖævT–çV—&–W5Â…Â•Â’ò“°¢76W'BæÖF6‚†’Âö–bÂ‚—4ÖçVÄVçG'•Â’ÇµÇ2§66†VGVÆT–çV—'”æ÷F–f–6F–öâò“°¢76W'BæÖF6‚†’Âö—4ÖçVÄVçG'’Ãò.ˆş{ZZê.h‹nz+®Š¨Ş™Èk""¢""ò“°¢76W'BæÖF6‚†’Â÷&WÇ•7FGW3¢&æVVG5÷&WÇ’"ò“°¢76W'BæÖF6‚†772ÂõÂæ7&VFRÖ7W7FöÖW"ÖÆ–W"Ç²ò“°¢76W'BæÖF6‚†772ÂõÂæ7&VFRÖ7W7FöÖW"ÖF–ÆörÇ²ò“°¢76W'BæÖF6‚†772ÂõÂæ7&VFRÖ7W7FöÖW"ÖÖöæW’Öf–VÆG2Ç²ò“°§Ò“° §FW7B‚&ÖçVÂ7W7FöÖW"7&VF–öâ&V6V—fW2F†R6–væVBÖ–âFÖ–â–FVçF—G’"Â7–æ2‚’Óâ°¢6öç7B·v÷&¶W"Â•ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââ÷v÷&¶W"ö–æFW‚çG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöö’ö–çV—&–W2÷&÷WFRçG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚‡v÷&¶W"Â÷W&ÅÂçF†æÖRÓÓÒ%Âö•Âö–çV—&–W2"bb&WVW7EÂæÖWF†öBÓÓÒ%õ5B"ò“°¢76W'BæÖF6‚‡v÷&¶W"Âö6öç7BWF†VçF–6FVE&WVW7BÒ&WVW7Ev—F„FÖ–ä–FVçF—G•Â‡&WVW7BÂVçeÂ“µµÇ5Å5Ò£ö–bÂ†WF†VçF–6FVE&WVW7EÂ’&WVW7BÒWF†VçF–6FVE&WVW7C²ò“°¢76W'BæÖF6‚‡v÷&¶W"Â÷&WGW&âÂ‡F†æÖRÓÓÒ%Âö•Âö–çV—&–W2"bbÅ²%õ5B"Â$õD”ôå2%ÅÕÂæ–æ6ÇVFW5Â‡&WVW7EÂæÖWF†öEÂ•Â’ò“°¢76W'BæÖF6‚†’Âö—4ÖçVÄVçG'’bbÂ†v—B6äÖævT–çV—&–W5Â…Â•Â’ò“°§Ò“° §FW7B‚&æWr–çV—&–W2FVfVÇBF†RæW‡BföÆÆ÷r×WFFRFòf—fRF—2ÆFW""Â7–æ2‚’Óâ°¢6öç7B¶Æ—7D’ÂF6†&ö&BÂ&V6÷&EÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââöö’ö–çV—&–W2÷&÷WFRçG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2ö–çV—'’ÖF6†&ö&BçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2õ¶–EÒö–çV—'’×&V6÷&BçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚†Æ—7D’ÂöFVfVÇDæW‡DföÆÆ÷uWBÒæWrFFUÂ†æWrFFUÂ‡7V&Ö—GFVDEÂ•ÂævWEF–ÖUÂ…Â’Â²RÂ¢#BÂ¢cÂ¢cÂ¢Â•ÂçFô•4õ7G&–æuÂ…Â’ò“°¢76W'BæÖF6‚†Æ—7D’Âö76–væVRÂæW‡EöföÆÆ÷u÷WöBÂæW‡Eö7F–öâÂæ÷FRò“°¢76W'BæÖF6‚†Æ—7D’ÂöFVfVÇDæW‡DföÆÆ÷uWBÂò“°¢76W'BæÖF6‚†F6†&ö&BÂöFWF–Ä–çV—'•ÂææW‡DföÆÆ÷uWBÇÅÇÂFVfVÇDföÆÆ÷uWBò“°¢76W'BæÖF6‚‡&V6÷&BÂö–çV—'•ÂææW‡DföÆÆ÷uWBÇÅÇÂFVfVÇDföÆÆ÷uWBò“°§Ò“° §FW7B‚&æWr–çV—'’7V&Ö—76–öç266†VGVÆR&—fFRvÖ–Âæ÷F–f–6F–öâv—F†÷WB&Æö6¶–ær7F÷&vR"Â7–æ2‚’Óâ°¢6öç7B¶Æ—7D’Âæ÷F–f–6F–öâÂ567&—BÂv÷&¶W%ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââöö’ö–çV—&–W2÷&÷WFRçG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöö–çV—'’Öæ÷F–f–6F–öç2çG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââö–çFVw&F–öç2övÖ–ÂÖæ÷F–f–6F–öâô6öFRæw2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââ÷v÷&¶W"ö–æFW‚çG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚†Æ—7D’Â÷66†VGVÆT–çV—'”æ÷F–f–6F–öåÂ…Ç²ò“°¢76W'Bæö²†Æ—7D’æ–æFW„öb‚"ç'Vâ‚“²"’ÂÆ—7D’æ–æFW„öb‚'66†VGVÆT–çV—'”æ÷F–f–6F–öâ‡²"’“°¢76W'BæÖF6‚†æ÷F–f–6F–öâÂö–×÷'BÇ²VçbÂv—EVçF–ÂÇÒg&öÒ&6Æ÷VFfÆ&S§v÷&¶W'2"ò“°¢76W'BæÖF6‚†æ÷F–f–6F–öâÂôtÔ”ÅôäõD”d”4D”ôåõtT$„ôôµõU$Âò“°¢76W'BæÖF6‚†æ÷F–f–6F–öâÂ÷v—EVçF–ÅÂ‡6VæD–çV—'”æ÷F–f–6F–öâò“°¢76W'BæÖF6‚†æ÷F–f–6F–öâÂö6öç6öÆUÂæW'&÷%Â‚%Væ&ÆRFò6VæB–çV—'’æ÷F–f–6F–öåÂâ"ÂW'&÷%Â’ò“°¢76W'BæÖF6‚†567&—BÂôäõD”d”4D”ôåõ$T4•”TåBò“°¢76W'BæÖF6‚†567&—BÂõ&÷W'F–W56W'f–6UÂævWE67&—E&÷W'F–W5Â…Â’ò“°¢76W'BæÖF6‚†567&—BÂôÖ–ÄÂç6VæDVÖ–Âò“°¢76W'BæÖF6‚†567&—BÂşˆş{Zik[Èşˆˆ~ZèÎi[N™Èk.Š¸¾ˆ{>zxK«®[èÎXûiú^yÈ²ò“°¢76W'BæÖF6‚‡v÷&¶W"ÂôtÔ”ÅôäõD”d”4D”ôåõtT$„ôôµõU$ÅÃó¢7G&–ærò“°§Ò“° §FW7B‚&–çV—'’&6¶VæB&W6VçG26ö×7BæB6ö×ÆWFRç7vW'2–â&VF&ÆRÆæwVvR"Â7–æ2‚’Óâ°¢6öç7B¶6ö×7E7VÖÖ'’ÂF6†&ö&BÂ&V6÷&BÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2ö6ö×7B×7VÖÖ'’çG2"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2ö–çV—'’ÖF6†&ö&BçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2õ¶–EÒö–çV—'’×&V6÷&BçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2ö–çV—&–W2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚†6ö×7E7VÖÖ'’ÂşikjŠhşX˜~ûÉ¢ò“°¢76W'BæÖF6‚†6ö×7E7VÖÖ'’ÂşYKÙÎ˜xŞ›¹îûÉ¢ò“°¢76W'BæÖF6‚†6ö×7E7VÖÖ'’Â÷Æå'G5Âæ¦ö–åÂ‚.ûÙÂ%Â’ò“°¢76W'BæÖF6‚†6ö×7E7VÖÖ'’Â÷&WÆ6TÆÅÂ‚.ŠinŠk®ûÈşhé.zˆ¾ûÉ¢"Â.hé.zˆ¾ûÉ¢%Â’ò“°¢76W'BæÖF6‚†F6†&ö&BÂö6ö×7D–çV—'•7VÖÖ'•Â‡6fU7G&–æt'&•Â‡&÷uÂç7VÖÖ'”§6öåÂ•Â’ò“°¢76W'BæÖF6‚‡&V6÷&BÂö6ö×7D–çV—'•7VÖÖ'•Â‡'6U7G&–æt'&•Â†–çV—'•Âç7VÖÖ'”§6öåÂ•Â’ò“°¢76W'BæÖF6‚‡&V6÷&BÂ÷'6U&VF&ÆTç7vW'5Â†–çV—'•Âç7VÖÖ'”§6öåÂ’ò“°¢76W'BæÖF6‚‡&V6÷&BÂşiú^yÈ¾h˜iÈZ¾Zú¾XZ~Zë’ò“°¢76W'BæÖF6‚‡&V6÷&BÂö6Æ74æÖSÒ&gVÆÂÖç7vW"ÖÆ—7B"ò“°¢76W'BæFöW4æ÷DÖF6‚‡&V6÷&BÂ÷&WGG”ç7vW'7ÃÇ&Sâò“°¢76W'BæÖF6‚†772ÂõÂægVÆÂÖç7vW"×&÷rò“°§Ò“° §FW7B‚&–çV—'’6öçF7BFWF–Ç27W÷'BöæRÖ6Æ–6²6÷’v—F‚f—6–&ÆRfVVF&6²"Â7–æ2‚’Óâ°¢6öç7B¶F6†&ö&BÂ&V6÷&BÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2ö–çV—'’ÖF6†&ö&BçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2õ¶–EÒö–çV—'’×&V6÷&BçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââööFÖ–âö–çV—&–W2ö–çV—&–W2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚†F6†&ö&BÂö6Æ74æÖSÕÇ¶V–6²Ö6öçF7BÖ6÷’ò“°¢76W'BæÖF6‚†F6†&ö&BÂöæf–vF÷%Âæ6Æ—&ö&EÂçw&—FUFW‡EÂ†–çV—'•Âæ6öçF7EÂ’ò“°¢76W'BæÖF6‚‡&V6÷&BÂö6Æ74æÖSÕÇ¶&V6÷&BÖ6öçF7BÖ6÷’ò“°¢76W'BæÖF6‚‡&V6÷&BÂöæf–vF÷%Âæ6Æ—&ö&EÂçw&—FUFW‡EÂ†6öçF7EfÇVUÂ’ò“°¢76W'BæÖF6‚†F6†&ö&BÂş[{.ŠH~Š;Òò“°¢76W'BæÖF6‚‡&V6÷&BÂş[{.ŠH~Š;Òò“°¢76W'BæÖF6‚†772ÂõÂçV–6²Ö6öçF7BÖ6÷•Âæ—2Ö6÷–VB6ÖÆÂò“°¢76W'BæÖF6‚†772ÂõÂç&V6÷&BÖ6öçF7BÖ6÷•Âæ—2Ö6÷–VB6ÖÆÂò“°§Ò“° §FW7B‚&Æ—fR7VÖÖ'’&'&Wf–FW26W'f–6W2æB¶VW2WfW'’—FVÒ–ç6–FR—G2æVÂ"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B7VÖÖ'•6W'f–6TæÖW3¢&V6÷&CÇ7G&–ærÂ7G&–æsâò“°¢76W'BæÖF6‚‡6÷W&6RÂö&ææW#¢$&ææW""ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VVÃ¢%&VVÂ[™Ú""ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&W6—¦S¢%&W6—¦R"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6&C¢.YŞx˜~ûÈşXÚ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6Æ–FW3¢.{
+ZjŠiÛò"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÕÇ·6VÆV7FVE6W'f–6W5ÂæÆVæwF‚âÃò'7VÖÖ'’×6W'f–6W2×&÷r"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÕÇ·6VÆV7FVE6W'f–6W5ÂæÆVæwF‚âÃò'7VÖÖ'’×6W'f–6RÖ—FV×2"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ&Æ—fRÖ'&V¶F÷vâ×&–Ö'’"ò“°¢76W'BæÖF6‚†772ÂõÂç7VÖÖ'’×6W'f–6RÖ—FV×2ÇµµÇ5Å5Ò£÷v†—FR×76S¢æ÷&ÖÂ–×÷'FçCµµÇ5Å5Ò£÷67&öÆÆ&"×v–GFƒ¢F†–ã²ò“°¢76W'BæÖF6‚†772ÂõÂç7VÖÖ'’×6W'f–6RÖ—FV×27âÇµµÇ5Å5Ò£ö÷fW&fÆ÷r×w&¢ç—v†W&S²ò“°¢76W'BæÖF6‚†772ÂõÂæÆ—fRÖ'&V¶F÷vâ×&–Ö'’ÇµµÇ5Å5Ò£öw&–B×FV×ÆFRÖ6öÇVÖç3¢Ö–æÖ…ÂƒÂg%Â’WFó²ò“°¢76W'BæÖF6‚†772ÂõÂæÆ—fRÖ'&V¶F÷vâ×&÷râ6ÖÆÂÇµµÇ5Å5Ò£ö÷fW&fÆ÷r×w&¢ç—v†W&S²ò“°§Ò“° §FW7B‚&Æ—fRW7F–ÖFRV'2gFW"6W'f–6R6VÆV7F–öâæB×VÇF’×6W'f–6R7V6–f–6F–öç26â7v—F6‚F—&V7FÇ’"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B†5f—6–&ÆTW7F–ÖFRÒç7vW'5Âç&ö¦V7EG—RÓÓÒ&ÖöçF†Ç’%µÇ5Å5Ò£ó¢6VÆV7FVE6W'f–6W5ÂæÆVæwF‚âò“°¢76W'BæÖF6‚‡6÷W&6RÂõÇ·7FWÓÒ'&W7VÇB"bb†5f—6–&ÆTW7F–ÖFRbbV÷FUÂæÆ÷râbbÂ‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÇ¶†5f—6–&ÆTW7F–ÖFRbbV÷FUÂæÆ÷râÃòÂ‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂş[	®iÊ®ZèÎh‰y¨Nš^yºîiª¾KºRYjîKØŞKËzérò“°¢76W'BæÖF6‚‡6÷W&6RÂş™Èk.[{.i[NynZèÎh‰ò“°¢76W'BæÖF6‚†772ÂõÂæW7F–ÖFRÖ6ö×ÆWFRÂæ6†BÖ&öG’âÂæÖW76vR×&÷rÇµµÇ5Å5Ò£öF—7Æ“¢æöæS²ò“°¢76W'BæÖF6‚†772ÂõÂæW7F–ÖFRÖ6ö×ÆWFRÂç&W7VÇBÖ†—7F÷'’×7VÖÖ'’ÇµµÇ5Å5Ò£öF—7Æ“¢fÆWƒ²ò“°¢76W'Bæö²†772æ–æFW„öb‚"æW7F–ÖFRÖ6ö×ÆWFRæ6†BÖ&öG’âæÖW76vR×&÷r"’Â772æ–æFW„öb‚$ÖVF–†Ö‚×v–GFƒ¢sc‚’"’“°¢76W'Bæö²†772æ–æFW„öb‚"æW7F–ÖFRÖ6ö×ÆWFRç&W7VÇBÖ†—7F÷'’×7VÖÖ'’"’Â772æ–æFW„öb‚$ÖVF–†Ö‚×v–GFƒ¢sc‚’"’“°¢76W'BæÖF6‚‡6÷W&6RÂş˜i8~iÈŞX¹[èÎšşzK¢ò“°¢76W'BæÖF6‚‡6÷W&6RÂöf÷&ÖDÆ—fU7VÖÖ'•6W'f–6UVçF—G•Â†—FVÒÂVçF—G’Âç7vW'5Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöf÷&ÖDÖöçF†Ç•6W'f–6UVçF—G•Â‡6W'f–6RÂVçF—G’ÂG'VRÂç7vW'5Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ7v—F6…7V6–f–6F–öå6W'f–6UÂ‡6W'f–6T–C¢7G&–æuÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷F&vWE7FWÒ&V6öÖÖW&6TFWF–Ç2%µÇ5Å5Ò£÷F&vWE7FWÒ'&–çDFWF–Ç2%µÇ5Å5Ò£÷F&vWE7FWÒ'6W'f–6TFWF–Ç2"ò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ&VæFW%7V6–f–6F–öå6W'f–6U7v—F6†W%Â†7F—fU6W'f–6T–EÃó¢7G&–æuÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BvWE7V6–f–6F–öå÷6—F–öäÆ&VÂÒÂ‡6W'f–6T–C¢7G&–æuÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşzÊÂÂEÇ¶–æFW‚Â²ÇÒš^ûÈşX[ÂEÇ·7V6–f–6F–öå6W'f–6W5ÂæÆVæwF…ÇÒšRò“°¢76W'BæWVÂ‡6÷W&6RæÖF6‚‚övWE7V6–f–6F–öå÷6—F–öäÆ&VÅÂ†7F—fRƒó¤V6öÖÖW&6U6W'f–6WÄFWF–ÆVE6W'f–6WÅ6W'f–6TFWF–Å6W'f–6R•Âæ–EÂ’ör“òæÆVæwF‚Â2“°¢76W'BæÖF6‚‡6÷W&6RÂö&–ÖÆ&VÃÒ.˜i8~ŠhŠ«şi[Ny¨NiÈŞX¹š^yºâ"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VæFW%7V6–f–6F–öå6W'f–6U7v—F6†W%Â†7F—fTV6öÖÖW&6U6W'f–6UÂæ–EÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VæFW%7V6–f–6F–öå6W'f–6U7v—F6†W%Â†7F—fTFWF–ÆVE6W'f–6UÂæ–EÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷&VæFW%7V6–f–6F–öå6W'f–6U7v—F6†W%Â†7F—fU6W'f–6TFWF–Å6W'f–6UÂæ–EÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÇ·&VæFW%7V6–f–6F–öå6W'f–6U7v—F6†W%Â…Â•ÇÒò“°¢76W'BæÖF6‚†772ÂõÂç7V6–f–6F–öâ×7v—F6†W"ÖÆ—7BÇµµÇ5Å5Ò£ö÷fW&fÆ÷r×ƒ¢WFó²ò“°¢76W'BæÖF6‚†772ÂõÂç7V6–f–6F–öâ×7v—F6†W"ÖÆ—7B'WGFöåÂæ—2Ö7F—fRÇ²ò“°§Ò“° §FW7B‚&6Æ7VÆF÷"Ö÷F–öâ6öÖ×Væ–6FW2æf–vF–öâF—&V7F–öâæBV÷FRWFFW2"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÅ·G&ç6—F–öäF—&V7F–öâÂ6WEG&ç6—F–öäF—&V7F–öåÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂögVæ7F–öâ'Vå7FWG&ç6—F–öåÂ†F—&V7F–öã¢&f÷'v&B"ÇÂ&&6²"ÂWFFS¢Â…Â’Óâfö–EÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷'Vå7FWG&ç6—F–öåÂ‚&f÷'v&B"ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷'Vå7FWG&ç6—F–öåÂ‚&&6²"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÅ¶—57FWW†—F–ærÂ6WD—57FWW†—F–æuÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B7FWÖ÷F–öä¶W’Òò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷7FW×G&ç6—F–öâ—2ÕÂEÇ·G&ç6—F–öäF—&V7F–öåÇÒò“°¢76W'BæÖF6‚†772Âô¶W–g&ÖW27FvR×7FWÖf÷'v&Bò“°¢76W'BæÖF6‚†772Âô¶W–g&ÖW27FvR×7FWÖ&6²ò“°¢76W'BæÖF6‚†772Âô¶W–g&ÖW26FVv÷'’Ö6öçFVçBÖG&÷ò“°¢76W'BæÖF6‚†772ÂòÒÖÖ÷F–öâ×7FæF&C¢Cƒ×2ò“°¢76W'BæÖF6‚†772ÂõÂç7FW×G&ç6—F–öåÂæ—2Öf÷'v&BÇµµÇ5Å5Ò£÷G&ç6f÷&ÒÖ÷&–v–ã¢F÷6VçFW#µµÇ5Å5Ò£öæ–ÖF–öã¢7FvR×7FWÖf÷'v&BÂã3'2f%Â‚ÒÖÖ÷F–öâÖV6UÂ’ò“°¢6öç7Bf÷'v&D¶W–g&ÖW2Ò772æÖF6‚‚ô¶W–g&ÖW27FvR×7FWÖf÷'v&BÇ²…µÇ5Å5Ò£ò•ÆåÇÒò“òå³Òóò"#°¢76W'BæÖF6‚†f÷'v&D¶W–g&ÖW2Â÷G&ç6ÆFS6EÂƒÂÓ‡‚ÂÂ•µÇ5Å5Ò£÷G&ç6ÆFS6EÂƒÂ'‚ÂÂ•µÇ5Å5Ò£÷G&ç6ÆFS6EÂƒÂÂÂ’ò“°¢76W'BæFöW4æ÷DÖF6‚†f÷'v&D¶W–g&ÖW2Âö÷6—G—Æf–ÇFW'Ç66ÆRò“°¢76W'BæÖF6‚†772ÂõÂç7FW×G&ç6—F–öåÂæ—2Öf÷'v&EÂæ—2ÖÆVf–ærÇµµÇ5Å5Ò£ö÷6—G“¢µµÇ5Å5Ò£öf–ÇFW#¢æöæSµµÇ5Å5Ò£÷G&ç6ÆFS6EÂƒÂÓ‡‚ÂÂ’66ÆU•ÂƒÂãEÂ•µÇ5Å5Ò£÷G&ç6—F–öã¢G&ç6f÷&ÒÂã2ò“°¢76W'BæÖF6‚†772ÂõÂç&W7öç6RÖ&VÂç7FW×G&ç6—F–öâÇµµÇ5Å5Ò£öæ–ÖF–öâÖFVÆ“¢2ò“°¢76W'BæÖF6‚†772ÂõÂç7FW×G&ç6—F–öåÂæ—2ÖÆVf–ærÇµµÇ5Å5Ò£ö÷6—G’Âã#g2V6RÅµÇ5Å5Ò£÷G&ç6f÷&ÒÂã#g2ò“°¢76W'BæÖF6‚†772ÂõÂæ¦÷W&æW’ÖæbÖ'WGFöåÂæ—2Ö7W'&VçBÇµµÇ5Å5Ò£öæ–ÖF–öã¢¦÷W&æW’×7FW×÷ò“°¢76W'BæÖF6‚†772ÂõÂæ6†ö–6UÂç6VÆV7FVBÇµµÇ5Å5Ò£öæ–ÖF–öã¢6VÆV7F–öâ×÷ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÅ¶—46öæf—&Ö–ærÂ6WD—46öæf—&Ö–æuÅÒÒW6U7FFUÂ†fÇ6UÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷v–æF÷uÂç6WEF–ÖV÷WEÂ†öä6Æ–6²ÂCÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BW†—DGW&F–öâÒF—&V7F–öâÓÓÒ&f÷'v&B"Ãò¢#cò“°¢76W'BæÖF6‚‡6÷W&6RÂö—46öæf—&Ö–ærÃò.)É2"¢.(i""ò“°¢76W'BæÖF6‚†772ÂõÂæ6†B×æVÂ'WGFöã¦æ÷EÂƒ¦F—6&ÆVEÂ“¦7F—fRÅµÇ5Å5Ò£÷66ÆUÂƒÂã“ƒUÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7BÅ·6†÷uV÷FUWFFVBÂ6WE6†÷uV÷FUWFFVEÅÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷V÷FR×WFFRÖ&FvRò“°¢76W'BæÖF6‚‡6÷W&6RÂö&–ÖÆ—fSÒ'öÆ—FR"ò“°¢76W'BæÖF6‚‡6÷W&6RÂö¶W“ÕÇ¶ÂEÇ¶—FVÕÂæÆ&VÅÇÒÕÂEÇ¶—FVÕÂæFWF–ÅÇÖÇÒò“°¢76W'BæÖF6‚†772ÂõÂæÆ—fRÖ'&V¶F÷vâ×&÷rÇµµÇ5Å5Ò£öæ–ÖF–öã¢&–6R×&÷r×WFFRò“°¢76W'BæÖF6‚‡6÷W&6RÂòÒ×&–6R×&÷rÖ–æFW‚ò“°¢76W'BæÖF6‚†772Âöæ–ÖF–öâÖFVÆ“¢6Æ5Â‡f%Â‚Ò×&–6R×&÷rÖ–æFW‚ÂÂ’Â¢#F×5Â’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B—5f—6–&ÆRÒF&vWE&V7EÂçF÷ãÒ6†E&V7EÂçF÷Â²–ç6WBbbF&vWE&V7EÂæ&÷GFöÒÃÒ6†E&V7EÂæ&÷GFöÒÒ–ç6WBò“°¢76W'BæÖF6‚†772ÂõÂæÆ—fR×F÷FÅÂæ—2×WFFVC£¦&Vf÷&Rò“°¢76W'BæÖF6‚†772Âô¶W–g&ÖW2V÷FRÖ†–v†Æ–v‡Bò“°¢76W'BæÖF6‚†772Âô¶W–g&ÖW2&–6R×&öÆÂÖ–âò“°¢76W'BæÖF6‚†772Âô¶W–g&ÖW2&V6V—B×VæföÆBò“°¢76W'BæÖF6‚†772Âô¶W–g&ÖW27VÖÖ'’Ö6öçFVçB×&WfVÂò“°¢76W'BæÖF6‚†772ÂôÖVF–Â‡&VfW'2×&VGV6VBÖÖ÷F–öã¢&VGV6UÂ’ò“°§Ò“° §FW7B‚'6–ævÆR×6W'f–6RfÆ÷r&WfVÇ2VçF—G’V&Ç’æB6öÆÆ6W2F—&V7FÇ’FòF†RæW‡B7V6–f–6F–öâ"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“°¢6öç7B6öÆÆ6U'VÆRÒ772æÖF6‚‚õÂç6–ævÆR×7V6–f–6F–öâÖ6&EÂæ—2Ö6öÆÆ6–ærÇ²…µÇ5Å5Ò£ò•ÆåÇÒò“òå³Òóò"#°¢6öç7B'&—fT¶W–g&ÖW2Ò772æÖF6‚‚ô¶W–g&ÖW2ÖöçF†Ç’×7V6–f–6F–öâÖ'&—fRÇ²…µÇ5Å5Ò£ò•ÆåÇÒò“òå³Òóò"#° ¢76W'BæÖF6‚‡6÷W&6RÂövWE6–ævÆT–æÆ–æUVçF—G”6öæf–rò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6–ævÆU6VÆV7F–öå&VG’ò“°¢76W'BæÖF6‚‡6÷W&6RÂöF—6&ÆVCÕÇ²6–ævÆU6VÆV7F–öå&VG•ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷6–ævÆR×7V6–f–6F–öâÖ6&EÂEÇ¶—56–ævÆU7V6–f–6F–öäGfæ6–ærÃò"—2Ö6öÆÆ6–ær"¢"%ÇÒò“°¢76W'BæÖF6‚‡6÷W&6RÂ÷v–æF÷uÂç6WEF–ÖV÷WEÂ†Ç”FW7F–æF–öâÂsÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂşZèÎh‰˜	š^ûÈÎKˆ¾KˆšR(i"ò“°¢76W'BæÖF6‚‡6÷W&6RÂşz+®Š¨ŞŠhşjÎˆˆ~Xª‹;Â(i"ò“°¢76W'BæÖF6‚†6öÆÆ6U'VÆRÂ÷G&ç6ÆFU•Â‚Ów…Â’66ÆU•ÂƒÂã#UÂ’ò“°¢76W'BæFöW4æ÷DÖF6‚†6öÆÆ6U'VÆRÂö÷6—G—Æf–ÇFW"ò“°¢76W'BæFöW4æ÷DÖF6‚†'&—fT¶W–g&ÖW2Âö÷6—G—Æf–ÇFW"ò“°§Ò“° §FW7B‚&6Æ7VÆF÷"W6W26ö×7B6öçfW'6F–öâ†—7F÷'’v—F‚7v—F6†&ÆR7V6–f–6F–öâ&öw&W72"Â7–æ2‚’Óâ°¢6öç7B·6÷W&6RÂ775ÒÒv—B&öÖ—6RæÆÂ…°¢&VDf–ÆR†æWrU$Â‚"ââö÷vRçG7‚"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢&VDf–ÆR†æWrU$Â‚"ââöövÆö&Ç2æ772"Â–×÷'BæÖWFçW&Â’Â'WFc‚"’À¢Ò“° ¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6ö×ÆWFVD6öçfW'6F–öäç7vW'2ÒÖW76vW5Âæf–ÇFW"ò“°¢76W'BæÖF6‚‡6÷W&6RÂóÆFWF–Ç26Æ74æÖSÒ&6öçfW'6F–öâÖ†—7F÷'’Ö6öÆÆ6R#âò“°¢76W'BæÖF6‚‡6÷W&6RÂş[{.ZèÎh‰Ç¶6ö×ÆWFVD6öçfW'6F–öäç7vW'5ÂæÆVæwF…ÇÒX¾jÚ^š™òò“°¢76W'BæÖF6‚‡6÷W&6RÂö6Æ74æÖSÒ&6öçfW'6F–öâÖ†—7F÷'’Öç7vW'2"ò“°¢76W'BæÖF6‚†772ÂõÂæ6öçfW'6F–öâÖ†—7F÷'’Ö6öÆÆ6R7VÖÖ'’ÇµµÇ5Å5Ò£öw&–B×FV×ÆFRÖ6öÇVÖç3¢#‚WFòÖ–æÖ…ÂƒÂg%Â’WFó²ò“°¢76W'BæÖF6‚†772ÂõÂæ6öçfW'6F–öâÖ†—7F÷'’Öç7vW'2ÇµµÇ5Å5Ò£öÖ‚Ö†V–v‡C¢Sƒ²ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6ö×ÆWFVD6÷VçBÒ7V6–f–6F–öå6W'f–6W5Âæf–ÇFW%Â†—57V6–f–6F–öå6W'f–6T6ö×ÆWFUÂ•ÂæÆVæwF‚ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÇ¶6ö×ÆWFVD6÷VçEÇŞûÈõÇ·7V6–f–6F–öå6W'f–6W5ÂæÆVæwF…ÇÒš^[{.ZèÎh‰ò“°¢76W'BæÖF6‚‡6÷W&6RÂõÇ¶—46ö×ÆWFRÃò.)É2[{.ZèÎh‰"¢.[è^Z¾Zú²%ÇÒò“°¢76W'BæÖF6‚†772ÂõÂç7V6–f–6F–öâ×7v—F6†W"ÖÆ—7B'WGFöåÂæ—2Ö6ö×ÆWFS¦æ÷EÂ…Âæ—2Ö7F—fUÂ’ò“°¢76W'BæÖF6‚‡6÷W&6RÂö6öç7B6VçFW&VDÆVgBÒ7W'&VçE7FWÂæöfg6WDÆVgBÒÂ†Æ—7EÂæ6Æ–VçEv–GF‚Ò7W'&VçE7FWÂæöfg6WEv–GF…Â’Âò"ò“°¢76W'BæÖF6‚‡6÷W&6RÂöÆ—7EÂç67&öÆÅFõÂ…ÇµµÇ5Å5Ò£öÆVgC¢ÖF…ÂæÖ…ÂƒÂ6VçFW&VDÆVgEÂ’ò“°¢76W'Bæö²‡6÷W&6Ræ–æFW„öb‚v6Æ74æÖS×¶Æ—fR×F÷FÂr’Â6÷W&6Ræ–æFW„öb‚sÆFÂ6Æ74æÖSÒ'7VÖÖ'’ÖÆ—7B#âr’“°§Ò“° 

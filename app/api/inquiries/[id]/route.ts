@@ -73,6 +73,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       nextFollowUpAt?: string | null;
       nextAction?: string;
       note?: string;
+      estimateLow?: number;
+      estimateHigh?: number;
+      budget?: number | null;
     };
     const updates: string[] = [];
     const values: unknown[] = [];
@@ -115,6 +118,24 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (payload.note !== undefined) {
       updates.push("note = ?");
       values.push(payload.note.trim().slice(0, 4000));
+    }
+    if (payload.estimateLow !== undefined) {
+      if (!Number.isFinite(payload.estimateLow) || payload.estimateLow < 0) return Response.json({ error: "網站初估最低金額格式不正確。" }, { status: 400 });
+      updates.push("estimate_low = ?");
+      values.push(Math.round(payload.estimateLow));
+    }
+    if (payload.estimateHigh !== undefined) {
+      if (!Number.isFinite(payload.estimateHigh) || payload.estimateHigh < 0) return Response.json({ error: "網站初估最高金額格式不正確。" }, { status: 400 });
+      updates.push("estimate_high = ?");
+      values.push(Math.round(payload.estimateHigh));
+    }
+    if (payload.estimateLow !== undefined && payload.estimateHigh !== undefined && payload.estimateHigh < payload.estimateLow) {
+      return Response.json({ error: "網站初估最高金額不可低於最低金額。" }, { status: 400 });
+    }
+    if (payload.budget !== undefined) {
+      if (payload.budget !== null && (!Number.isFinite(payload.budget) || payload.budget < 0)) return Response.json({ error: "客戶預算格式不正確。" }, { status: 400 });
+      updates.push("budget = ?");
+      values.push(payload.budget === null ? null : Math.round(payload.budget));
     }
     if (updates.length === 0) return Response.json({ error: "沒有可更新的欄位。" }, { status: 400 });
 

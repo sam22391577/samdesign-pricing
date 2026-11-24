@@ -52,8 +52,6 @@ const priorityLabels: Record<Priority, string> = {
   low: "稍後處理",
 };
 
-const currency = new Intl.NumberFormat("zh-TW", { style: "currency", currency: "TWD", maximumFractionDigits: 0 });
-
 function parseStringArray(value: string) {
   try {
     const parsed = JSON.parse(value);
@@ -146,7 +144,7 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
   const summary = useMemo(() => inquiry ? compactInquirySummary(parseStringArray(inquiry.summaryJson)) : [], [inquiry]);
   const fullAnswers = useMemo(() => inquiry ? parseReadableAnswers(inquiry.summaryJson) : [], [inquiry]);
 
-  async function savePatch(patch: Partial<Pick<InquiryRecordData, "status" | "replyStatus" | "priority" | "assignee" | "lastContactAt" | "nextFollowUpAt" | "nextAction" | "note">>) {
+  async function savePatch(patch: Partial<Pick<InquiryRecordData, "status" | "replyStatus" | "priority" | "assignee" | "lastContactAt" | "nextFollowUpAt" | "nextAction" | "note" | "estimateLow" | "estimateHigh" | "budget">>) {
     if (!inquiry) return;
     const previous = inquiry;
     setInquiry({ ...inquiry, ...patch });
@@ -212,6 +210,17 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
       nextAction: inquiry.nextAction,
       nextFollowUpAt: workflowAction.followUpDays === null ? null : inquiry.nextFollowUpAt || getSuggestedFollowUpAt(workflowAction) || defaultFollowUpAt,
     });
+  }
+
+  async function savePricing() {
+    if (!inquiry) return;
+    const estimateLow = inquiry.estimateLow || inquiry.estimateHigh || 0;
+    const estimateHigh = inquiry.estimateHigh || inquiry.estimateLow || 0;
+    if (estimateHigh < estimateLow) {
+      setMessage("網站初估最高金額不可低於最低金額。");
+      return;
+    }
+    await savePatch({ estimateLow, estimateHigh, budget: inquiry.budget });
   }
 
   async function deleteInquiry() {
@@ -284,7 +293,20 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
               <div className="record-card-heading"><div><span>02</span><h2>需求摘要</h2></div><small>{inquiry.projectType}</small></div>
               <div className="record-services">{services.map((service) => <span key={service}>{service}</span>)}</div>
               <ul className="record-summary">{summary.map((item, index) => <li key={`${item}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><p>{item}</p></li>)}</ul>
-              <div className="record-estimate"><div><span>網站初估</span><strong>{inquiry.estimateLow === 0 && inquiry.estimateHigh === 0 ? "尚未估價" : `${currency.format(inquiry.estimateLow)} ～ ${currency.format(inquiry.estimateHigh)}`}</strong></div><div><span>客戶預算</span><strong>{inquiry.budget ? currency.format(inquiry.budget) : "未設定"}</strong></div></div>
+              <div className="record-estimate record-price-editor">
+                <div className="record-price-field">
+                  <span>網站初估</span>
+                  <div className="record-price-range">
+                    <label><small>最低</small><div className="record-money-input"><span>NT$</span><input aria-label="網站初估最低金額" type="number" inputMode="numeric" min="0" step="100" value={inquiry.estimateLow || ""} onChange={(event) => setInquiry({ ...inquiry, estimateLow: Math.max(0, Math.round(Number(event.target.value) || 0)) })} placeholder="尚未估價" /></div></label>
+                    <label><small>最高</small><div className="record-money-input"><span>NT$</span><input aria-label="網站初估最高金額" type="number" inputMode="numeric" min="0" step="100" value={inquiry.estimateHigh || ""} onChange={(event) => setInquiry({ ...inquiry, estimateHigh: Math.max(0, Math.round(Number(event.target.value) || 0)) })} placeholder="尚未估價" /></div></label>
+                  </div>
+                </div>
+                <label className="record-price-field">
+                  <span>客戶預算</span>
+                  <div className="record-money-input"><span>NT$</span><input aria-label="客戶預算金額" type="number" inputMode="numeric" min="0" step="100" value={inquiry.budget ?? ""} onChange={(event) => setInquiry({ ...inquiry, budget: event.target.value ? Math.max(0, Math.round(Number(event.target.value))) : null })} placeholder="尚未設定" /></div>
+                </label>
+                <button className="record-price-save" type="button" disabled={saving} onClick={() => { void savePricing(); }}>{saving ? "儲存中…" : "儲存金額"}</button>
+              </div>
               <details className="full-answers">
                 <summary>查看所有填寫內容</summary>
                 {fullAnswers.length > 0 ? (
