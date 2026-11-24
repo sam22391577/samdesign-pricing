@@ -169,7 +169,7 @@ function toInquiry(row: ApiInquiry): Inquiry {
     contact: row.contact || row.email || "未填寫",
     projectType: row.projectType,
     services: safeStringArray(row.servicesJson),
-    estimate: `${currency.format(row.estimateLow)} – ${currency.format(row.estimateHigh)}`,
+    estimate: row.estimateLow === 0 && row.estimateHigh === 0 ? "尚未估價" : `${currency.format(row.estimateLow)} – ${currency.format(row.estimateHigh)}`,
     budget: row.budget ? currency.format(row.budget) : "未設定",
     submittedAt: dateTime,
     submittedTime: submittedDate.getTime(),
@@ -226,6 +226,9 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   const [priorityFilter, setPriorityFilter] = useState<"all" | Priority>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [filterOpen, setFilterOpen] = useState(false);
+  const [createCustomerOpen, setCreateCustomerOpen] = useState(false);
+  const [creatingCustomer, setCreatingCustomer] = useState(false);
+  const [createCustomerError, setCreateCustomerError] = useState("");
   const [search, setSearch] = useState("");
   const [loadError, setLoadError] = useState("");
   const [updatingStatuses, setUpdatingStatuses] = useState<Set<string>>(() => new Set());
@@ -273,11 +276,14 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
 
   useEffect(() => {
     function closeQuickDetail(event: KeyboardEvent) {
-      if (event.key === "Escape") setDetailInquiryId(null);
+      if (event.key === "Escape") {
+        setDetailInquiryId(null);
+        if (!creatingCustomer) setCreateCustomerOpen(false);
+      }
     }
     window.addEventListener("keydown", closeQuickDetail);
     return () => window.removeEventListener("keydown", closeQuickDetail);
-  }, []);
+  }, [creatingCustomer]);
 
   const filteredInquiries = useMemo(() => {
     const keyword = search.trim().toLocaleLowerCase("zh-Hant");
@@ -376,6 +382,44 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
       window.setTimeout(() => setCopiedContactId((current) => current === inquiry.id ? null : current), 1800);
     } catch {
       setLoadError("無法自動複製，請手動選取聯絡方式。");
+    }
+  }
+
+  async function createManualCustomer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const initialNeed = String(formData.get("initialNeed") ?? "").trim();
+    setCreatingCustomer(true);
+    setCreateCustomerError("");
+    try {
+      const response = await fetch("/api/inquiries", {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({
+          source: "admin",
+          clientName: String(formData.get("clientName") ?? ""),
+          company: String(formData.get("company") ?? ""),
+          contact: String(formData.get("contact") ?? ""),
+          projectType: String(formData.get("projectType") ?? "尚未確認"),
+          services: ["需求待確認"],
+          summary: initialNeed ? [`初步需求：${initialNeed}`] : [],
+        }),
+      });
+      const payload = await response.json() as { inquiry?: ApiInquiry; error?: string };
+      if (!response.ok || !payload.inquiry) throw new Error(payload.error || "新增客戶失敗，請再試一次。");
+      const createdInquiry = toInquiry(payload.inquiry);
+      setInquiries((current) => [createdInquiry, ...current]);
+      setActiveFilter("todo");
+      setCreateCustomerOpen(false);
+      setQuickWorkflowOpen(false);
+      setQuickDateOpen(false);
+      setDetailInquiryId(createdInquiry.id);
+      form.reset();
+    } catch (error) {
+      setCreateCustomerError(error instanceof Error ? error.message : "新增客戶失敗，請再試一次。");
+    } finally {
+      setCreatingCustomer(false);
     }
   }
 
@@ -639,6 +683,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
           <div className="panel-heading">
             <div><h2>客戶與需求</h2><span>目前顯示 {filteredInquiries.length} 筆</span></div>
             <div className="panel-tools">
+              <button className="add-customer-button" type="button" onClick={() => { setCreateCustomerError(""); setCreateCustomerOpen(true); }}>新增客戶</button>
               <div className="filter-control">
                 <button className={filterOpen || extraFilterCount > 0 ? "is-active" : ""} type="button" aria-expanded={filterOpen} aria-controls="inquiry-filter-menu" onClick={() => setFilterOpen((current) => !current)}>
                   篩選{extraFilterCount > 0 && <b>{extraFilterCount}</b>} <span>{filterOpen ? "⌃" : "⌄"}</span>
@@ -741,6 +786,28 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
           </div>
         </section>
       </section>
+
+      {createCustomerOpen && (
+        <div className="create-customer-layer">
+          <button className="create-customer-backdrop" type="button" disabled={creatingCustomer} onClick={() => setCreateCustomerOpen(false)} aria-label="關閉新增客戶表單" />
+          <section className="create-customer-dialog" role="dialog" aria-modal="true" aria-labelledby="create-customer-title">
+            <header>
+              <div><span>客戶與需求</span><h2 id="create-customer-title">新增客戶</h2></div>
+              <button type="button" disabled={creatingCustomer} onClick={() => setCreateCustomerOpen(false)} aria-label="關閉新增客戶表單">×</button>
+            </header>
+            <form onSubmit={(event) => { void createManualCustomer(event); }}>
+              <p>先建立基本資料，其他需求與排程可之後再補充。</p>
+              <label><span>客戶名稱 *</span><input name="clientName" required maxLength={80} placeholder="例如：王小姐" /></label>
+              <label><span>聯絡方式 *</span><input name="contact" required maxLength={180} placeholder="LINE、電話或 Email" /></label>
+              <label><span>品牌／公司</span><input name="company" maxLength={120} placeholder="可留空" /></label>
+              <label><span>合作方式</span><select name="projectType" defaultValue="尚未確認"><option value="尚未確認">尚未確認</option><option value="單次設計">單次設計</option><option value="月方案">月方案</option></select></label>
+              <label><span>初步需求</span><textarea name="initialNeed" rows={4} maxLength={500} placeholder="簡單記錄客戶想製作的項目，可留空" /></label>
+              {createCustomerError && <div className="create-customer-error" role="status">{createCustomerError}</div>}
+              <div className="create-customer-actions"><button type="button" disabled={creatingCustomer} onClick={() => setCreateCustomerOpen(false)}>取消</button><button type="submit" disabled={creatingCustomer}>{creatingCustomer ? "新增中…" : "建立客戶"}</button></div>
+            </form>
+          </section>
+        </div>
+      )}
 
       {detailInquiry && (
         <div className="quick-detail-layer">

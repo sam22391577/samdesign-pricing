@@ -1800,6 +1800,29 @@ test("inquiry backend stores reply tracking and follow-up schedule fields", asyn
   assert.match(detailApi, /next_follow_up_at = \?/);
 });
 
+test("admin can manually add a customer without sending a public quote notification", async () => {
+  const [dashboard, api, css] = await Promise.all([
+    readFile(new URL("../app/admin/inquiries/inquiry-dashboard.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/inquiries/inquiries.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(dashboard, />新增客戶<\/button>/);
+  assert.match(dashboard, /id="create-customer-title">新增客戶<\/h2>/);
+  assert.match(dashboard, /source: "admin"/);
+  assert.match(dashboard, /clientName: String\(formData\.get\("clientName"\)/);
+  assert.match(dashboard, /contact: String\(formData\.get\("contact"\)/);
+  assert.match(dashboard, /setInquiries\(\(current\) => \[createdInquiry, \.\.\.current\]\)/);
+  assert.match(dashboard, /setDetailInquiryId\(createdInquiry\.id\)/);
+  assert.match(dashboard, /尚未估價/);
+  assert.match(api, /isManualEntry && !\(await canManageInquiries\(\)\)/);
+  assert.match(api, /if \(!isManualEntry\) \{\s*scheduleInquiryNotification/);
+  assert.match(api, /isManualEntry \? "聯絡客戶確認需求" : ""/);
+  assert.match(api, /replyStatus: "needs_reply"/);
+  assert.match(css, /\.create-customer-layer \{/);
+  assert.match(css, /\.create-customer-dialog \{/);
+});
+
 test("new inquiries default the next follow-up date to five days later", async () => {
   const [listApi, dashboard, record] = await Promise.all([
     readFile(new URL("../app/api/inquiries/route.ts", import.meta.url), "utf8"),

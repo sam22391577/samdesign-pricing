@@ -284,7 +284,7 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
               <div className="record-card-heading"><div><span>02</span><h2>需求摘要</h2></div><small>{inquiry.projectType}</small></div>
               <div className="record-services">{services.map((service) => <span key={service}>{service}</span>)}</div>
               <ul className="record-summary">{summary.map((item, index) => <li key={`${item}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><p>{item}</p></li>)}</ul>
-              <div className="record-estimate"><div><span>網站初估</span><strong>{currency.format(inquiry.estimateLow)} ～ {currency.format(inquiry.estimateHigh)}</strong></div><div><span>客戶預算</span><strong>{inquiry.budget ? currency.format(inquiry.budget) : "未設定"}</strong></div></div>
+              <div className="record-estimate"><div><span>網站初估</span><strong>{inquiry.estimateLow === 0 && inquiry.estimateHigh === 0 ? "尚未估價" : `${currency.format(inquiry.estimateLow)} ～ ${currency.format(inquiry.estimateHigh)}`}</strong></div><div><span>客戶預算</span><strong>{inquiry.budget ? currency.format(inquiry.budget) : "未設定"}</strong></div></div>
               <details className="full-answers">
                 <summary>查看所有填寫內容</summary>
                 {fullAnswers.length > 0 ? (

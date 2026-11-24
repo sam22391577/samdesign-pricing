@@ -180,6 +180,8 @@
 .panel-heading > div:first-child span { color: #747b74; font-size: .875rem; }
 .panel-tools { display: flex; gap: 7px; }
 .panel-tools button { height: 38px; padding: 0 13px; border: 1px solid var(--admin-line); border-radius: 9px; color: #6f5b49; background: var(--admin-paper); font-size: .875rem; font-weight: 650; cursor: pointer; }
+.panel-tools .add-customer-button { color: #fff; border-color: var(--admin-sage-dark); background: var(--admin-sage-dark); }
+.panel-tools .add-customer-button:hover { border-color: #35453a; background: #35453a; }
 .panel-tools > button:hover, .filter-control > button:hover { border-color: rgba(90,72,57,.27); background: var(--admin-paper-warm); }
 .panel-tools button span { margin-left: 5px; color: #929991; }
 .filter-control { position: relative; }
@@ -297,6 +299,70 @@
 .empty-responses small { font-size: .875rem; }
 
 .quick-detail-layer { position: fixed; z-index: 80; inset: 0; display: flex; justify-content: flex-end; }
+
+.create-customer-layer {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: grid;
+  padding: 24px;
+  place-items: center;
+}
+
+.create-customer-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: rgba(48, 40, 33, .42);
+  backdrop-filter: blur(3px);
+}
+
+.create-customer-dialog {
+  position: relative;
+  width: min(100%, 510px);
+  max-height: min(760px, calc(100vh - 48px));
+  overflow-y: auto;
+  border: 1px solid var(--admin-line);
+  border-radius: 16px;
+  color: var(--admin-ink);
+  background: var(--admin-paper);
+  box-shadow: 0 28px 80px rgba(48, 40, 33, .24);
+}
+
+.create-customer-dialog > header {
+  display: flex;
+  min-height: 74px;
+  padding: 0 22px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--admin-line);
+}
+
+.create-customer-dialog > header > div { display: flex; flex-direction: column; gap: 3px; }
+.create-customer-dialog > header span { color: var(--admin-muted); font-size: .875rem; font-weight: 700; }
+.create-customer-dialog > header h2 { margin: 0; font-family: "Noto Serif TC", Georgia, serif; font-size: 1.2rem; }
+.create-customer-dialog > header button { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid var(--admin-line); border-radius: 9px; color: #75685e; background: var(--admin-paper-warm); font-size: 1.1rem; cursor: pointer; }
+.create-customer-dialog > form { display: grid; padding: 20px 22px 22px; gap: 14px; }
+.create-customer-dialog > form > p { margin: 0 0 2px; color: var(--admin-muted); font-size: .875rem; line-height: 1.65; }
+.create-customer-dialog label { display: flex; flex-direction: column; gap: 7px; }
+.create-customer-dialog label > span { color: #61564d; font-size: .875rem; font-weight: 700; }
+.create-customer-dialog input,
+.create-customer-dialog select,
+.create-customer-dialog textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--admin-line); border-radius: 9px; outline: 0; color: var(--admin-ink); background: #fff; font: inherit; font-size: 1rem; }
+.create-customer-dialog input,
+.create-customer-dialog select { min-height: 43px; }
+.create-customer-dialog textarea { resize: vertical; line-height: 1.6; }
+.create-customer-dialog input:focus,
+.create-customer-dialog select:focus,
+.create-customer-dialog textarea:focus { border-color: #7f9184; box-shadow: 0 0 0 3px rgba(82, 106, 88, .11); }
+.create-customer-error { padding: 10px 11px; border-radius: 8px; color: #93483d; background: #fff0ed; font-size: .875rem; }
+.create-customer-actions { display: grid; margin-top: 4px; grid-template-columns: 1fr 1fr; gap: 8px; }
+.create-customer-actions button { min-height: 44px; border: 1px solid var(--admin-line); border-radius: 9px; color: #66594f; background: var(--admin-paper-warm); font-family: inherit; font-size: .875rem; font-weight: 750; cursor: pointer; }
+.create-customer-actions button:last-child { color: #fff; border-color: var(--admin-sage-dark); background: var(--admin-sage-dark); }
+.create-customer-actions button:disabled,
+.create-customer-dialog > header button:disabled { opacity: .55; cursor: wait; }
 .quick-detail-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: rgba(48,40,33,.36); cursor: default; backdrop-filter: blur(2px); }
 .quick-detail-panel { position: relative; display: grid; width: min(440px, calc(100vw - 24px)); height: 100%; grid-template-rows: auto minmax(0, 1fr) auto; color: var(--admin-ink); background: var(--admin-paper); box-shadow: -24px 0 70px rgba(65,50,37,.2); animation: quick-detail-enter .2s ease-out; }
 .quick-detail-header { display: flex; min-height: 68px; padding: 0 22px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--admin-line); }
@@ -1157,6 +1223,10 @@
 }
 
 @media (max-width: 640px) {
+  .create-customer-layer { padding: 12px; }
+  .create-customer-dialog { max-height: calc(100vh - 24px); border-radius: 13px; }
+  .create-customer-dialog > header { padding: 0 17px; }
+  .create-customer-dialog > form { padding: 17px; }
   .admin-header { display: block; }
   .header-actions { margin-top: 18px; }
   .admin-search { width: 100%; }

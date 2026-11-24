@@ -3,6 +3,7 @@ import { scheduleInquiryNotification } from "../../inquiry-notifications";
 import { canManageInquiries, unauthorizedResponse } from "./access";
 
 type NewInquiryPayload = {
+  source?: "admin";
   clientName?: string;
   company?: string;
   email?: string;
@@ -105,20 +106,25 @@ export async function POST(request: Request) {
   try {
     const payload = (await request.json()) as NewInquiryPayload;
     if (payload.website) return publicFormJson(request, { ok: true }, { status: 201 });
+    const isManualEntry = payload.source === "admin";
+    if (isManualEntry && !(await canManageInquiries())) return unauthorizedResponse();
 
     const clientName = cleanText(payload.clientName, 80);
     const company = cleanText(payload.company, 120);
     const email = cleanText(payload.email, 180).toLowerCase();
     const contact = cleanText(payload.contact, 180);
-    const projectType = cleanText(payload.projectType, 40);
+    const projectType = cleanText(payload.projectType, 40) || (isManualEntry ? "尚未確認" : "");
     const services = cleanStringArray(payload.services, 20);
+    const normalizedServices = services.length > 0 ? services : isManualEntry ? ["需求待確認"] : [];
     const summary = cleanStringArray(payload.summary, 80);
+    const normalizedSummary = summary.length > 0 ? summary : isManualEntry ? ["初步需求：尚未確認"] : [];
     const estimateLow = Number.isFinite(payload.estimateLow) ? Math.max(0, Math.round(payload.estimateLow ?? 0)) : 0;
     const estimateHigh = Number.isFinite(payload.estimateHigh) ? Math.max(0, Math.round(payload.estimateHigh ?? 0)) : 0;
     const budget = Number.isFinite(payload.budget) ? Math.max(0, Math.round(payload.budget ?? 0)) : null;
 
-    if (!clientName || !contact || !projectType || services.length === 0) {
-      return publicFormJson(request, { error: "請填寫姓名與聯絡方式，並完成需求試算。" }, { status: 400 });
+    if (!clientName || !contact || !projectType || normalizedServices.length === 0) {
+      const error = isManualEntry ? "請填寫客戶名稱與聯絡方式。" : "請填寫姓名與聯絡方式，並完成需求試算。";
+      return publicFormJson(request, { error }, { status: 400 });
     }
 
     const id = formatInquiryId();
@@ -128,8 +134,8 @@ export async function POST(request: Request) {
     await getD1().prepare(`INSERT INTO inquiries (
       id, submitted_at, updated_at, client_name, company, email, contact,
       project_type, services_json, estimate_low, estimate_high, budget,
-      summary_json, answers_json, status, priority, assignee, next_follow_up_at, note
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', 'normal', 'Sam', ?, '')`)
+      summary_json, answers_json, status, priority, assignee, next_follow_up_at, next_action, note
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', 'normal', 'Sam', ?, ?, '')`)
       .bind(
         id,
         submittedAt,
@@ -139,28 +145,54 @@ export async function POST(request: Request) {
         email,
         contact,
         projectType,
-        JSON.stringify(services),
+        JSON.stringify(normalizedServices),
         estimateLow,
         estimateHigh,
         budget,
-        JSON.stringify(summary),
+        JSON.stringify(normalizedSummary),
         JSON.stringify(payload.answers ?? {}),
         defaultNextFollowUpAt,
+        isManualEntry ? "聯絡客戶確認需求" : "",
       ).run();
 
-    scheduleInquiryNotification({
+    if (!isManualEntry) {
+      scheduleInquiryNotification({
+        id,
+        submittedAt,
+        clientName,
+        company,
+        projectType,
+        services: normalizedServices,
+        estimateLow,
+        estimateHigh,
+        adminUrl: `${new URL(request.url).origin}/admin/inquiries/${encodeURIComponent(id)}`,
+      });
+    }
+
+    const inquiry = isManualEntry ? {
       id,
       submittedAt,
+      updatedAt: submittedAt,
       clientName,
       company,
+      email,
+      contact,
       projectType,
-      services,
+      servicesJson: JSON.stringify(normalizedServices),
       estimateLow,
       estimateHigh,
-      adminUrl: `${new URL(request.url).origin}/admin/inquiries/${encodeURIComponent(id)}`,
-    });
-
-    return publicFormJson(request, { inquiry: { id, submittedAt } }, { status: 201 });
+      budget,
+      summaryJson: JSON.stringify(normalizedSummary),
+      status: "new",
+      replyStatus: "needs_reply",
+      priority: "normal",
+      assignee: "Sam",
+      lastContactAt: null,
+      nextFollowUpAt: defaultNextFollowUpAt,
+      nextAction: "聯絡客戶確認需求",
+      note: "",
+    } : { id, submittedAt };
+    return publicFormJson(request, { inquiry }, { status: 201 });
   } catch (error) {
     return publicFormJson(request, { error: error instanceof Error ? error.message : "送出失敗，請稍後再試。" }, { status: 500 });
   }
