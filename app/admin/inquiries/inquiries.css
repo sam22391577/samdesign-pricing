@@ -258,6 +258,7 @@
 .status-editor:focus-within { outline: 2px solid rgba(66,86,72,.28); outline-offset: 2px; }
 .status-editor-value { display: inline-flex; align-items: center; gap: 6px; }
 .status-editor-value i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.case-stage-badge { display: inline-flex; min-height: 31px; padding: 0 10px; align-items: center; border-radius: 8px; font-size: .875rem; font-weight: 750; white-space: nowrap; }
 .status-editor-chevron { opacity: .72; font-size: .62rem; }
 .status-editor select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .status-editor select:disabled { cursor: wait; }
@@ -804,6 +805,21 @@
   border-color: var(--admin-sage-dark);
   background: var(--admin-sage-dark);
 }
+
+.quick-workflow-primary-actions .quick-complete-step {
+  color: #fff;
+  border-color: var(--admin-sage-dark);
+  background: var(--admin-sage-dark);
+}
+
+.quick-workflow-primary-actions .quick-adjust-step,
+.quick-workflow-primary-actions .quick-adjust-step:last-child {
+  color: #604f43;
+  border-color: rgba(90, 72, 57, .2);
+  background: var(--admin-paper);
+}
+
+.quick-workflow-primary-actions.is-single { grid-template-columns: 1fr; }
 
 .quick-workflow-primary-actions button:disabled { opacity: .6; cursor: wait; }
 

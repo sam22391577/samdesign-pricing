@@ -1723,13 +1723,13 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   assert.match(dashboard, /今日追蹤/);
   assert.match(dashboard, /已逾期/);
   assert.match(dashboard, /<span>快速處理<\/span>/);
-  assert.match(dashboard, /變更安排/);
+  assert.match(dashboard, /調整下一步/);
   assert.match(dashboard, /quickWorkflowOpen/);
   assert.match(dashboard, /套用安排/);
   assert.match(dashboard, /name="nextAction" value=\{action\.value\}/);
   assert.doesNotMatch(dashboard, /followUpPresets\.map|追蹤時間設為3 天後|追蹤時間設為5 天後/);
   assert.match(dashboard, /調整日期/);
-  assert.match(dashboard, />其他處理</);
+  assert.match(dashboard, />更多處理</);
   assert.doesNotMatch(dashboard, /name="nextAction" maxLength/);
   assert.match(dashboard, /這位客戶另有 \{relatedInquiries\.length\} 筆需求/);
   assert.doesNotMatch(dashboard, /這位客戶的歷史需求|寄送 Email|<h3>聯絡與負責<\/h3>/);
@@ -1742,7 +1742,7 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   assert.doesNotMatch(dashboard, /進行中的洽談|優先層級|快速查看|開啟完整資料|匯出 CSV/);
   assert.match(record, /<span>優先順序<\/span>/);
   assert.match(record, /<h2>聯絡與排程<\/h2>/);
-  assert.match(record, /標記已回覆客戶/);
+  assert.match(record, /getCompletionActionLabel\(inquiry\.nextAction\)/);
   assert.match(record, /recordNextAction/);
   assert.doesNotMatch(record, /record-next-action[^\n]*<span>下一步事項<\/span><input/);
   assert.match(record, />返回全部需求<\/a>/);
@@ -1766,6 +1766,17 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   assert.match(workflow, /等待客戶確認合作: "等待訂金"/);
   assert.match(workflow, /等待定稿確認: "等待尾款"/);
   assert.match(workflow, /等待交付確認: "完成並結案"/);
+  assert.match(workflow, /製作正式報價: "寄送正式報價"/);
+  assert.match(workflow, /安排製作檔期: "開始製作"/);
+  assert.match(workflow, /開始製作: "寄送初稿"/);
+  assert.match(workflow, /安排修改: "寄送修改稿"/);
+  assert.match(workflow, /等待尾款: "交付成品"/);
+  assert.match(workflow, /寄送正式報價: "報價已寄出"/);
+  assert.match(workflow, /等待客戶確認合作: "客戶已確認"/);
+  assert.match(dashboard, /getCompletionActionLabel\(detailInquiry\.nextAction\)/);
+  assert.match(dashboard, /canAdvanceWorkflow\(detailInquiry\.nextAction\)/);
+  assert.match(dashboard, /className=\{`case-stage-badge status-/);
+  assert.doesNotMatch(dashboard, /function StatusEditor|修改 \$\{inquiry\.client\} 的狀態/);
   assert.match(workflow, /followUpDays: 14/);
   assert.match(workflow, /followUpDays: null/);
   assert.match(workflow, /\{ value: "5", label: "5 天後", days: 5 \}/);
@@ -1778,6 +1789,8 @@ test("inquiry dashboard uses task-focused groups and plain-language controls", a
   assert.match(css, /\.workflow-stage-picker \{/);
   assert.match(css, /\.quick-other-workflow-actions \{/);
   assert.match(css, /\.quick-workflow-auto-note \{/);
+  assert.match(css, /\.quick-workflow-primary-actions \.quick-complete-step \{/);
+  assert.match(css, /\.case-stage-badge \{/);
   assert.match(css, /\.follow-up-preset-options \{/);
 });
 
@@ -1831,7 +1844,7 @@ test("new inquiries default the next follow-up date to five days later", async (
   ]);
 
   assert.match(listApi, /defaultNextFollowUpAt = new Date\(new Date\(submittedAt\)\.getTime\(\) \+ 5 \* 24 \* 60 \* 60 \* 1000\)\.toISOString\(\)/);
-  assert.match(listApi, /assignee, next_follow_up_at, note/);
+  assert.match(listApi, /assignee, next_follow_up_at, next_action, note/);
   assert.match(listApi, /defaultNextFollowUpAt,/);
   assert.match(dashboard, /detailInquiry\.nextFollowUpAt \|\| defaultFollowUpAt/);
   assert.match(record, /inquiry\.nextFollowUpAt \|\| defaultFollowUpAt/);

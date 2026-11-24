@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { compactInquirySummary } from "./compact-summary";
-import { caseStageLabels, defaultWorkflowAction, editableCaseStages, getActionAfterResponse, getOtherWorkflowActionsForStage, getQuickWorkflowActionsForStage, getSuggestedFollowUpAt, getWorkflowAction, normalizeCaseStage, type CaseStage } from "./workflow-options";
+import { canAdvanceWorkflow, caseStageLabels, defaultWorkflowAction, editableCaseStages, getActionAfterResponse, getCompletionActionLabel, getOtherWorkflowActionsForStage, getQuickWorkflowActionsForStage, getSuggestedFollowUpAt, getWorkflowAction, normalizeCaseStage, type CaseStage } from "./workflow-options";
 
 type InquiryStatus = CaseStage;
 type ReplyStatus = "needs_reply" | "waiting_client" | "client_replied" | "scheduled" | "paused" | "completed";
@@ -194,28 +194,6 @@ function ReplyStatusBadge({ status }: { status: ReplyStatus }) {
 
 function isInquiryOverdue(inquiry: Inquiry, now: number) {
   return inquiry.nextFollowUpTime !== null && inquiry.nextFollowUpTime < now && inquiry.replyStatus !== "completed";
-}
-
-function StatusEditor({ inquiry, updating, onChange }: { inquiry: Inquiry; updating: boolean; onChange: (status: InquiryStatus) => void }) {
-  return (
-    <div
-      className={`status-editor status-${inquiry.status}${updating ? " is-updating" : ""}`}
-      aria-busy={updating}
-    >
-      <span className="status-editor-value"><i />{statusLabels[inquiry.status]}</span>
-      <span className="status-editor-chevron" aria-hidden="true">{updating ? "…" : "⌄"}</span>
-      <select
-        value={inquiry.status}
-        disabled={updating}
-        aria-label={`修改 ${inquiry.client} 的狀態`}
-        onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => event.stopPropagation()}
-        onChange={(event) => onChange(event.target.value as InquiryStatus)}
-      >
-        {editableStatuses.map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
-      </select>
-    </div>
-  );
 }
 
 export default function InquiryDashboard({ displayName, previewMode }: { displayName: string; previewMode: boolean }) {
@@ -477,11 +455,6 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
     }
   }
 
-  async function updateInquiryStatus(inquiry: Inquiry, nextStatus: InquiryStatus) {
-    if (nextStatus === inquiry.status) return;
-    await updateInquiryFields(inquiry, { status: nextStatus });
-  }
-
   async function saveFollowUp(event: FormEvent<HTMLFormElement>, inquiry: Inquiry) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -503,7 +476,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
     setQuickDateOpen(false);
   }
 
-  async function markResponded(inquiry: Inquiry) {
+  async function completeCurrentStep(inquiry: Inquiry) {
     const responseAction = getActionAfterResponse(inquiry.nextAction);
     await updateInquiryFields(inquiry, {
       status: responseAction.caseStage,
@@ -764,7 +737,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
                     <td><strong className="estimate-cell">{inquiry.estimate}</strong></td>
                     <td><ReplyStatusBadge status={inquiry.replyStatus} /></td>
                     <td><span className={`follow-up-cell${isInquiryOverdue(inquiry, dashboardNow) ? " is-overdue" : ""}`}><strong>{inquiry.nextFollowUpAt ? formatTaipeiDateTime(inquiry.nextFollowUpAt) : "尚未安排"}</strong><small>{inquiry.nextAction || "設定下一步"}</small></span></td>
-                    <td><StatusEditor inquiry={inquiry} updating={updatingStatuses.has(inquiry.id)} onChange={(status) => updateInquiryStatus(inquiry, status)} /></td>
+                    <td><span className={`case-stage-badge status-${inquiry.status}`}>{statusLabels[inquiry.status]}</span></td>
                     <td><button className="row-view" type="button" onClick={(event) => { event.stopPropagation(); openInquiryDetail(inquiry); }} aria-label={`查看 ${inquiry.client} 的需求`}>查看需求</button></td>
                   </tr>
                 ))}
@@ -830,9 +803,9 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
               <form key={`${detailInquiry.id}-${detailInquiry.replyStatus}-${detailInquiry.nextFollowUpAt}-${detailInquiry.nextAction}`} className={`quick-workflow-form${quickWorkflowOpen ? " is-open" : ""}`} onSubmit={(event) => { void saveFollowUp(event, detailInquiry); }}>
                 <div className="quick-workflow-heading"><div><span>下一步安排</span><strong>{getWorkflowAction(detailInquiry.nextAction)?.label || detailInquiry.nextAction || defaultWorkflowAction.label}</strong></div></div>
                 <div className="quick-workflow-summary"><span>下次追蹤</span><strong>{formatTaipeiDateTime(detailInquiry.nextFollowUpAt || defaultFollowUpAt)}</strong>{quickWorkflowOpen && <button type="button" onClick={() => setQuickDateOpen((current) => !current)}>{quickDateOpen ? "使用自動日期" : "調整日期"}</button>}</div>
-                <div className="quick-workflow-primary-actions">
-                  <button type="button" disabled={updatingStatuses.has(detailInquiry.id)} onClick={() => { void markResponded(detailInquiry); }}>已回覆客戶</button>
-                  <button type="button" aria-expanded={quickWorkflowOpen} aria-controls={`quick-workflow-editor-${detailInquiry.id}`} onClick={() => setQuickWorkflowOpen((current) => !current)}>{quickWorkflowOpen ? "收合安排" : "變更安排"}</button>
+                <div className={`quick-workflow-primary-actions${canAdvanceWorkflow(detailInquiry.nextAction) ? "" : " is-single"}`}>
+                  {canAdvanceWorkflow(detailInquiry.nextAction) && <button className="quick-complete-step" type="button" disabled={updatingStatuses.has(detailInquiry.id)} onClick={() => { void completeCurrentStep(detailInquiry); }}>{updatingStatuses.has(detailInquiry.id) ? "更新中…" : getCompletionActionLabel(detailInquiry.nextAction)}</button>}
+                  <button className="quick-adjust-step" type="button" aria-expanded={quickWorkflowOpen} aria-controls={`quick-workflow-editor-${detailInquiry.id}`} onClick={() => setQuickWorkflowOpen((current) => !current)}>{quickWorkflowOpen ? "收合選項" : "調整下一步"}</button>
                 </div>
                 {quickWorkflowOpen && (
                   <div className="quick-workflow-editor" id={`quick-workflow-editor-${detailInquiry.id}`}>
@@ -858,7 +831,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
                       </div>
                     )}
                     <details className="quick-other-workflow-actions">
-                      <summary>其他處理</summary>
+                      <summary>更多處理</summary>
                       <div className="workflow-action-options">
                         {otherWorkflowActions.map((action) => (
                           <label className="workflow-action-option" htmlFor={`workflow-other-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
