@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { compactInquirySummary } from "./compact-summary";
-import { defaultWorkflowAction, followUpAfterDays, followUpPresets, getWorkflowAction, workflowActionGroups } from "./workflow-options";
+import { closingWorkflowActions, defaultWorkflowAction, followUpAfterDays, followUpPresets, getActionAfterResponse, getWorkflowAction, getWorkflowPhaseForAction, productionWorkflowPhases, quoteWorkflowActions, type WorkflowPhaseKey } from "./workflow-options";
 
 type InquiryStatus = "new" | "contacted" | "quoted" | "won" | "archived";
 type ReplyStatus = "needs_reply" | "waiting_client" | "client_replied" | "scheduled" | "paused" | "completed";
@@ -240,6 +240,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   const [batchBusy, setBatchBusy] = useState(false);
   const [batchDeleteArmed, setBatchDeleteArmed] = useState(false);
   const [detailInquiryId, setDetailInquiryId] = useState<string | null>(null);
+  const [quickWorkflowPhase, setQuickWorkflowPhase] = useState<WorkflowPhaseKey>("cooperation");
   const [copiedContactId, setCopiedContactId] = useState<string | null>(null);
   const [dashboardNow] = useState(() => new Date().getTime());
   const defaultFollowUpAt = new Date(dashboardNow + 5 * 24 * 60 * 60 * 1000).toISOString();
@@ -365,6 +366,11 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
     setSearch("");
   }
 
+  function openInquiryDetail(inquiry: Inquiry) {
+    setQuickWorkflowPhase(getWorkflowPhaseForAction(inquiry.nextAction)?.key ?? "cooperation");
+    setDetailInquiryId(inquiry.id);
+  }
+
   async function copyContact(inquiry: Inquiry) {
     try {
       await navigator.clipboard.writeText(inquiry.contact);
@@ -454,11 +460,13 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   }
 
   async function markResponded(inquiry: Inquiry) {
+    const responseAction = getActionAfterResponse(inquiry.nextAction);
+    setQuickWorkflowPhase(getWorkflowPhaseForAction(responseAction.value)?.key ?? quickWorkflowPhase);
     await updateInquiryFields(inquiry, {
-      replyStatus: "waiting_client",
+      replyStatus: responseAction.replyStatus,
       lastContactAt: new Date().toISOString(),
-      nextAction: "等待客戶確認",
-      nextFollowUpAt: followUpAfterDays(5),
+      nextAction: responseAction.value,
+      nextFollowUpAt: responseAction.replyStatus === "completed" ? "" : followUpAfterDays(5),
     });
   }
 
@@ -613,7 +621,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
               {scheduledInquiries.map((inquiry) => {
                 const isOverdue = inquiry.nextFollowUpTime !== null && inquiry.nextFollowUpTime < dashboardNow;
                 return (
-                  <button key={inquiry.id} className={isOverdue ? "is-overdue" : ""} type="button" onClick={() => setDetailInquiryId(inquiry.id)}>
+                  <button key={inquiry.id} className={isOverdue ? "is-overdue" : ""} type="button" onClick={() => openInquiryDetail(inquiry)}>
                     <span className="follow-up-time"><strong>{formatTaipeiDateTime(inquiry.nextFollowUpAt)}</strong><small>{isOverdue ? "已逾期" : "已排程"}</small></span>
                     <span className="follow-up-client"><strong>{inquiry.client}</strong><small>{inquiry.company}</small></span>
                     <span className="follow-up-action"><strong>{inquiry.nextAction || "聯絡客戶並確認下一步"}</strong><small>{inquiry.services.slice(0, 2).join("、")}</small></span>
@@ -704,7 +712,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
               <thead><tr><th><input className="selection-checkbox" type="checkbox" checked={allFilteredSelected} onChange={toggleAllFiltered} aria-label="選取目前顯示的全部需求" /></th><th>客戶／品牌</th><th>需求項目</th><th>網站初估</th><th>回覆狀況</th><th>下次追蹤</th><th>案件進度</th><th><span className="sr-only">操作</span></th></tr></thead>
               <tbody>
                 {filteredInquiries.map((inquiry) => (
-                  <tr key={inquiry.id} className={`is-clickable${selectedIds.has(inquiry.id) ? " is-selected" : ""}`} tabIndex={0} role="button" aria-label={`查看 ${inquiry.client} 的需求`} onClick={() => setDetailInquiryId(inquiry.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setDetailInquiryId(inquiry.id); }}>
+                  <tr key={inquiry.id} className={`is-clickable${selectedIds.has(inquiry.id) ? " is-selected" : ""}`} tabIndex={0} role="button" aria-label={`查看 ${inquiry.client} 的需求`} onClick={() => openInquiryDetail(inquiry)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openInquiryDetail(inquiry); }}>
                     <td><input className="selection-checkbox" type="checkbox" checked={selectedIds.has(inquiry.id)} onClick={(event) => event.stopPropagation()} onChange={() => toggleSelection(inquiry.id)} aria-label={`選取 ${inquiry.client} 的需求`} /></td>
                     <td><div className="client-cell"><span className="client-avatar">{inquiry.client.slice(0, 1)}<i className={`priority-dot priority-${inquiry.priority}`} /></span><span><strong>{inquiry.client}</strong><small>{inquiry.company}・{inquiry.relativeTime}</small></span></div></td>
                     <td><div className="service-tags">{inquiry.services.slice(0, 2).map((service) => <span key={service}>{service}</span>)}</div></td>
@@ -712,7 +720,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
                     <td><ReplyStatusBadge status={inquiry.replyStatus} /></td>
                     <td><span className={`follow-up-cell${isInquiryOverdue(inquiry, dashboardNow) ? " is-overdue" : ""}`}><strong>{inquiry.nextFollowUpAt ? formatTaipeiDateTime(inquiry.nextFollowUpAt) : "尚未安排"}</strong><small>{inquiry.nextAction || "設定下一步"}</small></span></td>
                     <td><StatusEditor inquiry={inquiry} updating={updatingStatuses.has(inquiry.id)} onChange={(status) => updateInquiryStatus(inquiry, status)} /></td>
-                    <td><button className="row-view" type="button" onClick={(event) => { event.stopPropagation(); setDetailInquiryId(inquiry.id); }} aria-label={`查看 ${inquiry.client} 的需求`}>查看需求</button></td>
+                    <td><button className="row-view" type="button" onClick={(event) => { event.stopPropagation(); openInquiryDetail(inquiry); }} aria-label={`查看 ${inquiry.client} 的需求`}>查看需求</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -721,7 +729,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
               {filteredInquiries.map((inquiry) => (
                 <article key={inquiry.id} className={`mobile-response-card${selectedIds.has(inquiry.id) ? " is-selected" : ""}`}>
                   <div className="mobile-card-topline"><span className="mobile-card-select"><input className="selection-checkbox" type="checkbox" checked={selectedIds.has(inquiry.id)} onChange={() => toggleSelection(inquiry.id)} aria-label={`選取 ${inquiry.client} 的需求`} /><ReplyStatusBadge status={inquiry.replyStatus} /></span><small>{inquiry.relativeTime}</small></div>
-                  <button className="mobile-card-open" type="button" onClick={() => setDetailInquiryId(inquiry.id)} aria-label={`查看 ${inquiry.client} 的需求`}>
+                  <button className="mobile-card-open" type="button" onClick={() => openInquiryDetail(inquiry)} aria-label={`查看 ${inquiry.client} 的需求`}>
                     <span className="mobile-card-identity"><span className="client-avatar">{inquiry.client.slice(0, 1)}<i className={`priority-dot priority-${inquiry.priority}`} /></span><span><strong>{inquiry.client}</strong><small>{inquiry.company}・{inquiry.id}</small></span><b aria-hidden="true">查看</b></span>
                     <span className="mobile-card-services">{inquiry.services.slice(0, 3).map((service) => <i key={service}>{service}</i>)}</span>
                     <span className="mobile-card-footer"><span><small>下次追蹤</small><strong>{inquiry.nextFollowUpAt ? formatTaipeiDateTime(inquiry.nextFollowUpAt) : "尚未安排"}</strong></span><span><small>案件進度</small><strong>{statusLabels[inquiry.status]}</strong></span></span>
@@ -756,19 +764,44 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
                 {detailInquiry.nextAction && !getWorkflowAction(detailInquiry.nextAction) && <p className="legacy-workflow-action">原本事項：{detailInquiry.nextAction}</p>}
                 <fieldset className="workflow-action-picker">
                   <legend>下一步事項</legend>
-                  {workflowActionGroups.map((group) => (
-                    <div className="workflow-action-group" key={group.label}>
-                      <span className="workflow-action-group-title">{group.label}</span>
+                  <div className="workflow-action-group">
+                    <span className="workflow-action-group-title">需求與報價</span>
+                    <div className="workflow-action-options">
+                      {quoteWorkflowActions.map((action) => (
+                        <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
+                          <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={(getWorkflowAction(detailInquiry.nextAction)?.value ?? defaultWorkflowAction.value) === action.value} />
+                          <span><strong>{action.label}</strong><small>{action.helper}</small></span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="workflow-action-group production-workflow-group">
+                    <span className="workflow-action-group-title">合作與製作</span>
+                    <div className="workflow-phase-tabs" role="tablist" aria-label="合作與製作階段">
+                      {productionWorkflowPhases.map((phase) => <button className={quickWorkflowPhase === phase.key ? "is-active" : ""} type="button" role="tab" aria-selected={quickWorkflowPhase === phase.key} key={phase.key} onClick={() => setQuickWorkflowPhase(phase.key)}>{phase.label}</button>)}
+                    </div>
+                    <div className="workflow-phase-panel" role="tabpanel">
                       <div className="workflow-action-options">
-                        {group.actions.map((action) => (
+                        {productionWorkflowPhases.find((phase) => phase.key === quickWorkflowPhase)?.actions.map((action) => (
                           <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
-                            <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={(getWorkflowAction(detailInquiry.nextAction)?.value ?? defaultWorkflowAction.value) === action.value} />
+                            <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={getWorkflowAction(detailInquiry.nextAction)?.value === action.value} />
                             <span><strong>{action.label}</strong><small>{action.helper}</small></span>
                           </label>
                         ))}
                       </div>
                     </div>
-                  ))}
+                  </div>
+                  <div className="workflow-action-group">
+                    <span className="workflow-action-group-title">完成或暫停</span>
+                    <div className="workflow-action-options">
+                      {closingWorkflowActions.map((action) => (
+                        <label className="workflow-action-option" htmlFor={`workflow-${detailInquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
+                          <input id={`workflow-${detailInquiry.id}-${action.value}`} type="radio" name="nextAction" value={action.value} defaultChecked={getWorkflowAction(detailInquiry.nextAction)?.value === action.value} />
+                          <span><strong>{action.label}</strong><small>{action.helper}</small></span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 </fieldset>
                 <fieldset className="follow-up-preset-picker">
                   <legend>下次追蹤</legend>
@@ -806,7 +839,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
                   <h3>這位客戶的歷史需求</h3>
                   <div className="client-history-list">
                     {relatedInquiries.slice(0, 5).map((inquiry) => (
-                      <button key={inquiry.id} type="button" onClick={() => setDetailInquiryId(inquiry.id)}>
+                      <button key={inquiry.id} type="button" onClick={() => openInquiryDetail(inquiry)}>
                         <span><strong>{inquiry.services.slice(0, 2).join("、") || inquiry.projectType}</strong><small>{inquiry.submittedAt}</small></span>
                         <ReplyStatusBadge status={inquiry.replyStatus} />
                       </button>

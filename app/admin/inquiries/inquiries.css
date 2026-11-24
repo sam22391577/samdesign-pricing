@@ -704,6 +704,50 @@
   font-weight: 750;
 }
 
+.production-workflow-group {
+  padding: 12px;
+  border: 1px solid rgba(90, 72, 57, .13);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .4);
+}
+
+.workflow-phase-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.workflow-phase-tabs > button {
+  min-height: 39px;
+  padding: 7px 9px;
+  border: 1px solid rgba(90, 72, 57, .17);
+  border-radius: 8px;
+  color: #695d54;
+  background: var(--admin-paper);
+  font-size: .8125rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.workflow-phase-tabs > button.is-active {
+  border-color: #647469;
+  color: #405144;
+  background: #dfe8e0;
+  box-shadow: inset 0 0 0 1px rgba(78, 98, 82, .14);
+}
+
+.workflow-phase-tabs > button:focus-visible {
+  outline: 3px solid rgba(82, 106, 88, .2);
+  outline-offset: 2px;
+}
+
+.workflow-phase-panel {
+  margin-top: 8px;
+  padding: 9px;
+  border-radius: 9px;
+  background: rgba(245, 248, 245, .82);
+}
+
 .workflow-action-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -927,6 +971,14 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.record-workflow-action-picker .workflow-phase-tabs {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.record-workflow-action-picker .workflow-phase-panel .workflow-action-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .record-follow-up-picker .follow-up-preset-options {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
@@ -996,6 +1048,8 @@
   .record-workflow-grid { grid-template-columns: 1fr; }
   .record-workflow-grid .record-next-action { grid-column: auto; }
   .record-workflow-action-picker .workflow-action-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .record-workflow-action-picker .workflow-phase-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .record-workflow-action-picker .workflow-phase-panel .workflow-action-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .record-follow-up-picker .follow-up-preset-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .quick-workflow-actions, .record-workflow-actions { grid-template-columns: 1fr; }
 }

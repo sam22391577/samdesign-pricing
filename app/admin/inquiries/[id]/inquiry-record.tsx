@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { compactInquirySummary } from "../compact-summary";
-import { defaultWorkflowAction, followUpAfterDays, followUpPresets, getWorkflowAction, workflowActionGroups } from "../workflow-options";
+import { closingWorkflowActions, defaultWorkflowAction, followUpAfterDays, followUpPresets, getActionAfterResponse, getWorkflowAction, getWorkflowPhaseForAction, productionWorkflowPhases, quoteWorkflowActions, type WorkflowPhaseKey } from "../workflow-options";
 
 type InquiryStatus = "new" | "contacted" | "quoted" | "won" | "archived";
 type ReplyStatus = "needs_reply" | "waiting_client" | "client_replied" | "scheduled" | "paused" | "completed";
@@ -123,6 +123,7 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
   const [deleting, setDeleting] = useState(false);
   const [contactCopied, setContactCopied] = useState(false);
   const [selectedFollowUpPreset, setSelectedFollowUpPreset] = useState("current");
+  const [selectedWorkflowPhase, setSelectedWorkflowPhase] = useState<WorkflowPhaseKey>("cooperation");
   const [defaultFollowUpAt] = useState(() => new Date(new Date().getTime() + 5 * 24 * 60 * 60 * 1000).toISOString());
 
   useEffect(() => {
@@ -134,7 +135,10 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
         return payload.inquiry;
       })
       .then((record) => {
-        if (!cancelled) setInquiry(record.nextAction ? record : { ...record, nextAction: defaultWorkflowAction.value, replyStatus: defaultWorkflowAction.replyStatus });
+        if (cancelled) return;
+        const normalizedRecord = record.nextAction ? record : { ...record, nextAction: defaultWorkflowAction.value, replyStatus: defaultWorkflowAction.replyStatus };
+        setInquiry(normalizedRecord);
+        setSelectedWorkflowPhase(getWorkflowPhaseForAction(normalizedRecord.nextAction)?.key ?? "cooperation");
       })
       .catch((error) => { if (!cancelled) setMessage(error instanceof Error ? error.message : "無法讀取這筆需求。"); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -168,12 +172,15 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
   }
 
   async function markResponded() {
+    if (!inquiry) return;
+    const responseAction = getActionAfterResponse(inquiry.nextAction);
     setSelectedFollowUpPreset("5");
+    setSelectedWorkflowPhase(getWorkflowPhaseForAction(responseAction.value)?.key ?? selectedWorkflowPhase);
     await savePatch({
-      replyStatus: "waiting_client",
+      replyStatus: responseAction.replyStatus,
       lastContactAt: new Date().toISOString(),
-      nextAction: "等待客戶確認",
-      nextFollowUpAt: followUpAfterDays(5),
+      nextAction: responseAction.value,
+      nextFollowUpAt: responseAction.replyStatus === "completed" ? null : followUpAfterDays(5),
     });
   }
 
@@ -181,6 +188,8 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
     if (!inquiry) return;
     const action = getWorkflowAction(value);
     if (!action) return;
+    const phase = getWorkflowPhaseForAction(action.value);
+    if (phase) setSelectedWorkflowPhase(phase.key);
     setInquiry({ ...inquiry, nextAction: action.value, replyStatus: action.replyStatus });
   }
 
@@ -290,11 +299,25 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
               {inquiry.nextAction && !getWorkflowAction(inquiry.nextAction) && <p className="legacy-workflow-action">原本事項：{inquiry.nextAction}</p>}
               <fieldset className="workflow-action-picker record-workflow-action-picker">
                 <legend>下一步事項</legend>
-                {workflowActionGroups.map((group) => (
-                  <div className="workflow-action-group" key={group.label}>
-                    <span className="workflow-action-group-title">{group.label}</span>
+                <div className="workflow-action-group">
+                  <span className="workflow-action-group-title">需求與報價</span>
+                  <div className="workflow-action-options">
+                    {quoteWorkflowActions.map((action) => (
+                      <label className="workflow-action-option" htmlFor={`record-workflow-${inquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
+                        <input id={`record-workflow-${inquiry.id}-${action.value}`} type="radio" name="recordNextAction" value={action.value} checked={inquiry.nextAction === action.value} onChange={() => selectWorkflowAction(action.value)} />
+                        <span><strong>{action.label}</strong><small>{action.helper}</small></span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="workflow-action-group production-workflow-group">
+                  <span className="workflow-action-group-title">合作與製作</span>
+                  <div className="workflow-phase-tabs" role="tablist" aria-label="合作與製作階段">
+                    {productionWorkflowPhases.map((phase) => <button className={selectedWorkflowPhase === phase.key ? "is-active" : ""} type="button" role="tab" aria-selected={selectedWorkflowPhase === phase.key} key={phase.key} onClick={() => setSelectedWorkflowPhase(phase.key)}>{phase.label}</button>)}
+                  </div>
+                  <div className="workflow-phase-panel" role="tabpanel">
                     <div className="workflow-action-options">
-                      {group.actions.map((action) => (
+                      {productionWorkflowPhases.find((phase) => phase.key === selectedWorkflowPhase)?.actions.map((action) => (
                         <label className="workflow-action-option" htmlFor={`record-workflow-${inquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
                           <input id={`record-workflow-${inquiry.id}-${action.value}`} type="radio" name="recordNextAction" value={action.value} checked={inquiry.nextAction === action.value} onChange={() => selectWorkflowAction(action.value)} />
                           <span><strong>{action.label}</strong><small>{action.helper}</small></span>
@@ -302,7 +325,18 @@ export default function InquiryRecord({ inquiryId, displayName }: { inquiryId: s
                       ))}
                     </div>
                   </div>
-                ))}
+                </div>
+                <div className="workflow-action-group">
+                  <span className="workflow-action-group-title">完成或暫停</span>
+                  <div className="workflow-action-options">
+                    {closingWorkflowActions.map((action) => (
+                      <label className="workflow-action-option" htmlFor={`record-workflow-${inquiry.id}-${action.value}`} aria-label={action.label} key={action.value}>
+                        <input id={`record-workflow-${inquiry.id}-${action.value}`} type="radio" name="recordNextAction" value={action.value} checked={inquiry.nextAction === action.value} onChange={() => selectWorkflowAction(action.value)} />
+                        <span><strong>{action.label}</strong><small>{action.helper}</small></span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </fieldset>
               <fieldset className="follow-up-preset-picker record-follow-up-picker">
                 <legend>下次追蹤</legend>
