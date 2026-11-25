@@ -88,6 +88,12 @@ const filters: Array<{ key: StatusView; label: string }> = [
   { key: "done", label: "已完成" },
 ];
 
+const manualServiceGroups = [
+  { label: "電商／社群", services: ["網站橫幅／活動主視覺", "IG／FB 社群圖文", "影片封面／YouTube 縮圖", "商品主圖套版"] },
+  { label: "平面印刷", services: ["活動／促銷海報", "傳單／宣傳單", "菜單設計", "名片／會員卡"] },
+  { label: "其他設計", services: ["Resize", "修圖／去背", "簡報／版型模板"] },
+];
+
 const dateFilterLabels: Record<DateFilter, string> = {
   all: "不限時間",
   today: "今天收到",
@@ -229,6 +235,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   const [createCustomerOpen, setCreateCustomerOpen] = useState(false);
   const [creatingCustomer, setCreatingCustomer] = useState(false);
   const [createCustomerError, setCreateCustomerError] = useState("");
+  const [manualServices, setManualServices] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [loadError, setLoadError] = useState("");
   const [updatingStatuses, setUpdatingStatuses] = useState<Set<string>>(() => new Set());
@@ -278,7 +285,10 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
     function closeQuickDetail(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setDetailInquiryId(null);
-        if (!creatingCustomer) setCreateCustomerOpen(false);
+        if (!creatingCustomer) {
+          setCreateCustomerOpen(false);
+          setManualServices([]);
+        }
       }
     }
     window.addEventListener("keydown", closeQuickDetail);
@@ -420,7 +430,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
           estimateLow,
           estimateHigh,
           budget,
-          services: ["需求待確認"],
+          services: manualServices.length > 0 ? manualServices : ["需求待確認"],
           summary: initialNeed ? [`初步需求：${initialNeed}`] : [],
         }),
       });
@@ -430,6 +440,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
       setInquiries((current) => [createdInquiry, ...current]);
       setActiveFilter("todo");
       setCreateCustomerOpen(false);
+      setManualServices([]);
       setQuickWorkflowOpen(false);
       setQuickDateOpen(false);
       setDetailInquiryId(createdInquiry.id);
@@ -439,6 +450,14 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
     } finally {
       setCreatingCustomer(false);
     }
+  }
+
+  function toggleManualService(service: string) {
+    setManualServices((current) => {
+      if (service === "需求待確認") return current.includes(service) ? [] : [service];
+      if (current.includes(service)) return current.filter((item) => item !== service);
+      return [...current.filter((item) => item !== "需求待確認"), service];
+    });
   }
 
   function exportCsv() {
@@ -807,11 +826,11 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
 
       {createCustomerOpen && (
         <div className="create-customer-layer">
-          <button className="create-customer-backdrop" type="button" disabled={creatingCustomer} onClick={() => setCreateCustomerOpen(false)} aria-label="關閉新增客戶表單" />
+          <button className="create-customer-backdrop" type="button" disabled={creatingCustomer} onClick={() => { setCreateCustomerOpen(false); setManualServices([]); }} aria-label="關閉新增客戶表單" />
           <section className="create-customer-dialog" role="dialog" aria-modal="true" aria-labelledby="create-customer-title">
             <header>
               <div><span>客戶與需求</span><h2 id="create-customer-title">新增客戶</h2></div>
-              <button type="button" disabled={creatingCustomer} onClick={() => setCreateCustomerOpen(false)} aria-label="關閉新增客戶表單">×</button>
+              <button type="button" disabled={creatingCustomer} onClick={() => { setCreateCustomerOpen(false); setManualServices([]); }} aria-label="關閉新增客戶表單">×</button>
             </header>
             <form onSubmit={(event) => { void createManualCustomer(event); }}>
               <p>先建立基本資料，其他需求與排程可之後再補充。</p>
@@ -819,6 +838,28 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
               <label><span>聯絡方式 *</span><input name="contact" required maxLength={180} placeholder="LINE、電話或 Email" /></label>
               <label><span>品牌／公司</span><input name="company" maxLength={120} placeholder="可留空" /></label>
               <label><span>合作方式</span><select name="projectType" defaultValue="尚未確認"><option value="尚未確認">尚未確認</option><option value="單次設計">單次設計</option><option value="月方案">月方案</option></select></label>
+              <fieldset className="create-customer-services">
+                <legend><span>服務項目</span><small>可複選</small></legend>
+                <p>先選大致項目即可，數量與規格可之後補充。</p>
+                {manualServiceGroups.map((group) => (
+                  <div className="create-customer-service-group" key={group.label}>
+                    <strong>{group.label}</strong>
+                    <div className="create-customer-service-options">
+                      {group.services.map((service) => (
+                        <label className={`create-customer-service-option${manualServices.includes(service) ? " is-selected" : ""}`} key={service}>
+                          <input type="checkbox" name="services" value={service} checked={manualServices.includes(service)} onChange={() => toggleManualService(service)} />
+                          <span>{service}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <label className={`create-customer-service-option create-customer-service-pending${manualServices.includes("需求待確認") ? " is-selected" : ""}`}>
+                  <input type="checkbox" name="services" value="需求待確認" checked={manualServices.includes("需求待確認")} onChange={() => toggleManualService("需求待確認")} />
+                  <span>需求待確認</span>
+                </label>
+                <small>若未勾選，建立後也會自動記錄為「需求待確認」。</small>
+              </fieldset>
               <div className="create-customer-money-fields">
                 <label><span>初估最低</span><input name="estimateLow" type="number" inputMode="numeric" min="0" step="100" placeholder="可留空" /></label>
                 <label><span>初估最高</span><input name="estimateHigh" type="number" inputMode="numeric" min="0" step="100" placeholder="可留空" /></label>
@@ -826,7 +867,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
               <label><span>客戶預算</span><input name="budget" type="number" inputMode="numeric" min="0" step="100" placeholder="可留空" /></label>
               <label><span>初步需求</span><textarea name="initialNeed" rows={4} maxLength={500} placeholder="簡單記錄客戶想製作的項目，可留空" /></label>
               {createCustomerError && <div className="create-customer-error" role="status">{createCustomerError}</div>}
-              <div className="create-customer-actions"><button type="button" disabled={creatingCustomer} onClick={() => setCreateCustomerOpen(false)}>取消</button><button type="submit" disabled={creatingCustomer}>{creatingCustomer ? "新增中…" : "建立客戶"}</button></div>
+              <div className="create-customer-actions"><button type="button" disabled={creatingCustomer} onClick={() => { setCreateCustomerOpen(false); setManualServices([]); }}>取消</button><button type="submit" disabled={creatingCustomer}>{creatingCustomer ? "新增中…" : "建立客戶"}</button></div>
             </form>
           </section>
         </div>

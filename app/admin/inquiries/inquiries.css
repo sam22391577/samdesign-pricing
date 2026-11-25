@@ -321,7 +321,7 @@
 
 .create-customer-dialog {
   position: relative;
-  width: min(100%, 510px);
+  width: min(100%, 640px);
   max-height: min(760px, calc(100vh - 48px));
   overflow-y: auto;
   border: 1px solid var(--admin-line);
@@ -354,6 +354,22 @@
 .create-customer-dialog input,
 .create-customer-dialog select { min-height: 43px; }
 .create-customer-dialog textarea { resize: vertical; line-height: 1.6; }
+.create-customer-services { display: grid; margin: 0; padding: 15px; gap: 13px; border: 1px solid var(--admin-line); border-radius: 11px; background: #faf8f5; }
+.create-customer-services legend { display: flex; padding: 0 6px; align-items: center; gap: 8px; color: #61564d; font-size: .875rem; font-weight: 750; }
+.create-customer-services legend small { color: var(--admin-muted); font-size: .75rem; font-weight: 650; }
+.create-customer-services > p { margin: -3px 0 0; color: var(--admin-muted); font-size: .8125rem; line-height: 1.55; }
+.create-customer-services > small { color: var(--admin-muted); font-size: .75rem; line-height: 1.5; }
+.create-customer-service-group { display: grid; gap: 7px; }
+.create-customer-service-group > strong { color: #74685e; font-size: .8125rem; }
+.create-customer-service-options { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.create-customer-dialog .create-customer-service-option { position: relative; display: block; cursor: pointer; }
+.create-customer-dialog .create-customer-service-option input { position: absolute; width: 1px; height: 1px; min-height: 0; padding: 0; opacity: 0; pointer-events: none; }
+.create-customer-dialog .create-customer-service-option > span { display: flex; min-height: 42px; padding: 9px 11px; align-items: center; gap: 8px; border: 1px solid #ded8cf; border-radius: 8px; color: #635950; background: #fff; font-size: .8125rem; font-weight: 700; line-height: 1.35; }
+.create-customer-dialog .create-customer-service-option > span::before { content: ""; width: 15px; height: 15px; flex: 0 0 auto; border: 1px solid #b9b1a7; border-radius: 4px; background: #fff; }
+.create-customer-dialog .create-customer-service-option.is-selected > span { border-color: #788c7d; color: #3f5245; background: #edf2ee; }
+.create-customer-dialog .create-customer-service-option.is-selected > span::before { content: "✓"; display: grid; place-items: center; color: #fff; border-color: #617566; background: #617566; font-size: .6875rem; font-weight: 800; }
+.create-customer-dialog .create-customer-service-option input:focus-visible + span { border-color: #7f9184; box-shadow: 0 0 0 3px rgba(82, 106, 88, .11); }
+.create-customer-service-pending { width: min(100%, 230px); }
 .create-customer-money-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .create-customer-dialog input:focus,
 .create-customer-dialog select:focus,
@@ -1240,6 +1256,7 @@
   .create-customer-dialog { max-height: calc(100vh - 24px); border-radius: 13px; }
   .create-customer-dialog > header { padding: 0 17px; }
   .create-customer-dialog > form { padding: 17px; }
+  .create-customer-service-options { grid-template-columns: 1fr; }
   .create-customer-money-fields { grid-template-columns: 1fr; }
   .admin-header { display: block; }
   .header-actions { margin-top: 18px; }
