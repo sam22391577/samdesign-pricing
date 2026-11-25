@@ -88,6 +88,8 @@ const filters: Array<{ key: StatusView; label: string }> = [
   { key: "done", label: "已完成" },
 ];
 
+const publicPricingUrl = "https://sam22391577.github.io/samdesign-pricing/calculator/";
+
 const manualServiceGroups = [
   { label: "電商／社群", services: ["網站橫幅／活動主視覺", "IG／FB 社群圖文", "影片封面／YouTube 縮圖", "商品主圖套版"] },
   { label: "平面印刷", services: ["活動／促銷海報", "傳單／宣傳單", "菜單設計", "名片／會員卡"] },
@@ -634,7 +636,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
   return (
     <main className="inquiry-app">
       <aside className="inquiry-sidebar">
-        <a className="admin-brand" href="/" aria-label="返回 Sam Design Studio 首頁">
+        <a className="admin-brand" href={publicPricingUrl} aria-label="返回 Sam Design Studio 試算網站">
           <span className="admin-brand-mark">S</span>
           <span><strong>SAM</strong><small>STUDIO CONSOLE</small></span>
         </a>
@@ -644,7 +646,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
           <a className="nav-item is-active" href="/admin/inquiries"><span aria-hidden="true">▤</span> 客戶需求 <b>{needsReplyCount}</b></a>
           <a className="nav-item" href="#schedule"><span aria-hidden="true">◫</span> 今日排程</a>
           <span className="nav-label">管理</span>
-          <a className="nav-item" href="/"><span aria-hidden="true">⌁</span> 前台試算</a>
+          <a className="nav-item" href={publicPricingUrl} target="_blank" rel="noreferrer"><span aria-hidden="true">⌁</span> 前台試算</a>
         </nav>
 
         <div className="admin-profile">
@@ -667,7 +669,7 @@ export default function InquiryDashboard({ displayName, previewMode }: { display
               <input ref={searchInputRef} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜尋姓名、品牌或需求…" />
               <kbd>⌘ K</kbd>
             </label>
-            <a className="primary-admin-button" href="/" target="_blank">開啟前台試算</a>
+            <a className="primary-admin-button" href={publicPricingUrl} target="_blank" rel="noreferrer">開啟前台試算</a>
           </div>
         </header>
 
