@@ -238,7 +238,7 @@ test("original pricing homepage links to the calculator page", async () => {
   assert.match(html, /單次委託累計 10 張以上享 9\.5 折優惠，可包含多篇貼文/);
   assert.doesNotMatch(html, /同篇貼文同風格延伸[\s\S]*?\+\$150～\$300/);
   assert.doesNotMatch(html, /FB\s*[／/]\s*IG 社群圖/);
-  assert.match(html, /<h3>傳單／DM<\/h3>[\s\S]*?1,200～3,000[\s\S]*?基本設計（第 1 面／頁）/);
+  assert.match(html, /<h3>傳單／DM<\/h3>[\s\S]*?1,200～3,000[\s\S]*?首版（第 1 頁）/);
   assert.doesNotMatch(html, /<h3>傳單<\/h3>|<h3>DM<\/h3>/);
   assert.match(html, /<h3>名片／會員卡<\/h3>[\s\S]*?個人名片、品牌名片與會員卡/);
   assert.match(html, /依現有設計延伸不同使用尺寸/);
@@ -247,8 +247,8 @@ test("original pricing homepage links to the calculator page", async () => {
   assert.doesNotMatch(html, /原始編輯檔/);
   assert.match(html, /<h3>傳單／DM<\/h3>[\s\S]*?第 2 頁起[\s\S]*?600～800[\s\S]*?\/ 頁/);
   assert.match(html, /<h3>菜單<\/h3>[\s\S]*?第 2 頁起[\s\S]*?600～800[\s\S]*?\/ 頁/);
-  assert.equal(html.match(/首版（第 1 頁）/g)?.length, 1);
-  assert.equal(html.match(/基本設計（第 1 面／頁）/g)?.length, 1);
+  assert.equal(html.match(/首版（第 1 頁）/g)?.length, 2);
+  assert.doesNotMatch(html, /基本設計（第 1 面／頁）/);
   assert.equal(html.match(/第 2 頁起/g)?.length, 2);
   assert.doesNotMatch(html, /傳單\/DM\/菜單|同系列第二張起/);
   assert.doesNotMatch(html, /急件[^。]*加價|2 個工作天內/);
@@ -692,12 +692,26 @@ test("service choices show the website prices before selection", async () => {
   assert.match(source, /service\.id === "product-frame"/);
   assert.match(source, /圖框含 1 項產品，每追加 1 項產品／\+\$70/);
   assert.match(source, /service\.id === "dm" \|\| service\.id === "menu"/);
+  assert.match(source, /const firstUnitLabel = "首版（第 1 頁）"/);
+  assert.doesNotMatch(source, /基本設計（第 1 面／頁）/);
   assert.match(source, /第 2 頁起 \$\{formatPriceRange\(600, 800\)\}／頁/);
   assert.match(source, /detail=\{item\.description\}/);
   assert.match(source, /price=\{getServiceDisplayPrice\(item\)\}/);
   assert.match(source, /<em className="choice-price">\{price\}<\/em>/);
   assert.doesNotMatch(source, /網站價格｜\{price\}|同系列第 2 頁起/);
   assert.match(css, /\.choice \.choice-price/);
+});
+
+test("flyer and menu use the same first-page pricing label", async () => {
+  const [homepage, source] = await Promise.all([
+    readFile(new URL("../public/index.html", import.meta.url), "utf8"),
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(homepage, /<h3>傳單／DM<\/h3>[\s\S]*?首版（第 1 頁）/);
+  assert.match(homepage, /<h3>菜單<\/h3>[\s\S]*?首版（第 1 頁）/);
+  assert.doesNotMatch(homepage, /基本設計（第 1 面／頁）/);
+  assert.match(source, /const firstUnitLabel = "首版（第 1 頁）"/);
 });
 
 test("the combined flyer and DM service supports single, double, folded, and multipage pricing", async () => {

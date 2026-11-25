@@ -1619,7 +1619,7 @@ function getServiceDisplayPrice(service: Service) {
     return `${formatPriceRange(service.low, service.high)}／版｜圖框含 1 項產品，每追加 1 項產品／+$70`;
   }
   if (service.id === "dm" || service.id === "menu") {
-    const firstUnitLabel = service.id === "dm" ? "基本設計（第 1 面／頁）" : "首版（第 1 頁）";
+    const firstUnitLabel = "首版（第 1 頁）";
     return `${formatPriceRange(service.low, service.high)}／${firstUnitLabel}｜第 2 頁起 ${formatPriceRange(600, 800)}／頁`;
   }
   if (service.id === "card") {
