@@ -30,7 +30,8 @@ test("price site keeps print guidance inside one notes section", async () => {
   assert.match(notesSection, /以上報價僅為初估，實際收費以了解需求後之正式報價單為準/);
   assert.match(notesSection, /單次設計每案包含 3 次細節修改/);
   assert.match(notesSection, /如需協助整理文案、處理圖片或準備素材，相關費用將於正式報價前確認/);
-  assert.match(notesSection, /依基本設計費的 50% 計費，網站主視覺延伸不計入原始檔費用/);
+  assert.match(notesSection, /單次服務如需加購，依基本設計費的 50% 計費；月方案另行確認/);
+  assert.doesNotMatch(notesSection, /網站主視覺延伸不計入原始檔費用/);
   assert.match(notesSection, /產品圖框的原始檔價格僅含第一版（不含追加產品）/);
   assert.match(notesSection, /如需代辦印刷，代辦服務費為該項設計費 15%/);
   assert.match(notesSection, /印刷品及運送產生的費用採實報實銷/);
@@ -40,6 +41,14 @@ test("price site keeps print guidance inside one notes section", async () => {
   assert.match(source, /單次服務每案、月方案每組皆包含 3 次細節修改/);
   assert.doesNotMatch(source, /下一次另行委託的延伸設計可討論以 8 折報價/);
   assert.equal((source.match(/class="category-note reveal"/g) ?? []).length, 1);
+});
+
+test("pricing notes omit the banner source-file exclusion", async () => {
+  const source = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+  const notesSection = source.match(/<div class="category-note reveal" data-category="ecommerce print other"[\s\S]*?<\/ul>\s*<\/div>/)?.[0] ?? "";
+
+  assert.match(notesSection, /單次服務如需加購，依基本設計費的 50% 計費；月方案另行確認/);
+  assert.doesNotMatch(notesSection, /網站主視覺延伸不計入原始檔費用/);
 });
 
 async function render() {
