@@ -221,7 +221,7 @@ function StatusEditor({ inquiry, updating, onChange }: { inquiry: Inquiry; updat
 export default function InquiryDashboard({ displayName, previewMode }: { displayName: string; previewMode: boolean }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [inquiries, setInquiries] = useState<Inquiry[]>(() => previewMode ? sampleInquiries : []);
-  const [activeFilter, setActiveFilter] = useState<StatusView>("todo");
+  const [activeFilter, setActiveFilter] = useState<StatusView>("all");
   const [projectFilter, setProjectFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState<"all" | Priority>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
